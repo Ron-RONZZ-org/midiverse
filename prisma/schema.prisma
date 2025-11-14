@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  markmaps       Markmap[]
+  viewHistory    ViewHistory[]
+  interactions   Interaction[]
+}
+
+model Markmap {
+  id                  String   @id @default(uuid())
+  title               String
+  text                String
+  language            String?
+  topic               String?
+  maxWidth            Int      @default(0)
+  colorFreezeLevel    Int      @default(0)
+  initialExpandLevel  Int      @default(-1)
+  isPublic            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  authorId      String?
+  author        User?         @relation(fields: [authorId], references: [id])
+  viewHistory   ViewHistory[]
+  interactions  Interaction[]
+
+  @@index([authorId])
+  @@index([isPublic])
+  @@index([language])
+  @@index([topic])
+}
+
+model ViewHistory {
+  id         String   @id @default(uuid())
+  viewedAt   DateTime @default(now())
+
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  markmapId  String
+  markmap    Markmap  @relation(fields: [markmapId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([markmapId])
+}
+
+model Interaction {
+  id            String   @id @default(uuid())
+  type          String   // e.g., "expand", "collapse", "search"
+  metadata      Json?
+  interactedAt  DateTime @default(now())
+
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  markmapId     String
+  markmap       Markmap  @relation(fields: [markmapId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([markmapId])
+}

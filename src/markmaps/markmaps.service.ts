@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMarkmapDto } from './dto/create-markmap.dto';
 import { UpdateMarkmapDto } from './dto/update-markmap.dto';
@@ -113,7 +117,21 @@ export class MarkmapsService {
   }
 
   async search(searchDto: SearchMarkmapDto, userId?: string) {
-    const where: any = { isPublic: true };
+    interface WhereCondition {
+      isPublic?: boolean;
+      language?: string;
+      topic?: string;
+      OR?: Array<{
+        title?: { contains: string; mode: 'insensitive' };
+        text?: { contains: string; mode: 'insensitive' };
+        authorId?: string;
+        isPublic?: boolean;
+        language?: string;
+        topic?: string;
+      }>;
+    }
+
+    const where: WhereCondition = { isPublic: true };
 
     if (searchDto.language) {
       where.language = searchDto.language;
@@ -132,10 +150,7 @@ export class MarkmapsService {
 
     // If user is logged in, also include their private markmaps
     if (userId) {
-      where.OR = [
-        { ...where },
-        { authorId: userId },
-      ];
+      where.OR = [{ ...where }, { authorId: userId }];
       delete where.isPublic;
     }
 

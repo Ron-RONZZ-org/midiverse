@@ -11,6 +11,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { MarkmapsService } from './markmaps.service';
 import { CreateMarkmapDto } from './dto/create-markmap.dto';
 import { UpdateMarkmapDto } from './dto/update-markmap.dto';
@@ -18,6 +19,11 @@ import { SearchMarkmapDto } from './dto/search-markmap.dto';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { UserFromToken } from '../common/interfaces/auth.interface';
+
+interface RequestWithUser extends Request {
+  user?: UserFromToken;
+}
 
 @Controller('markmaps')
 export class MarkmapsController {
@@ -27,25 +33,28 @@ export class MarkmapsController {
   @UseGuards(JwtAuthGuard)
   create(
     @Body(ValidationPipe) createMarkmapDto: CreateMarkmapDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserFromToken,
   ) {
     return this.markmapsService.create(createMarkmapDto, user.id);
   }
 
   @Get()
-  findAll(@Req() req: any) {
+  findAll(@Req() req: RequestWithUser) {
     const userId = req.user?.id;
     return this.markmapsService.findAll(userId);
   }
 
   @Get('search')
-  search(@Query(ValidationPipe) searchDto: SearchMarkmapDto, @Req() req: any) {
+  search(
+    @Query(ValidationPipe) searchDto: SearchMarkmapDto,
+    @Req() req: RequestWithUser,
+  ) {
     const userId = req.user?.id;
     return this.markmapsService.search(searchDto, userId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Req() req: any) {
+  findOne(@Param('id') id: string, @Req() req: RequestWithUser) {
     const userId = req.user?.id;
     return this.markmapsService.findOne(id, userId);
   }
@@ -55,14 +64,14 @@ export class MarkmapsController {
   update(
     @Param('id') id: string,
     @Body(ValidationPipe) updateMarkmapDto: UpdateMarkmapDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UserFromToken,
   ) {
     return this.markmapsService.update(id, updateMarkmapDto, user.id);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  remove(@Param('id') id: string, @CurrentUser() user: any) {
+  remove(@Param('id') id: string, @CurrentUser() user: UserFromToken) {
     return this.markmapsService.remove(id, user.id);
   }
 
@@ -70,9 +79,13 @@ export class MarkmapsController {
   createInteraction(
     @Param('id') id: string,
     @Body(ValidationPipe) createInteractionDto: CreateInteractionDto,
-    @Req() req: any,
+    @Req() req: RequestWithUser,
   ) {
     const userId = req.user?.id;
-    return this.markmapsService.createInteraction(id, createInteractionDto, userId);
+    return this.markmapsService.createInteraction(
+      id,
+      createInteractionDto,
+      userId,
+    );
   }
 }

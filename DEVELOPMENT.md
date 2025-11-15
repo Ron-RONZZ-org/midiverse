@@ -18,6 +18,8 @@
    ```bash
    npm install
    ```
+   
+   Note: This automatically runs `prisma generate` to create the Prisma Client.
 
 3. **Configure environment variables**
    
@@ -35,11 +37,6 @@
 
 4. **Set up the database**
    
-   Generate Prisma Client:
-   ```bash
-   npx prisma generate
-   ```
-   
    Run database migrations:
    ```bash
    npx prisma migrate dev --name init
@@ -49,6 +46,8 @@
    ```bash
    npx prisma db seed
    ```
+   
+   Note: `prisma generate` is automatically run after `npm install`, so you don't need to run it manually unless you modify the schema.
 
 ## Running the Application
 
@@ -235,7 +234,8 @@ getProtectedData(@CurrentUser() user: UserFromToken) {
 - Verify database credentials
 
 ### Prisma Client errors
-- Run `npx prisma generate` to regenerate the client
+- The Prisma Client is automatically generated after `npm install`
+- If you modify the schema, run `npx prisma generate` to regenerate the client
 - Ensure migrations are up to date with `npx prisma migrate dev`
 
 ### Build errors

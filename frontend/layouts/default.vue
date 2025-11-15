@@ -8,7 +8,7 @@
           <NuxtLink to="/search">Search</NuxtLink>
           <template v-if="isAuthenticated">
             <NuxtLink to="/editor">Create</NuxtLink>
-            <NuxtLink to="/profile">Profile</NuxtLink>
+            <NuxtLink to="/profile" class="btn">Dashboard</NuxtLink>
             <button @click="handleLogout" class="btn btn-secondary">Logout</button>
           </template>
           <template v-else>

@@ -75,6 +75,18 @@ export class MarkmapsController {
     return this.markmapsService.remove(id, user.id);
   }
 
+  @Post(':id/duplicate')
+  @UseGuards(JwtAuthGuard)
+  duplicate(@Param('id') id: string, @CurrentUser() user: UserFromToken) {
+    return this.markmapsService.duplicate(id, user.id);
+  }
+
+  @Post(':id/restore')
+  @UseGuards(JwtAuthGuard)
+  restore(@Param('id') id: string, @CurrentUser() user: UserFromToken) {
+    return this.markmapsService.restore(id, user.id);
+  }
+
   @Post(':id/interactions')
   createInteraction(
     @Param('id') id: string,

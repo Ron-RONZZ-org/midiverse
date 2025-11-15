@@ -29,8 +29,8 @@ export class MarkmapsService {
 
   async findAll(userId?: string) {
     const where = userId
-      ? { OR: [{ isPublic: true }, { authorId: userId }] }
-      : { isPublic: true };
+      ? { OR: [{ isPublic: true, deletedAt: null }, { authorId: userId, deletedAt: null }] }
+      : { isPublic: true, deletedAt: null };
 
     return this.prisma.markmap.findMany({
       where,
@@ -53,7 +53,7 @@ export class MarkmapsService {
       },
     });
 
-    if (!markmap) {
+    if (!markmap || markmap.deletedAt) {
       throw new NotFoundException('Markmap not found');
     }
 
@@ -79,7 +79,7 @@ export class MarkmapsService {
       where: { id },
     });
 
-    if (!markmap) {
+    if (!markmap || markmap.deletedAt) {
       throw new NotFoundException('Markmap not found');
     }
 
@@ -103,7 +103,7 @@ export class MarkmapsService {
       where: { id },
     });
 
-    if (!markmap) {
+    if (!markmap || markmap.deletedAt) {
       throw new NotFoundException('Markmap not found');
     }
 
@@ -111,13 +111,74 @@ export class MarkmapsService {
       throw new ForbiddenException('You can only delete your own markmaps');
     }
 
-    return this.prisma.markmap.delete({
+    // Soft delete: set deletedAt timestamp
+    return this.prisma.markmap.update({
       where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async duplicate(id: string, userId: string) {
+    const markmap = await this.prisma.markmap.findUnique({
+      where: { id },
+    });
+
+    if (!markmap || markmap.deletedAt) {
+      throw new NotFoundException('Markmap not found');
+    }
+
+    // Only allow duplicating if user owns it or it's public
+    if (!markmap.isPublic && markmap.authorId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Create a duplicate
+    const { id: _, createdAt, updatedAt, deletedAt, ...markmapData } = markmap;
+    return this.prisma.markmap.create({
+      data: {
+        ...markmapData,
+        title: `${markmap.title} (Copy)`,
+        authorId: userId,
+      },
+      include: {
+        author: {
+          select: { id: true, username: true },
+        },
+      },
+    });
+  }
+
+  async restore(id: string, userId: string) {
+    const markmap = await this.prisma.markmap.findUnique({
+      where: { id },
+    });
+
+    if (!markmap) {
+      throw new NotFoundException('Markmap not found');
+    }
+
+    if (!markmap.deletedAt) {
+      throw new ForbiddenException('Markmap is not deleted');
+    }
+
+    if (markmap.authorId !== userId) {
+      throw new ForbiddenException('You can only restore your own markmaps');
+    }
+
+    return this.prisma.markmap.update({
+      where: { id },
+      data: { deletedAt: null },
+      include: {
+        author: {
+          select: { id: true, username: true },
+        },
+      },
     });
   }
 
   async search(searchDto: SearchMarkmapDto, userId?: string) {
     interface WhereCondition {
+      deletedAt?: null;
       isPublic?: boolean;
       language?: string;
       topic?: string;
@@ -128,10 +189,11 @@ export class MarkmapsService {
         isPublic?: boolean;
         language?: string;
         topic?: string;
+        deletedAt?: null;
       }>;
     }
 
-    const where: WhereCondition = { isPublic: true };
+    const where: WhereCondition = { isPublic: true, deletedAt: null };
 
     if (searchDto.language) {
       where.language = searchDto.language;
@@ -150,7 +212,7 @@ export class MarkmapsService {
 
     // If user is logged in, also include their private markmaps
     if (userId) {
-      where.OR = [{ ...where }, { authorId: userId }];
+      where.OR = [{ ...where }, { authorId: userId, deletedAt: null }];
       delete where.isPublic;
     }
 

@@ -5,12 +5,12 @@ A full-stack application to create, edit, and display interactive [markmaps](htt
 ## Architecture
 
 - **Backend**: NestJS REST API with PostgreSQL database
-- **Frontend**: Nuxt.js 3 web application with HTTPS support
+- **Frontend**: Nuxt.js 3 web application with optional HTTPS support
 
 ## Features
 
 ### Frontend (Nuxt.js)
-- **HTTPS Support**: Secure access with SSL/TLS
+- **HTTP/HTTPS Support**: Runs on HTTP by default, optional HTTPS with self-signed certificates
 - **Interactive UI**: Modern, responsive web interface
 - **Markmap Viewer**: Interactive visualization of markmaps
 - **Live Editor**: Create and edit markmaps with real-time preview
@@ -85,6 +85,15 @@ Create a `.env` file in the `frontend` directory:
 NUXT_PUBLIC_API_BASE=http://localhost:3000
 ```
 
+#### Optional: Enable HTTPS for Development
+
+If you want to run the frontend with HTTPS, generate self-signed SSL certificates:
+
+```bash
+cd frontend
+openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes -subj "/CN=localhost"
+```
+
 ## Database Setup
 
 ```bash
@@ -118,9 +127,9 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at `https://localhost:3001`
+The frontend will be available at `http://localhost:3001` (or `https://localhost:3001` if you generated SSL certificates)
 
-**Note**: The frontend uses HTTPS with self-signed certificates. Your browser will show a security warning - this is normal for development. Click "Advanced" and proceed to continue.
+**Note**: If using HTTPS with self-signed certificates, your browser will show a security warning - this is normal for development. Click "Advanced" and proceed to continue.
 
 ### Full Stack Development
 

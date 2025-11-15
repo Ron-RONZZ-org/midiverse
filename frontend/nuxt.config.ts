@@ -1,14 +1,24 @@
+import { existsSync } from 'fs'
+import { resolve } from 'path'
+
+// Check if SSL certificates exist
+const keyPath = resolve(process.cwd(), 'server.key')
+const certPath = resolve(process.cwd(), 'server.crt')
+const hasSSLCerts = existsSync(keyPath) && existsSync(certPath)
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  // HTTPS configuration
+  // HTTPS configuration (optional - only if certificates exist)
   devServer: {
-    https: {
-      key: './server.key',
-      cert: './server.crt'
-    },
+    ...(hasSSLCerts && {
+      https: {
+        key: keyPath,
+        cert: certPath
+      }
+    }),
     port: 3001
   },
 

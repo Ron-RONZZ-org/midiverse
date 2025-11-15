@@ -29,7 +29,12 @@ export class MarkmapsService {
 
   async findAll(userId?: string) {
     const where = userId
-      ? { OR: [{ isPublic: true, deletedAt: null }, { authorId: userId, deletedAt: null }] }
+      ? {
+          OR: [
+            { isPublic: true, deletedAt: null },
+            { authorId: userId, deletedAt: null },
+          ],
+        }
       : { isPublic: true, deletedAt: null };
 
     return this.prisma.markmap.findMany({
@@ -133,7 +138,9 @@ export class MarkmapsService {
     }
 
     // Create a duplicate
-    const { id: _, createdAt, updatedAt, deletedAt, ...markmapData } = markmap;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _markmapId, createdAt, updatedAt, deletedAt, ...markmapData } =
+      markmap;
     return this.prisma.markmap.create({
       data: {
         ...markmapData,

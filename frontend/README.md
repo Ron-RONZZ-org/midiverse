@@ -34,9 +34,18 @@ NUXT_PUBLIC_API_BASE=http://localhost:3000
 
 Adjust the API URL if your backend is running on a different port or host.
 
-### 3. SSL Certificates
+### 3. SSL Certificates (Optional)
 
-Self-signed SSL certificates have been generated for HTTPS development. The certificates are:
+The frontend can run with or without HTTPS. By default, it will run on HTTP.
+
+To enable HTTPS in development, you need to generate self-signed SSL certificates:
+
+```bash
+# Generate self-signed certificates (requires OpenSSL)
+openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes -subj "/CN=localhost"
+```
+
+This creates:
 - `server.key` - Private key
 - `server.crt` - Certificate
 
@@ -44,15 +53,17 @@ Self-signed SSL certificates have been generated for HTTPS development. The cert
 
 ## Running the Frontend
 
-### Development Mode (with HTTPS)
+### Development Mode
 
 ```bash
 npm run dev
 ```
 
-The application will be available at `https://localhost:3001`
+The application will be available at:
+- **HTTP** (default): `http://localhost:3001`
+- **HTTPS** (if certificates exist): `https://localhost:3001`
 
-**Important**: Your browser will warn about the self-signed certificate. Click "Advanced" and "Proceed to localhost" to continue.
+**Important**: If using HTTPS, your browser will warn about the self-signed certificate. Click "Advanced" and "Proceed to localhost" to continue.
 
 ### Production Build
 
@@ -91,8 +102,8 @@ frontend/
 │       ├── index.vue        # List all markmaps
 │       └── [id].vue         # View single markmap
 ├── public/                  # Static assets
-├── server.key               # SSL private key
-├── server.crt               # SSL certificate
+├── server.key               # SSL private key (optional, not in git)
+├── server.crt               # SSL certificate (optional, not in git)
 ├── nuxt.config.ts           # Nuxt configuration
 └── package.json
 ```
@@ -152,9 +163,9 @@ Renders interactive markmap visualizations from markdown content.
 
 ## Development Tips
 
-### Accepting Self-Signed Certificate
+### Accepting Self-Signed Certificate (Optional)
 
-When you first access `https://localhost:3001`, your browser will show a security warning:
+If you've generated self-signed SSL certificates and are using HTTPS, when you first access `https://localhost:3001`, your browser will show a security warning:
 
 **Chrome**: Click "Advanced" → "Proceed to localhost (unsafe)"
 **Firefox**: Click "Advanced" → "Accept the Risk and Continue"
@@ -197,9 +208,9 @@ For production deployment, you'll need:
 - Verify token is being sent in Authorization header
 
 ### HTTPS Certificate Warnings
-- This is normal for self-signed certificates in development
-- Follow browser-specific instructions to accept the certificate
-- For production, use proper SSL certificates
+- The frontend runs on HTTP by default
+- HTTPS is optional and requires generating self-signed certificates
+- For production, use proper SSL certificates from a Certificate Authority
 
 ## License
 

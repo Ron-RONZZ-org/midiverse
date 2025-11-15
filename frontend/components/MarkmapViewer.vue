@@ -1,5 +1,5 @@
 <template>
-  <div ref="markmapRef" class="markmap-container"></div>
+  <svg ref="markmapRef" class="markmap-container"></svg>
 </template>
 
 <script setup lang="ts">

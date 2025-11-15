@@ -1,12 +1,26 @@
 # Midiverse
 
-A NestJS application to edit and display [markmaps](https://github.com/markmap/markmap).
+A full-stack application to create, edit, and display interactive [markmaps](https://github.com/markmap/markmap).
+
+## Architecture
+
+- **Backend**: NestJS REST API with PostgreSQL database
+- **Frontend**: Nuxt.js 3 web application with HTTPS support
 
 ## Features
 
-### Backend
+### Frontend (Nuxt.js)
+- **HTTPS Support**: Secure access with SSL/TLS
+- **Interactive UI**: Modern, responsive web interface
+- **Markmap Viewer**: Interactive visualization of markmaps
+- **Live Editor**: Create and edit markmaps with real-time preview
+- **User Authentication**: Login, signup, and profile management
+- **Search Interface**: Find markmaps by title, content, language, or topic
+
+### Backend (NestJS)
 - **Database**: Prisma with PostgreSQL
 - **Authentication**: JWT-based authentication system
+- **REST API**: Full CRUD operations for markmaps
 
 ### Core Functionality
 
@@ -45,18 +59,30 @@ A NestJS application to edit and display [markmaps](https://github.com/markmap/m
 
 ## Installation
 
+### Backend Setup
+
 ```bash
 npm install
 ```
 
 ## Configuration
 
-Create a `.env` file based on `.env.example`:
+### Backend Configuration
+
+Create a `.env` file in the root directory based on `.env.example`:
 
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/midiverse?schema=public"
 JWT_SECRET="your-secret-key-change-this-in-production"
 PORT=3000
+```
+
+### Frontend Configuration
+
+Create a `.env` file in the `frontend` directory:
+
+```env
+NUXT_PUBLIC_API_BASE=http://localhost:3000
 ```
 
 ## Database Setup
@@ -69,7 +95,9 @@ npx prisma generate
 npx prisma migrate dev --name init
 ```
 
-## Running the App
+## Running the Application
+
+### Start the Backend
 
 ```bash
 # Development
@@ -79,6 +107,35 @@ npm run start:dev
 npm run build
 npm run start:prod
 ```
+
+The backend will be available at `http://localhost:3000`
+
+### Start the Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend will be available at `https://localhost:3001`
+
+**Note**: The frontend uses HTTPS with self-signed certificates. Your browser will show a security warning - this is normal for development. Click "Advanced" and proceed to continue.
+
+### Full Stack Development
+
+1. Start the backend in one terminal:
+   ```bash
+   npm run start:dev
+   ```
+
+2. Start the frontend in another terminal:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+3. Access the application at `https://localhost:3001`
 
 ## API Endpoints
 

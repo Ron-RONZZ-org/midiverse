@@ -14,12 +14,14 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  username  String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  username            String    @unique
+  password            String
+  lastEmailChange     DateTime?
+  lastUsernameChange  DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   markmaps       Markmap[]
   viewHistory    ViewHistory[]
@@ -27,17 +29,18 @@ model User {
 }
 
 model Markmap {
-  id                  String   @id @default(uuid())
+  id                  String    @id @default(uuid())
   title               String
   text                String
   language            String?
   topic               String?
-  maxWidth            Int      @default(0)
-  colorFreezeLevel    Int      @default(0)
-  initialExpandLevel  Int      @default(-1)
-  isPublic            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  maxWidth            Int       @default(0)
+  colorFreezeLevel    Int       @default(0)
+  initialExpandLevel  Int       @default(-1)
+  isPublic            Boolean   @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   authorId      String?
   author        User?         @relation(fields: [authorId], references: [id])
@@ -48,6 +51,7 @@ model Markmap {
   @@index([isPublic])
   @@index([language])
   @@index([topic])
+  @@index([deletedAt])
 }
 
 model ViewHistory {

@@ -183,13 +183,51 @@ Update a markmap. **Requires authentication.** Users can only update their own m
 **Response:** Updated markmap object
 
 #### DELETE /markmaps/:id
-Delete a markmap. **Requires authentication.** Users can only delete their own markmaps.
+Soft delete a markmap (moves to recycle bin). **Requires authentication.** Users can only delete their own markmaps.
+
+The markmap will be kept in the recycle bin for 30 days before permanent deletion.
 
 **Response:**
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
   "title": "My Learning Path",
+  "deletedAt": "2024-01-15T00:00:00.000Z",
+  ...
+}
+```
+
+#### POST /markmaps/:id/duplicate
+Duplicate a markmap. **Requires authentication.** Users can duplicate their own markmaps or public markmaps.
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440099",
+  "title": "My Learning Path (Copy)",
+  "text": "# Programming\n## Frontend\n### React\n### Vue\n## Backend\n### Node.js\n### Python",
+  "language": "en",
+  "topic": "programming",
+  "authorId": "550e8400-e29b-41d4-a716-446655440000",
+  "createdAt": "2024-01-15T00:00:00.000Z",
+  "updatedAt": "2024-01-15T00:00:00.000Z",
+  "deletedAt": null,
+  "author": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "username": "johndoe"
+  }
+}
+```
+
+#### POST /markmaps/:id/restore
+Restore a deleted markmap from the recycle bin. **Requires authentication.** Users can only restore their own markmaps.
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "title": "My Learning Path",
+  "deletedAt": null,
   ...
 }
 ```
@@ -225,10 +263,8 @@ Track user interactions with a markmap (expand, collapse, search, etc.).
 
 ### User Endpoints
 
-All user endpoints require authentication.
-
 #### GET /users/profile
-Get current user's profile.
+Get current user's profile. **Requires authentication.**
 
 **Response:**
 ```json
@@ -237,6 +273,69 @@ Get current user's profile.
   "email": "user@example.com",
   "username": "johndoe",
   "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastEmailChange": "2024-01-01T00:00:00.000Z",
+  "lastUsernameChange": null,
+  "_count": {
+    "markmaps": 5,
+    "viewHistory": 23,
+    "interactions": 47
+  }
+}
+```
+
+#### PATCH /users/profile
+Update current user's email or username. **Requires authentication.**
+
+Email and username can only be changed once every 15 days.
+
+**Request Body:**
+```json
+{
+  "email": "newemail@example.com",
+  "username": "newusername"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "newemail@example.com",
+  "username": "newusername",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastEmailChange": "2024-01-15T00:00:00.000Z",
+  "lastUsernameChange": "2024-01-15T00:00:00.000Z"
+}
+```
+
+#### GET /users/profile/:username
+Get a user's profile by username. Public view for other users, full view for own profile.
+
+**Response (public view):**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "username": "johndoe",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "isOwnProfile": false,
+  "_count": {
+    "markmaps": 5,
+    "viewHistory": 23,
+    "interactions": 47
+  }
+}
+```
+
+**Response (own profile):**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "user@example.com",
+  "username": "johndoe",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastEmailChange": null,
+  "lastUsernameChange": null,
+  "isOwnProfile": true,
   "_count": {
     "markmaps": 5,
     "viewHistory": 23,
@@ -246,12 +345,19 @@ Get current user's profile.
 ```
 
 #### GET /users/markmaps
-Get all markmaps created by the current user.
+Get all markmaps created by the current user. **Requires authentication.**
 
-**Response:** Array of markmap objects
+**Response:** Array of markmap objects (including non-deleted markmaps)
+
+#### GET /users/deleted-markmaps
+Get all deleted markmaps in the recycle bin. **Requires authentication.**
+
+Deleted markmaps are kept for 30 days before permanent removal.
+
+**Response:** Array of deleted markmap objects
 
 #### GET /users/history
-Get viewing history and interactions for the current user.
+Get viewing history and interactions for the current user. **Requires authentication.**
 
 **Response:**
 ```json

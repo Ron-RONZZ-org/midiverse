@@ -15,11 +15,14 @@ export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
 
   // Override handleRequest to return null instead of throwing
   handleRequest<TUser = any>(
-    err: any,
+    _err: any,
     user: any,
-    info: any,
-    context: ExecutionContext,
-    status?: any,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _info: any,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _context: ExecutionContext,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _status?: any,
   ): TUser {
     // Return user if available, otherwise return null (but cast to avoid type error)
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return

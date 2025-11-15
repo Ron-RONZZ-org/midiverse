@@ -138,9 +138,14 @@ export class MarkmapsService {
     }
 
     // Create a duplicate
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _markmapId, createdAt, updatedAt, deletedAt, ...markmapData } =
-      markmap;
+
+    const {
+      id: _markmapId, // eslint-disable-line @typescript-eslint/no-unused-vars
+      createdAt: _createdAt, // eslint-disable-line @typescript-eslint/no-unused-vars
+      updatedAt: _updatedAt, // eslint-disable-line @typescript-eslint/no-unused-vars
+      deletedAt: _deletedAt, // eslint-disable-line @typescript-eslint/no-unused-vars
+      ...markmapData
+    } = markmap;
     return this.prisma.markmap.create({
       data: {
         ...markmapData,

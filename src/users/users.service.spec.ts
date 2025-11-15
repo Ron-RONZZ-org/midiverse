@@ -15,6 +15,7 @@ import {
 describe('UsersService', () => {
   let service: UsersService;
   let prismaService: PrismaService;
+  let markmapsService: MarkmapsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

@@ -1,10 +1,11 @@
 <template>
-  <div ref="markmapRef" class="markmap-container"></div>
+  <svg ref="markmapRef" class="markmap-container"></svg>
 </template>
 
 <script setup lang="ts">
 import { Markmap } from 'markmap-view'
 import { Transformer } from 'markmap-lib'
+import { loadCSS, loadJS } from 'markmap-common'
 
 const props = defineProps<{
   markdown: string
@@ -17,14 +18,31 @@ const props = defineProps<{
 
 const markmapRef = ref<HTMLElement | null>(null)
 let mm: any = null
+const transformer = new Transformer()
 
-const renderMarkmap = () => {
+// Load required assets
+const loadAssets = async (assets: any) => {
+  if (assets) {
+    const { styles, scripts } = assets
+    if (styles && styles.length > 0) {
+      await loadCSS(styles)
+    }
+    if (scripts && scripts.length > 0) {
+      await loadJS(scripts)
+    }
+  }
+}
+
+const renderMarkmap = async () => {
   if (!markmapRef.value || !props.markdown) return
 
   try {
-    // Transform markdown to markmap data
-    const transformer = new Transformer()
-    const { root } = transformer.transform(props.markdown)
+    // Transform markdown to markmap data and get assets
+    const { root, features } = transformer.transform(props.markdown)
+    const assets = transformer.getUsedAssets(features)
+    
+    // Load required assets
+    await loadAssets(assets)
 
     // Create or update markmap
     if (mm) {

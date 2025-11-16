@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, IsBoolean, Min } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsBoolean, Min, IsArray } from 'class-validator';
 
 export class CreateMarkmapDto {
   @IsString()
@@ -14,6 +14,11 @@ export class CreateMarkmapDto {
   @IsOptional()
   @IsString()
   topic?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 
   @IsOptional()
   @IsInt()

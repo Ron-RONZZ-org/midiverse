@@ -59,6 +59,7 @@ describe('MarkmapsService', () => {
         id: 'markmap-id',
         ...createDto,
         authorId: userId,
+        tags: [],
       };
 
       mockPrismaService.markmap.create.mockResolvedValue(expectedResult);
@@ -67,8 +68,11 @@ describe('MarkmapsService', () => {
 
       expect(result).toEqual(expectedResult);
       expect(mockPrismaService.markmap.create).toHaveBeenCalledWith({
-        data: { ...createDto, authorId: userId },
-        include: { author: { select: { id: true, username: true } } },
+        data: { ...createDto, authorId: userId, tags: undefined },
+        include: {
+          author: { select: { id: true, username: true } },
+          tags: { include: { tag: true } },
+        },
       });
     });
   });

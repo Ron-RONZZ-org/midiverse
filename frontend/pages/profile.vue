@@ -18,11 +18,12 @@ const { isAuthenticated, currentUser } = useAuth()
 
 // Redirect to username-based profile URL - client-side only
 if (process.client) {
-  // Use watchEffect with cleanup prevention
-  const stopWatch = watch([isAuthenticated, currentUser], ([authValue, userValue]) => {
-    if (authValue && userValue?.username) {
-      // Stop watching before navigation to prevent cleanup
-      stopWatch()
+  let hasRedirected = false
+  
+  // Watch for authentication state changes
+  watch([isAuthenticated, currentUser], ([authValue, userValue]) => {
+    if (authValue && userValue?.username && !hasRedirected) {
+      hasRedirected = true
       // Use window.location.replace for forceful navigation without adding to history
       window.location.replace(`/profile/${userValue.username}`)
     }

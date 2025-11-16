@@ -39,7 +39,12 @@
    
    Run database migrations:
    ```bash
-   npx prisma migrate dev --name init
+   npx prisma migrate dev
+   ```
+   
+   This will apply all pending migrations to your database. For production deployments, use:
+   ```bash
+   npx prisma migrate deploy
    ```
    
    (Optional) Seed the database:

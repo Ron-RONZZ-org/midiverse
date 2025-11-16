@@ -115,11 +115,11 @@ openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 
 ## Database Setup
 
 ```bash
-# Generate Prisma Client
+# Generate Prisma Client (automatically runs after npm install)
 npx prisma generate
 
 # Run migrations (if you have a PostgreSQL database running)
-npx prisma migrate dev --name init
+npx prisma migrate dev
 ```
 
 ## Running the Application

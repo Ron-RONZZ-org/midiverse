@@ -6,6 +6,7 @@
         <div class="nav-links">
           <NuxtLink to="/markmaps">Explore</NuxtLink>
           <NuxtLink to="/search">Search</NuxtLink>
+          <NuxtLink to="/tags">Tags</NuxtLink>
           <template v-if="isAuthenticated">
             <NuxtLink to="/editor">Create</NuxtLink>
             <NuxtLink to="/profile" class="btn">Dashboard</NuxtLink>

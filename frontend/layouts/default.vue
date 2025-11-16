@@ -10,7 +10,7 @@
           <ClientOnly>
             <template v-if="isAuthenticated">
               <NuxtLink to="/editor">Create</NuxtLink>
-              <NuxtLink to="/profile" class="btn">Dashboard</NuxtLink>
+              <NuxtLink :to="dashboardUrl" class="btn">Dashboard</NuxtLink>
               <button @click="handleLogout" class="btn btn-secondary">Logout</button>
             </template>
             <template v-else>
@@ -33,7 +33,15 @@
 </template>
 
 <script setup lang="ts">
-const { isAuthenticated, logout } = useAuth()
+const { isAuthenticated, currentUser, logout } = useAuth()
+
+// Compute the dashboard URL based on current user
+const dashboardUrl = computed(() => {
+  if (currentUser.value?.username) {
+    return `/profile/${currentUser.value.username}`
+  }
+  return '/login'
+})
 
 const handleLogout = () => {
   logout()

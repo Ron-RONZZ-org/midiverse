@@ -21,10 +21,25 @@ const router = useRouter()
 if (process.client) {
   onMounted(() => {
     // Use nextTick to ensure Vue has finished hydration
-    nextTick(() => {
+    nextTick(async () => {
+      console.log('[Profile] isAuthenticated:', isAuthenticated.value)
+      console.log('[Profile] currentUser:', currentUser.value)
+      console.log('[Profile] username:', currentUser.value?.username)
+      
       if (isAuthenticated.value && currentUser.value?.username) {
-        // Use router.replace for immediate navigation without history
-        router.replace(`/profile/${currentUser.value.username}`)
+        console.log('[Profile] Attempting redirect to:', `/profile/${currentUser.value.username}`)
+        try {
+          // Use navigateTo which is more reliable in Nuxt
+          await navigateTo(`/profile/${currentUser.value.username}`, { 
+            replace: true,
+            redirectCode: 301
+          })
+          console.log('[Profile] Redirect completed')
+        } catch (error) {
+          console.error('[Profile] Redirect failed:', error)
+        }
+      } else {
+        console.log('[Profile] Not redirecting - conditions not met')
       }
     })
   })

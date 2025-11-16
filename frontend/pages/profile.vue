@@ -5,30 +5,29 @@
       <NuxtLink to="/login" class="btn">Login</NuxtLink>
     </div>
 
-    <div v-else-if="redirecting" class="loading">
-      Redirecting to your profile...
-    </div>
+    <ClientOnly>
+      <div v-if="isAuthenticated" class="loading">
+        Redirecting to your profile...
+      </div>
+    </ClientOnly>
   </div>
 </template>
 
 <script setup lang="ts">
 const { isAuthenticated, currentUser } = useAuth()
-const redirecting = ref(false)
-const hasRedirected = ref(false)
 
-// Redirect to username-based profile URL
-// Only redirect once when user data is available
-watch(
-  () => currentUser.value?.username,
-  (username) => {
-    if (isAuthenticated.value && username && !hasRedirected.value) {
-      hasRedirected.value = true
-      redirecting.value = true
-      navigateTo(`/profile/${username}`)
+// Redirect to username-based profile URL - client-side only
+if (process.client) {
+  onMounted(async () => {
+    // Small delay to ensure localStorage is fully accessible
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    if (isAuthenticated.value && currentUser.value?.username) {
+      // Use replace option to avoid adding to history
+      await navigateTo(`/profile/${currentUser.value.username}`, { replace: true })
     }
-  },
-  { immediate: true }
-)
+  })
+}
 </script>
 
 <style scoped>

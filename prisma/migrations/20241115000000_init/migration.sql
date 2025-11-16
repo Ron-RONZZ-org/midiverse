@@ -144,3 +144,4 @@ ALTER TABLE "TagOnMarkmap" ADD CONSTRAINT "TagOnMarkmap_tagId_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "TagOnMarkmap" ADD CONSTRAINT "TagOnMarkmap_markmapId_fkey" FOREIGN KEY ("markmapId") REFERENCES "Markmap"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

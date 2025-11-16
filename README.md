@@ -114,13 +114,22 @@ openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 
 
 ## Database Setup
 
+For detailed database setup instructions, especially for fresh/empty databases, see **[PRISMA_SETUP.md](./PRISMA_SETUP.md)**.
+
+### Quick Setup
+
 ```bash
 # Generate Prisma Client (automatically runs after npm install)
 npx prisma generate
 
-# Run migrations (if you have a PostgreSQL database running)
+# Apply migrations to a fresh database
+npx prisma migrate deploy
+
+# Or for development (creates database if needed)
 npx prisma migrate dev
 ```
+
+**Note:** If you encounter migration errors with an existing database, see the troubleshooting section in [PRISMA_SETUP.md](./PRISMA_SETUP.md).
 
 ## Running the Application
 

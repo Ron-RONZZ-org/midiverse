@@ -42,6 +42,52 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label for="tags">Tags (start with #)</label>
+            <div class="tags-input-container">
+              <div class="tags-list">
+                <span v-for="(tag, index) in form.tags" :key="index" class="tag-chip">
+                  {{ tag }}
+                  <button type="button" @click="removeTag(index)" class="tag-remove">&times;</button>
+                </span>
+              </div>
+              <div class="tag-input-wrapper">
+                <input 
+                  id="tags" 
+                  v-model="tagInput" 
+                  type="text" 
+                  placeholder="Type to add tags (e.g., #javascript)"
+                  @input="onTagInput"
+                  @keydown.enter.prevent="addTag"
+                  @keydown.tab="addTag"
+                  @keydown.down="navigateSuggestions(1)"
+                  @keydown.up.prevent="navigateSuggestions(-1)"
+                  @blur="hideSuggestions"
+                />
+                <div v-if="showSuggestions && filteredSuggestions.length > 0" class="suggestions-dropdown">
+                  <div 
+                    v-for="(suggestion, index) in filteredSuggestions" 
+                    :key="suggestion.name"
+                    :class="['suggestion-item', { active: index === selectedSuggestionIndex }]"
+                    @mousedown.prevent="selectSuggestion(suggestion.name)"
+                    @mouseenter="selectedSuggestionIndex = index"
+                  >
+                    <span class="suggestion-name">{{ suggestion.name }}</span>
+                    <span class="suggestion-count">{{ suggestion.count }}</span>
+                  </div>
+                </div>
+                <div v-else-if="showSuggestions && tagInput.trim() && !tagExists(tagInput)" class="suggestions-dropdown">
+                  <div 
+                    class="suggestion-item create-new"
+                    @mousedown.prevent="addTag"
+                  >
+                    <span class="suggestion-name">Create New: {{ normalizeTag(tagInput) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label for="maxWidth">Max Width</label>
@@ -117,11 +163,18 @@ const form = ref({
   text: '',
   language: '',
   topic: '',
+  tags: [] as string[],
   maxWidth: 0,
   colorFreezeLevel: 0,
   initialExpandLevel: -1,
   isPublic: true
 })
+
+const tagInput = ref('')
+const suggestions = ref<{ name: string; count: number }[]>([])
+const showSuggestions = ref(false)
+const selectedSuggestionIndex = ref(0)
+let debounceTimer: NodeJS.Timeout | null = null
 
 const loadMarkmap = async (id: string) => {
   try {
@@ -133,6 +186,7 @@ const loadMarkmap = async (id: string) => {
         text: markmap.text,
         language: markmap.language || '',
         topic: markmap.topic || '',
+        tags: markmap.tags?.map((t: any) => t.tag.name) || [],
         maxWidth: markmap.maxWidth,
         colorFreezeLevel: markmap.colorFreezeLevel,
         initialExpandLevel: markmap.initialExpandLevel,
@@ -143,6 +197,84 @@ const loadMarkmap = async (id: string) => {
     error.value = 'Failed to load markmap'
   }
 }
+
+const normalizeTag = (tag: string): string => {
+  const trimmed = tag.trim()
+  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`
+}
+
+const tagExists = (tag: string): boolean => {
+  const normalized = normalizeTag(tag)
+  return form.value.tags.some(t => t.toLowerCase() === normalized.toLowerCase())
+}
+
+const addTag = () => {
+  const tag = tagInput.value.trim()
+  if (tag && !tagExists(tag)) {
+    form.value.tags.push(normalizeTag(tag))
+    tagInput.value = ''
+    showSuggestions.value = false
+  }
+}
+
+const removeTag = (index: number) => {
+  form.value.tags.splice(index, 1)
+}
+
+const selectSuggestion = (tagName: string) => {
+  if (!tagExists(tagName)) {
+    form.value.tags.push(tagName)
+    tagInput.value = ''
+    showSuggestions.value = false
+  }
+}
+
+const navigateSuggestions = (direction: number) => {
+  if (filteredSuggestions.value.length === 0) return
+  
+  selectedSuggestionIndex.value += direction
+  if (selectedSuggestionIndex.value < 0) {
+    selectedSuggestionIndex.value = filteredSuggestions.value.length - 1
+  } else if (selectedSuggestionIndex.value >= filteredSuggestions.value.length) {
+    selectedSuggestionIndex.value = 0
+  }
+}
+
+const hideSuggestions = () => {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+const fetchTagSuggestions = async (query: string) => {
+  try {
+    const response = await authFetch(`/markmaps/tags/suggestions?query=${encodeURIComponent(query)}`)
+    if (response.ok) {
+      suggestions.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch tag suggestions', err)
+  }
+}
+
+const onTagInput = () => {
+  showSuggestions.value = true
+  selectedSuggestionIndex.value = 0
+  
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
+  
+  debounceTimer = setTimeout(() => {
+    if (tagInput.value.trim()) {
+      fetchTagSuggestions(tagInput.value)
+    }
+  }, 300)
+}
+
+const filteredSuggestions = computed(() => {
+  return suggestions.value.filter(s => !tagExists(s.name))
+})
 
 const handleSubmit = async () => {
   error.value = ''
@@ -242,5 +374,100 @@ h1 {
   justify-content: center;
   height: 100%;
   color: #999;
+}
+
+.tags-input-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  background: white;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #007bff;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 14px;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: white;
+  margin-left: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.tag-remove:hover {
+  color: #ffcccc;
+}
+
+.tag-input-wrapper {
+  position: relative;
+}
+
+.tag-input-wrapper input {
+  width: 100%;
+  border: none;
+  outline: none;
+  padding: 4px 0;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+  background: #f0f0f0;
+}
+
+.suggestion-name {
+  color: #000;
+  font-weight: 500;
+}
+
+.suggestion-count {
+  color: #999;
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+.suggestion-item.create-new .suggestion-name {
+  color: #007bff;
+  font-weight: 600;
 }
 </style>

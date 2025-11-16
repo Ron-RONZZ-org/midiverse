@@ -14,14 +14,46 @@ export class MarkmapsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createMarkmapDto: CreateMarkmapDto, userId?: string) {
+    const { tags, ...markmapData } = createMarkmapDto;
+
     return this.prisma.markmap.create({
       data: {
-        ...createMarkmapDto,
+        ...markmapData,
         authorId: userId,
+        tags: tags
+          ? {
+              create: await Promise.all(
+                tags.map(async (tagName) => {
+                  // Ensure tag starts with #
+                  const normalizedName = tagName.startsWith('#')
+                    ? tagName
+                    : `#${tagName}`;
+
+                  // Find or create tag
+                  const tag = await this.prisma.tag.upsert({
+                    where: { name: normalizedName },
+                    update: {},
+                    create: { name: normalizedName },
+                  });
+
+                  return {
+                    tag: {
+                      connect: { id: tag.id },
+                    },
+                  };
+                }),
+              ),
+            }
+          : undefined,
       },
       include: {
         author: {
           select: { id: true, username: true },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
         },
       },
     });
@@ -43,6 +75,11 @@ export class MarkmapsService {
         author: {
           select: { id: true, username: true },
         },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -54,6 +91,11 @@ export class MarkmapsService {
       include: {
         author: {
           select: { id: true, username: true },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
         },
       },
     });
@@ -92,12 +134,54 @@ export class MarkmapsService {
       throw new ForbiddenException('You can only update your own markmaps');
     }
 
+    const { tags, ...markmapData } = updateMarkmapDto;
+
+    // If tags are provided, update them
+    if (tags !== undefined) {
+      // Delete existing tag relationships
+      await this.prisma.tagOnMarkmap.deleteMany({
+        where: { markmapId: id },
+      });
+
+      // Create new tag relationships
+      if (tags.length > 0) {
+        await Promise.all(
+          tags.map(async (tagName) => {
+            // Ensure tag starts with #
+            const normalizedName = tagName.startsWith('#')
+              ? tagName
+              : `#${tagName}`;
+
+            // Find or create tag
+            const tag = await this.prisma.tag.upsert({
+              where: { name: normalizedName },
+              update: {},
+              create: { name: normalizedName },
+            });
+
+            // Create relationship
+            await this.prisma.tagOnMarkmap.create({
+              data: {
+                tagId: tag.id,
+                markmapId: id,
+              },
+            });
+          }),
+        );
+      }
+    }
+
     return this.prisma.markmap.update({
       where: { id },
-      data: updateMarkmapDto,
+      data: markmapData,
       include: {
         author: {
           select: { id: true, username: true },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
         },
       },
     });
@@ -297,5 +381,139 @@ export class MarkmapsService {
       viewHistory,
       interactions,
     };
+  }
+
+  async getTagSuggestions(query?: string) {
+    const where = query
+      ? {
+          name: {
+            contains: query.startsWith('#') ? query : `#${query}`,
+            mode: 'insensitive' as const,
+          },
+        }
+      : {};
+
+    const tags = await this.prisma.tag.findMany({
+      where,
+      include: {
+        _count: {
+          select: { markmaps: true },
+        },
+      },
+      orderBy: {
+        markmaps: {
+          _count: 'desc',
+        },
+      },
+      take: 10,
+    });
+
+    return tags.map((tag) => ({
+      name: tag.name,
+      count: tag._count.markmaps,
+    }));
+  }
+
+  async getTagStatistics(timeFilter: 'all' | '24h' | '1h' = 'all') {
+    let dateFilter: Date | undefined;
+
+    if (timeFilter === '24h') {
+      dateFilter = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    } else if (timeFilter === '1h') {
+      dateFilter = new Date(Date.now() - 60 * 60 * 1000);
+    }
+
+    const tags = await this.prisma.tag.findMany({
+      where: dateFilter
+        ? {
+            markmaps: {
+              some: {
+                createdAt: {
+                  gte: dateFilter,
+                },
+              },
+            },
+          }
+        : {},
+      include: {
+        _count: {
+          select: { markmaps: true },
+        },
+        markmaps: dateFilter
+          ? {
+              where: {
+                createdAt: {
+                  gte: dateFilter,
+                },
+              },
+            }
+          : true,
+      },
+      orderBy: {
+        markmaps: {
+          _count: 'desc',
+        },
+      },
+      take: 10,
+    });
+
+    return tags.map((tag) => ({
+      name: tag.name,
+      count: dateFilter ? tag.markmaps.length : tag._count.markmaps,
+    }));
+  }
+
+  async getTagHistoricalTrend(tagName: string) {
+    // Ensure tag starts with #
+    const normalizedName = tagName.startsWith('#') ? tagName : `#${tagName}`;
+
+    const tag = await this.prisma.tag.findUnique({
+      where: { name: normalizedName },
+      include: {
+        markmaps: {
+          select: {
+            createdAt: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!tag) {
+      return [];
+    }
+
+    // Group by day for the last 30 days
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const dailyCounts = new Map<string, number>();
+
+    // Initialize all days with 0
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000);
+      const dateKey = date.toISOString().split('T')[0];
+      dailyCounts.set(dateKey, 0);
+    }
+
+    // Count markmaps per day
+    tag.markmaps.forEach((markmap) => {
+      const dateKey = markmap.createdAt.toISOString().split('T')[0];
+      if (dailyCounts.has(dateKey)) {
+        dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);
+      }
+    });
+
+    // Convert to array
+    const trend = Array.from(dailyCounts.entries())
+      .map(([date, count]) => ({
+        date,
+        count,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return trend;
   }
 }

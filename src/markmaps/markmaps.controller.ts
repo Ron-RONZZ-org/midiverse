@@ -17,6 +17,8 @@ import { CreateMarkmapDto } from './dto/create-markmap.dto';
 import { UpdateMarkmapDto } from './dto/update-markmap.dto';
 import { SearchMarkmapDto } from './dto/search-markmap.dto';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
+import { GetTagSuggestionsDto } from './dto/get-tag-suggestions.dto';
+import { GetTagStatisticsDto } from './dto/get-tag-statistics.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserFromToken } from '../common/interfaces/auth.interface';
@@ -99,5 +101,20 @@ export class MarkmapsController {
       createInteractionDto,
       userId,
     );
+  }
+
+  @Get('tags/suggestions')
+  getTagSuggestions(@Query(ValidationPipe) dto: GetTagSuggestionsDto) {
+    return this.markmapsService.getTagSuggestions(dto.query);
+  }
+
+  @Get('tags/statistics')
+  getTagStatistics(@Query(ValidationPipe) dto: GetTagStatisticsDto) {
+    return this.markmapsService.getTagStatistics(dto.timeFilter);
+  }
+
+  @Get('tags/trend/:tagName')
+  getTagHistoricalTrend(@Param('tagName') tagName: string) {
+    return this.markmapsService.getTagHistoricalTrend(tagName);
   }
 }

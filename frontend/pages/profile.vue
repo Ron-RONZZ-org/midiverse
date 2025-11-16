@@ -16,7 +16,7 @@ const { isAuthenticated, currentUser } = useAuth()
 const redirecting = ref(false)
 
 // Redirect to username-based profile URL
-watchEffect(() => {
+onMounted(() => {
   if (isAuthenticated.value && currentUser.value?.username) {
     redirecting.value = true
     navigateTo(`/profile/${currentUser.value.username}`)

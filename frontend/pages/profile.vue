@@ -20,12 +20,26 @@ const { isAuthenticated, currentUser } = useAuth()
 if (process.client) {
   // Watch for authentication state changes
   watch([isAuthenticated, currentUser], ([authValue, userValue]) => {
+    console.log('[Profile/Redirect] Watch triggered:', {
+      isAuthenticated: authValue,
+      hasUser: !!userValue,
+      username: userValue?.username,
+      currentPath: window.location.pathname
+    })
+    
     if (authValue && userValue?.username) {
       const targetUrl = `/profile/${userValue.username}`
+      console.log('[Profile/Redirect] Target URL:', targetUrl)
+      
       // Only redirect if we're not already on the target page
       if (window.location.pathname !== targetUrl) {
+        console.log('[Profile/Redirect] Redirecting now...')
         window.location.replace(targetUrl)
+      } else {
+        console.log('[Profile/Redirect] Already on target page, skipping redirect')
       }
+    } else {
+      console.log('[Profile/Redirect] Conditions not met for redirect')
     }
   }, { immediate: true })
 }

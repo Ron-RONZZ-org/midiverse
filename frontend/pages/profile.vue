@@ -14,14 +14,21 @@
 <script setup lang="ts">
 const { isAuthenticated, currentUser } = useAuth()
 const redirecting = ref(false)
+const hasRedirected = ref(false)
 
 // Redirect to username-based profile URL
-onMounted(() => {
-  if (isAuthenticated.value && currentUser.value?.username) {
-    redirecting.value = true
-    navigateTo(`/profile/${currentUser.value.username}`)
-  }
-})
+// Only redirect once when user data is available
+watch(
+  () => currentUser.value?.username,
+  (username) => {
+    if (isAuthenticated.value && username && !hasRedirected.value) {
+      hasRedirected.value = true
+      redirecting.value = true
+      navigateTo(`/profile/${username}`)
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

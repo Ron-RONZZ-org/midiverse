@@ -1,21 +1,11 @@
 <script setup lang="ts">
 const { isAuthenticated, currentUser } = useAuth()
-const router = useRouter()
 
-// Define page metadata to handle redirect server-side when possible
-definePageMeta({
-  middleware: [
-    function (to, from) {
-      // Only run on client
-      if (process.client) {
-        const { isAuthenticated, currentUser } = useAuth()
-        if (isAuthenticated.value && currentUser.value?.username) {
-          return navigateTo(`/profile/${currentUser.value.username}`, { replace: true })
-        }
-      }
-    }
-  ]
-})
+// Simple client-side redirect - runs once when component is created
+if (process.client && isAuthenticated.value && currentUser.value?.username) {
+  // Use navigateTo immediately without waiting for mount
+  navigateTo(`/profile/${currentUser.value.username}`, { replace: true })
+}
 </script>
 
 <template>

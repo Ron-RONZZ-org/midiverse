@@ -34,6 +34,7 @@ A full-stack application to create, edit, and display interactive [markmaps](htt
   - Title or text content
   - Language tags
   - Topic tags
+  - Custom tags (e.g., #javascript, #tutorial)
 
 #### 3. User Authentication
 - Sign up and login endpoints
@@ -51,11 +52,28 @@ A full-stack application to create, edit, and display interactive [markmaps](htt
   - **Tags**:
     - Language tags
     - Topic tags
+    - **Custom Tags**: Add custom tags starting with # (e.g., #javascript, #tutorial)
+      - Autocomplete suggestions with usage counts
+      - Create new tags on-the-fly
   - **Parameters**:
     - `maxWidth`: Maximum width for nodes
     - `colorFreezeLevel`: Level at which colors freeze
     - `initialExpandLevel`: Initial expansion level (-1 for fully expanded)
 - Full CRUD operations (Create, Read, Update, Delete)
+
+#### 6. Tag System
+- **Tag Management**:
+  - All tags must start with # (automatically normalized)
+  - Autocomplete suggestions while typing
+  - Shows existing tag usage counts
+  - Option to create new tags
+- **Tag Analytics Page** (`/tags`):
+  - **Trending Tags**: Bar chart showing top 10 most popular tags
+    - Filter by time period: All Time, Last 24 Hours, Last Hour
+    - Automatically refreshes
+  - **Historical Trends**: Line chart showing tag usage over last 30 days
+    - Search for specific tags
+    - Visual representation of tag growth/decline
 
 ## Installation
 
@@ -315,6 +333,18 @@ Returns:
 - markmapId (Foreign Key to Markmap)
 - interactedAt
 
+### Tag
+- id (UUID, Primary Key)
+- name (String, Unique - tag name with # prefix)
+- createdAt, updatedAt
+
+### TagOnMarkmap
+- id (UUID, Primary Key)
+- tagId (Foreign Key to Tag)
+- markmapId (Foreign Key to Markmap)
+- createdAt
+- Unique constraint on (tagId, markmapId)
+
 ## Technology Stack
 
 - **Framework**: NestJS
@@ -323,6 +353,7 @@ Returns:
 - **Validation**: class-validator, class-transformer
 - **Password Hashing**: bcrypt
 - **Markmap**: markmap-lib, markmap-view
+- **Visualization**: Plotly.js (for tag analytics)
 
 ## License
 

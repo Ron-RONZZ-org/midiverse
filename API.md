@@ -74,6 +74,7 @@ Create a new markmap. **Requires authentication.**
   "text": "# Programming\n## Frontend\n### React\n### Vue\n## Backend\n### Node.js\n### Python",
   "language": "en",
   "topic": "programming",
+  "tags": ["#javascript", "#react", "#learning"],
   "maxWidth": 300,
   "colorFreezeLevel": 2,
   "initialExpandLevel": -1,
@@ -99,7 +100,27 @@ Create a new markmap. **Requires authentication.**
   "author": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "username": "johndoe"
-  }
+  },
+  "tags": [
+    {
+      "tag": {
+        "id": "550e8400-e29b-41d4-a716-446655440003",
+        "name": "#javascript"
+      }
+    },
+    {
+      "tag": {
+        "id": "550e8400-e29b-41d4-a716-446655440004",
+        "name": "#react"
+      }
+    },
+    {
+      "tag": {
+        "id": "550e8400-e29b-41d4-a716-446655440005",
+        "name": "#learning"
+      }
+    }
+  ]
 }
 ```
 
@@ -259,6 +280,88 @@ Track user interactions with a markmap (expand, collapse, search, etc.).
   "userId": "550e8400-e29b-41d4-a716-446655440000",
   "interactedAt": "2024-01-01T00:00:00.000Z"
 }
+```
+
+### Tag Endpoints
+
+#### GET /markmaps/tags/suggestions
+Get tag suggestions for autocomplete. Returns tags matching the query with their usage counts.
+
+**Query Parameters:**
+- `query` (optional): Search term for tag names
+
+**Example:**
+```
+GET /markmaps/tags/suggestions?query=javascript
+```
+
+**Response:**
+```json
+[
+  {
+    "name": "#javascript",
+    "count": 42
+  },
+  {
+    "name": "#java",
+    "count": 15
+  }
+]
+```
+
+#### GET /markmaps/tags/statistics
+Get statistics for the most popular tags with time filtering.
+
+**Query Parameters:**
+- `timeFilter` (optional): `all`, `24h`, or `1h`. Default: `all`
+
+**Example:**
+```
+GET /markmaps/tags/statistics?timeFilter=24h
+```
+
+**Response:**
+```json
+[
+  {
+    "name": "#javascript",
+    "count": 42
+  },
+  {
+    "name": "#python",
+    "count": 35
+  },
+  {
+    "name": "#react",
+    "count": 28
+  }
+]
+```
+
+#### GET /markmaps/tags/trend/:tagName
+Get historical trend data for a specific tag over the last 30 days.
+
+**Example:**
+```
+GET /markmaps/tags/trend/%23javascript
+```
+
+**Response:**
+```json
+[
+  {
+    "date": "2024-01-01",
+    "count": 2
+  },
+  {
+    "date": "2024-01-02",
+    "count": 5
+  },
+  {
+    "date": "2024-01-03",
+    "count": 3
+  }
+]
 ```
 
 ### User Endpoints

@@ -117,4 +117,25 @@ export class MarkmapsController {
   getTagHistoricalTrend(@Param('tagName') tagName: string) {
     return this.markmapsService.getTagHistoricalTrend(tagName);
   }
+
+  // Human-friendly URL endpoints - must be last to avoid conflicts
+  @Get(':username/:slug/fullscreen')
+  findBySlugFullscreen(
+    @Param('username') username: string,
+    @Param('slug') slug: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    return this.markmapsService.findByUsernameAndSlug(username, slug, userId);
+  }
+
+  @Get(':username/:slug')
+  findBySlug(
+    @Param('username') username: string,
+    @Param('slug') slug: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    return this.markmapsService.findByUsernameAndSlug(username, slug, userId);
+  }
 }

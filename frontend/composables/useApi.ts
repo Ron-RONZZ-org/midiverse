@@ -50,9 +50,13 @@ export const useApi = () => {
   // Make authenticated request
   const authFetch = async (url: string, options: any = {}) => {
     const token = getToken()
-    const headers = {
-      'Content-Type': 'application/json',
+    const headers: any = {
       ...options.headers,
+    }
+
+    // Only set Content-Type if body is not FormData
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json'
     }
 
     if (token) {

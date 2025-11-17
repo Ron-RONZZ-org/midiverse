@@ -59,10 +59,29 @@ const markmap = ref<any>(null)
 const loading = ref(true)
 const error = ref('')
 
+// Parse slug - it can be an array if using catch-all route
+const getSlugParts = () => {
+  const slugParam = route.params.slug
+  if (Array.isArray(slugParam)) {
+    return slugParam
+  }
+  return [slugParam]
+}
+
 // Check if this is a fullscreen route
 const isFullscreenMode = computed(() => {
-  return route.path.endsWith('/fullscreen')
+  const parts = getSlugParts()
+  return parts[parts.length - 1] === 'fullscreen'
 })
+
+// Get the actual slug without the fullscreen suffix
+const getActualSlug = () => {
+  const parts = getSlugParts()
+  if (parts[parts.length - 1] === 'fullscreen') {
+    return parts.slice(0, -1).join('-')
+  }
+  return parts.join('-')
+}
 
 const isOwner = computed(() => {
   return currentUser.value && markmap.value?.authorId === currentUser.value.id
@@ -72,14 +91,14 @@ const directLink = computed(() => {
   if (!markmap.value) return ''
   const baseUrl = window.location.origin
   const username = route.params.username
-  const slug = route.params.slug
+  const slug = getActualSlug()
   return `${baseUrl}/markmaps/${username}/${slug}`
 })
 
 const loadMarkmap = async () => {
   try {
     const username = route.params.username
-    const slug = route.params.slug
+    const slug = getActualSlug()
     const response = await authFetch(`/markmaps/${username}/${slug}`)
     if (response.ok) {
       markmap.value = await response.json()
@@ -118,13 +137,13 @@ const handleDelete = async () => {
 
 const toggleFullscreen = () => {
   const username = route.params.username
-  const slug = route.params.slug
+  const slug = getActualSlug()
   router.push(`/markmaps/${username}/${slug}/fullscreen`)
 }
 
 const exitFullscreen = () => {
   const username = route.params.username
-  const slug = route.params.slug
+  const slug = getActualSlug()
   router.push(`/markmaps/${username}/${slug}`)
 }
 

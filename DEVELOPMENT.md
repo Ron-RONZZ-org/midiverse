@@ -233,6 +233,12 @@ getProtectedData(@CurrentUser() user: UserFromToken) {
 
 ## Troubleshooting
 
+### Pulling updates from the repository
+When you pull changes that include database schema updates:
+1. Run `npm install` to regenerate the Prisma Client with the new schema
+2. Apply any new migrations: `npx prisma migrate dev`
+3. If you get TypeScript errors about missing properties, ensure Prisma Client is regenerated: `npx prisma generate`
+
 ### Database connection errors
 - Ensure PostgreSQL is running
 - Check DATABASE_URL format

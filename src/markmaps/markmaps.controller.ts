@@ -131,6 +131,18 @@ export class MarkmapsController {
     
     for (const file of files) {
       try {
+        // Validate file type
+        const allowedExtensions = ['.html', '.htm', '.md', '.markdown', '.txt'];
+        const fileExt = file.originalname.toLowerCase().match(/\.[^.]+$/)?.[0];
+        
+        if (!fileExt || !allowedExtensions.includes(fileExt)) {
+          imported.push({
+            filename: file.originalname,
+            error: 'Invalid file type. Only HTML, Markdown, and TXT files are allowed.',
+          });
+          continue;
+        }
+
         const content = file.buffer.toString('utf-8');
         const parsed = await this.markmapsService.parseImportedFile(
           file.originalname,

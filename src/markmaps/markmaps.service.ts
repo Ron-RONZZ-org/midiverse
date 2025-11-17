@@ -397,8 +397,21 @@ export class MarkmapsService {
       throw new NotFoundException('Markmap not found');
     }
 
-    // Get tags as comma-separated string
-    const tags = markmap.tags?.map((t: any) => t.tag.name).join(', ') || '';
+    // Helper function to escape HTML entities
+    const escapeHtml = (text: string): string => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    // Get tags as comma-separated string and escape
+    const tags = escapeHtml(markmap.tags?.map((t: any) => t.tag.name).join(', ') || '');
+    const title = escapeHtml(markmap.title);
+    const username = escapeHtml(markmap.author?.username || 'Anonymous');
+    const language = escapeHtml(markmap.language || 'en');
     
     // Build markmap frontmatter
     const markmapConfig = `---
@@ -410,14 +423,14 @@ markmap:
 ${markmap.text}`;
 
     const html = `<!DOCTYPE html>
-<html lang="${markmap.language || 'en'}">
+<html lang="${language}">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="author" content="${markmap.author?.username || 'Anonymous'}">
+    <meta name="author" content="${username}">
     <meta name="tag" content="${tags}">
-    <title>${markmap.title}</title>
+    <title>${title}</title>
     <style>
       svg.markmap {
         width: 100%;

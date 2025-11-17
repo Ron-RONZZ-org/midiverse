@@ -23,15 +23,6 @@
               placeholder="e.g., en, es, fr"
             />
           </div>
-          <div class="form-group">
-            <label for="topic">Topic</label>
-            <input 
-              id="topic" 
-              v-model="searchForm.topic" 
-              type="text" 
-              placeholder="e.g., programming, tutorial"
-            />
-          </div>
         </div>
         <button type="submit" class="btn" :disabled="loading">
           {{ loading ? 'Searching...' : 'Search' }}
@@ -60,7 +51,7 @@
           </p>
           <div class="tags">
             <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
-            <span v-if="markmap.topic" class="tag">{{ markmap.topic }}</span>
+            <span v-for="tag in markmap.tags" :key="tag.id" class="tag">{{ tag.tag.name }}</span>
           </div>
         </NuxtLink>
       </div>
@@ -73,8 +64,7 @@ const { authFetch } = useApi()
 
 const searchForm = ref({
   query: '',
-  language: '',
-  topic: ''
+  language: ''
 })
 
 const results = ref<any[]>([])
@@ -91,7 +81,6 @@ const handleSearch = async () => {
     const params = new URLSearchParams()
     if (searchForm.value.query) params.append('query', searchForm.value.query)
     if (searchForm.value.language) params.append('language', searchForm.value.language)
-    if (searchForm.value.topic) params.append('topic', searchForm.value.topic)
 
     const queryString = params.toString()
     const url = queryString ? `/markmaps/search?${queryString}` : '/markmaps'
@@ -112,11 +101,10 @@ const handleSearch = async () => {
 // Auto-search if query params are present
 onMounted(() => {
   const route = useRoute()
-  if (route.query.query || route.query.language || route.query.topic) {
+  if (route.query.query || route.query.language) {
     searchForm.value = {
       query: (route.query.query as string) || '',
-      language: (route.query.language as string) || '',
-      topic: (route.query.topic as string) || ''
+      language: (route.query.language as string) || ''
     }
     handleSearch()
   }

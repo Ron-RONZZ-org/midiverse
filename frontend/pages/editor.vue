@@ -35,11 +35,6 @@
               <label for="language">Language</label>
               <input id="language" v-model="form.language" type="text" placeholder="e.g., en, es, fr" />
             </div>
-
-            <div class="form-group">
-              <label for="topic">Topic</label>
-              <input id="topic" v-model="form.topic" type="text" placeholder="e.g., programming, tutorial" />
-            </div>
           </div>
 
           <div class="form-group">
@@ -162,7 +157,6 @@ const form = ref({
   title: '',
   text: '',
   language: '',
-  topic: '',
   tags: [] as string[],
   maxWidth: 0,
   colorFreezeLevel: 0,
@@ -185,7 +179,6 @@ const loadMarkmap = async (id: string) => {
         title: markmap.title,
         text: markmap.text,
         language: markmap.language || '',
-        topic: markmap.topic || '',
         tags: markmap.tags?.map((t: any) => t.tag.name) || [],
         maxWidth: markmap.maxWidth,
         colorFreezeLevel: markmap.colorFreezeLevel,

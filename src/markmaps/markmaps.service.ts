@@ -277,14 +277,12 @@ export class MarkmapsService {
       deletedAt?: null;
       isPublic?: boolean;
       language?: string;
-      topic?: string;
       OR?: Array<{
         title?: { contains: string; mode: 'insensitive' };
         text?: { contains: string; mode: 'insensitive' };
         authorId?: string;
         isPublic?: boolean;
         language?: string;
-        topic?: string;
         deletedAt?: null;
       }>;
     }
@@ -293,10 +291,6 @@ export class MarkmapsService {
 
     if (searchDto.language) {
       where.language = searchDto.language;
-    }
-
-    if (searchDto.topic) {
-      where.topic = searchDto.topic;
     }
 
     if (searchDto.query) {
@@ -317,6 +311,11 @@ export class MarkmapsService {
       include: {
         author: {
           select: { id: true, username: true },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },

@@ -52,7 +52,6 @@ describe('MarkmapsService', () => {
         title: 'Test Markmap',
         text: '# Root\n## Branch',
         language: 'en',
-        topic: 'test',
       };
       const userId = 'user-id';
       const expectedResult = {
@@ -179,8 +178,8 @@ describe('MarkmapsService', () => {
       expect(mockPrismaService.markmap.findMany).toHaveBeenCalled();
     });
 
-    it('should filter by language and topic', async () => {
-      const searchDto = { language: 'en', topic: 'tutorial' };
+    it('should filter by language', async () => {
+      const searchDto = { language: 'en' };
       mockPrismaService.markmap.findMany.mockResolvedValue([]);
 
       await service.search(searchDto);

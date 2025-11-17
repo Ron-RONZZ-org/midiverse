@@ -28,6 +28,9 @@ A full-stack application to create, edit, and display interactive [markmaps](htt
 - View markmaps without login required
 - Markmap autoloader for easy visualization
 - Public sharing of markmaps
+- **Human-friendly URLs**: Access markmaps via `/{username}/{slug}` (e.g., `/markmaps/johndoe/my-learning-path`)
+- **Fullscreen view**: Display markmaps in fullscreen mode with `/fullscreen` suffix
+- **Copy direct link**: Easy sharing with a button to copy fullscreen link
 
 #### 2. Search
 - Search markmaps by:
@@ -316,6 +319,7 @@ Returns:
 ### Markmap
 - id (UUID, Primary Key)
 - title
+- slug (URL-friendly version of title, unique per author)
 - text (Markdown content)
 - language (Optional tag)
 - maxWidth (Default: 0)
@@ -325,6 +329,7 @@ Returns:
 - authorId (Foreign Key to User, Optional)
 - createdAt, updatedAt
 - tags (Many-to-many relationship with Tag)
+- Unique constraint: (authorId, slug)
 
 ### ViewHistory
 - id (UUID, Primary Key)

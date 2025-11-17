@@ -10,8 +10,13 @@ import {
   ValidationPipe,
   Query,
   Req,
+  Res,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { Request } from 'express';
+import type { Response } from 'express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { MarkmapsService } from './markmaps.service';
 import { CreateMarkmapDto } from './dto/create-markmap.dto';
 import { UpdateMarkmapDto } from './dto/update-markmap.dto';
@@ -87,6 +92,76 @@ export class MarkmapsController {
   @UseGuards(JwtAuthGuard)
   restore(@Param('id') id: string, @CurrentUser() user: UserFromToken) {
     return this.markmapsService.restore(id, user.id);
+  }
+
+  @Get(':id/download')
+  async download(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+    @Res() res: Response,
+  ) {
+    const userId = req.user?.id;
+    const html = await this.markmapsService.generateDownloadHtml(id, userId);
+    const markmap = await this.markmapsService.findOne(id, userId);
+    
+    const filename = `${markmap.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`;
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(html);
+  }
+
+  @Post('import')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FilesInterceptor('files'))
+  async importMarkmaps(
+    @UploadedFiles() files: Array<any>,
+    @CurrentUser() user: UserFromToken,
+  ) {
+    if (!files || files.length === 0) {
+      return { error: 'No files provided' };
+    }
+
+    const imported: Array<{
+      filename: string;
+      id?: string;
+      title?: string;
+      error?: string;
+    }> = [];
+    
+    for (const file of files) {
+      try {
+        const content = file.buffer.toString('utf-8');
+        const parsed = await this.markmapsService.parseImportedFile(
+          file.originalname,
+          content,
+        );
+        
+        // Create the markmap
+        const created = await this.markmapsService.create(
+          parsed as CreateMarkmapDto,
+          user.id,
+        );
+        
+        imported.push({
+          filename: file.originalname,
+          id: created.id,
+          title: created.title,
+        });
+      } catch (error) {
+        imported.push({
+          filename: file.originalname,
+          error: error.message || 'Failed to import',
+        });
+      }
+    }
+
+    return {
+      success: true,
+      count: imported.filter(i => !i.error).length,
+      total: files.length,
+      imported,
+    };
   }
 
   @Post(':id/interactions')

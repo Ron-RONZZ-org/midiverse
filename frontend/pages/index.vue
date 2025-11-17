@@ -16,7 +16,7 @@
       </div>
       <div class="card">
         <h2>🔍 Search & Discover</h2>
-        <p>Find markmaps by topic, language, or content. Explore what others have created.</p>
+        <p>Find markmaps by tags, language, or content. Explore what others have created.</p>
       </div>
       <div class="card">
         <h2>✏️ Create & Edit</h2>

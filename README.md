@@ -15,7 +15,7 @@ A full-stack application to create, edit, and display interactive [markmaps](htt
 - **Markmap Viewer**: Interactive visualization of markmaps
 - **Live Editor**: Create and edit markmaps with real-time preview
 - **User Authentication**: Login, signup, and profile management
-- **Search Interface**: Find markmaps by title, content, language, or topic
+- **Search Interface**: Find markmaps by title, content, language, or tags
 
 ### Backend (NestJS)
 - **Database**: Prisma with PostgreSQL
@@ -33,7 +33,6 @@ A full-stack application to create, edit, and display interactive [markmaps](htt
 - Search markmaps by:
   - Title or text content
   - Language tags
-  - Topic tags
   - Custom tags (e.g., #javascript, #tutorial)
 
 #### 3. User Authentication
@@ -51,7 +50,6 @@ A full-stack application to create, edit, and display interactive [markmaps](htt
   - **Text**: Markdown content for markmap
   - **Tags**:
     - Language tags
-    - Topic tags
     - **Custom Tags**: Add custom tags starting with # (e.g., #javascript, #tutorial)
       - Autocomplete suggestions with usage counts
       - Create new tags on-the-fly
@@ -224,7 +222,7 @@ Content-Type: application/json
   "title": "My Markmap",
   "text": "# Root\n## Branch 1\n## Branch 2",
   "language": "en",
-  "topic": "tutorial",
+  "tags": ["#tutorial", "#javascript"],
   "maxWidth": 300,
   "colorFreezeLevel": 2,
   "initialExpandLevel": -1,
@@ -239,7 +237,7 @@ GET /markmaps
 
 #### Search Markmaps (Public)
 ```http
-GET /markmaps/search?query=tutorial&language=en&topic=programming
+GET /markmaps/search?query=tutorial&language=en
 ```
 
 #### Get Single Markmap (Public for public markmaps)
@@ -320,13 +318,13 @@ Returns:
 - title
 - text (Markdown content)
 - language (Optional tag)
-- topic (Optional tag)
 - maxWidth (Default: 0)
 - colorFreezeLevel (Default: 0)
 - initialExpandLevel (Default: -1)
 - isPublic (Default: true)
 - authorId (Foreign Key to User, Optional)
 - createdAt, updatedAt
+- tags (Many-to-many relationship with Tag)
 
 ### ViewHistory
 - id (UUID, Primary Key)

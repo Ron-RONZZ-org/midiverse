@@ -73,7 +73,6 @@ Create a new markmap. **Requires authentication.**
   "title": "My Learning Path",
   "text": "# Programming\n## Frontend\n### React\n### Vue\n## Backend\n### Node.js\n### Python",
   "language": "en",
-  "topic": "programming",
   "tags": ["#javascript", "#react", "#learning"],
   "maxWidth": 300,
   "colorFreezeLevel": 2,
@@ -89,7 +88,6 @@ Create a new markmap. **Requires authentication.**
   "title": "My Learning Path",
   "text": "# Programming\n## Frontend\n### React\n### Vue\n## Backend\n### Node.js\n### Python",
   "language": "en",
-  "topic": "programming",
   "maxWidth": 300,
   "colorFreezeLevel": 2,
   "initialExpandLevel": -1,
@@ -135,28 +133,34 @@ Get all markmaps. Returns public markmaps for unauthenticated users, and both pu
     "title": "My Learning Path",
     "text": "# Programming\n...",
     "language": "en",
-    "topic": "programming",
     "isPublic": true,
     "createdAt": "2024-01-01T00:00:00.000Z",
     "author": {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "username": "johndoe"
-    }
+    },
+    "tags": [
+      {
+        "tag": {
+          "id": "550e8400-e29b-41d4-a716-446655440003",
+          "name": "#javascript"
+        }
+      }
+    ]
   }
 ]
 ```
 
 #### GET /markmaps/search
-Search markmaps by query, language, or topic.
+Search markmaps by query or language.
 
 **Query Parameters:**
 - `query` (optional): Search term for title or text
 - `language` (optional): Filter by language tag
-- `topic` (optional): Filter by topic tag
 
 **Example:**
 ```
-GET /markmaps/search?query=programming&language=en&topic=tutorial
+GET /markmaps/search?query=programming&language=en
 ```
 
 **Response:** Same format as GET /markmaps
@@ -171,7 +175,6 @@ Get a specific markmap by ID. Public markmaps can be accessed by anyone. Private
   "title": "My Learning Path",
   "text": "# Programming\n...",
   "language": "en",
-  "topic": "programming",
   "maxWidth": 300,
   "colorFreezeLevel": 2,
   "initialExpandLevel": -1,
@@ -195,7 +198,7 @@ Update a markmap. **Requires authentication.** Users can only update their own m
   "title": "Updated Title",
   "text": "# Updated content",
   "language": "es",
-  "topic": "learning",
+  "tags": ["#learning", "#updated"],
   "maxWidth": 400,
   "isPublic": false
 }
@@ -228,7 +231,6 @@ Duplicate a markmap. **Requires authentication.** Users can duplicate their own 
   "title": "My Learning Path (Copy)",
   "text": "# Programming\n## Frontend\n### React\n### Vue\n## Backend\n### Node.js\n### Python",
   "language": "en",
-  "topic": "programming",
   "authorId": "550e8400-e29b-41d4-a716-446655440000",
   "createdAt": "2024-01-15T00:00:00.000Z",
   "updatedAt": "2024-01-15T00:00:00.000Z",

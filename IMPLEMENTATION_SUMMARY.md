@@ -49,7 +49,7 @@ Implemented four main models:
 
 #### Tag System
 - **Language tags**: Filter content by language (e.g., "en", "es")
-- **Topic tags**: Categorize content (e.g., "programming", "tutorial")
+- **Tags with # prefix**: Categorize and tag content (e.g., "#programming", "#tutorial")
 
 #### Security Features
 - Password hashing with bcrypt (10 salt rounds)

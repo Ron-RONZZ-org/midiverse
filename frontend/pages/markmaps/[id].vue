@@ -10,7 +10,7 @@
           <span>Created: {{ new Date(markmap.createdAt).toLocaleDateString() }}</span>
           <div class="tags">
             <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
-            <span v-if="markmap.topic" class="tag">{{ markmap.topic }}</span>
+            <span v-for="tag in markmap.tags" :key="tag.id" class="tag">{{ tag.tag.name }}</span>
           </div>
         </div>
         <div class="actions" v-if="isOwner">

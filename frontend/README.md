@@ -7,7 +7,7 @@ A Nuxt.js 3 frontend application for Midiverse - the markmap visualization platf
 - 🔒 **HTTPS Support**: Built-in HTTPS development server
 - 🗺️ **Interactive Markmaps**: View and interact with markmap visualizations
 - ✏️ **Editor**: Create and edit markmaps with live preview
-- 🔍 **Search**: Search markmaps by title, content, language, and topic
+- 🔍 **Search**: Search markmaps by title, content, language, and tags
 - 🔐 **Authentication**: JWT-based user authentication
 - 👤 **User Profiles**: Track your markmaps and view statistics
 

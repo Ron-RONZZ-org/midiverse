@@ -8,8 +8,4 @@ export class SearchMarkmapDto {
   @IsOptional()
   @IsString()
   language?: string;
-
-  @IsOptional()
-  @IsString()
-  topic?: string;
 }

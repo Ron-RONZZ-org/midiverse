@@ -60,7 +60,7 @@
               </p>
               <div class="tags">
                 <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
-                <span v-if="markmap.topic" class="tag">{{ markmap.topic }}</span>
+                <span v-for="tag in markmap.tags" :key="tag.id" class="tag">{{ tag.tag.name }}</span>
               </div>
             </NuxtLink>
             <div v-if="profile.isOwnProfile" class="markmap-actions">
@@ -91,7 +91,7 @@
               </p>
               <div class="tags">
                 <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
-                <span v-if="markmap.topic" class="tag">{{ markmap.topic }}</span>
+                <span v-for="tag in markmap.tags" :key="tag.id" class="tag">{{ tag.tag.name }}</span>
               </div>
             </div>
             <div class="markmap-actions">

@@ -46,7 +46,7 @@ frontend/
 1. **Home (`/`)** - Landing page with features and recent markmaps
 2. **Explore (`/markmaps`)** - Browse all public markmaps
 3. **Markmap Viewer (`/markmaps/[id]`)** - View and interact with individual markmaps
-4. **Search (`/search`)** - Search by title, content, language, or topic
+4. **Search (`/search`)** - Search by title, content, language, or tags
 5. **Login (`/login`)** - User authentication
 6. **Sign Up (`/signup`)** - User registration
 7. **Editor (`/editor`)** - Create/edit markmaps with live preview
@@ -219,7 +219,7 @@ runtimeConfig: {
 1. **Create Account**: Visit `/signup` to register
 2. **Login**: Use credentials to log in
 3. **Explore**: Browse public markmaps
-4. **Search**: Find markmaps by topic or content
+4. **Search**: Find markmaps by tags or content
 5. **Create**: Use editor to create new markmap with live preview
 6. **Manage**: View and edit your markmaps from profile
 

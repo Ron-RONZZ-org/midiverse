@@ -19,10 +19,6 @@ export class CreateMarkmapDto {
   language?: string;
 
   @IsOptional()
-  @IsString()
-  topic?: string;
-
-  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   tags?: string[];

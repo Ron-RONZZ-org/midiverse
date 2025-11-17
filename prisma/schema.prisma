@@ -33,7 +33,6 @@ model Markmap {
   title               String
   text                String
   language            String?
-  topic               String?
   maxWidth            Int       @default(0)
   colorFreezeLevel    Int       @default(0)
   initialExpandLevel  Int       @default(-1)
@@ -51,7 +50,6 @@ model Markmap {
   @@index([authorId])
   @@index([isPublic])
   @@index([language])
-  @@index([topic])
   @@index([deletedAt])
 }
 

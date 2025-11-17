@@ -9,7 +9,7 @@
         <NuxtLink 
           v-for="markmap in markmaps" 
           :key="markmap.id" 
-          :to="`/markmaps/${markmap.id}`"
+          :to="getMarkmapUrl(markmap)"
           class="markmap-card"
         >
           <h3>{{ markmap.title }}</h3>
@@ -36,6 +36,15 @@ const { authFetch } = useApi()
 const markmaps = ref([])
 const loading = ref(true)
 const error = ref('')
+
+const getMarkmapUrl = (markmap: any) => {
+  // Use human-friendly URL if author username and slug are available
+  if (markmap.author?.username && markmap.slug) {
+    return `/markmaps/${markmap.author.username}/${markmap.slug}`
+  }
+  // Fallback to UUID-based URL
+  return `/markmaps/${markmap.id}`
+}
 
 onMounted(async () => {
   try {

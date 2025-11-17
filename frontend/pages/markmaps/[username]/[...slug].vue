@@ -1,9 +1,9 @@
 <template>
-  <div :class="['container', { 'fullscreen-container': isFullscreen }]">
+  <div :class="['container', { 'fullscreen-container': isFullscreenMode }]">
     <div v-if="loading" class="loading">Loading markmap...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else-if="markmap">
-      <div class="markmap-header" v-if="!isFullscreen">
+      <div class="markmap-header" v-if="!isFullscreenMode">
         <h1>{{ markmap.title }}</h1>
         <div class="meta">
           <span>By {{ markmap.author?.username || 'Anonymous' }}</span>
@@ -15,7 +15,7 @@
         </div>
         <div class="actions">
           <button @click="toggleFullscreen" class="btn btn-secondary">
-            {{ isFullscreen ? 'Exit Fullscreen' : 'Fullscreen' }}
+            Fullscreen
           </button>
           <button @click="copyDirectLink" class="btn btn-info">Copy Direct Link</button>
           <template v-if="isOwner">
@@ -25,8 +25,8 @@
         </div>
       </div>
 
-      <div :class="['markmap-view', { 'fullscreen-view': isFullscreen }]">
-        <button v-if="isFullscreen" @click="exitFullscreen" class="exit-fullscreen-btn" title="Exit Fullscreen">
+      <div :class="['markmap-view', { 'fullscreen-view': isFullscreenMode }]">
+        <button v-if="isFullscreenMode" @click="exitFullscreen" class="exit-fullscreen-btn" title="Exit Fullscreen">
           ✕
         </button>
         <ClientOnly>
@@ -41,7 +41,7 @@
         </ClientOnly>
       </div>
 
-      <div class="markmap-source card" v-if="!isFullscreen">
+      <div class="markmap-source card" v-if="!isFullscreenMode">
         <h3>Source Markdown</h3>
         <pre>{{ markmap.text }}</pre>
       </div>
@@ -58,28 +58,34 @@ const { currentUser } = useAuth()
 const markmap = ref<any>(null)
 const loading = ref(true)
 const error = ref('')
-const isFullscreen = ref(false)
+
+// Check if this is a fullscreen route
+const isFullscreenMode = computed(() => {
+  return route.path.endsWith('/fullscreen')
+})
 
 const isOwner = computed(() => {
   return currentUser.value && markmap.value?.authorId === currentUser.value.id
 })
 
 const directLink = computed(() => {
-  if (!markmap.value || !markmap.value.author?.username || !markmap.value.slug) {
-    return ''
-  }
+  if (!markmap.value) return ''
   const baseUrl = window.location.origin
-  return `${baseUrl}/markmaps/${markmap.value.author.username}/${markmap.value.slug}`
+  const username = route.params.username
+  const slug = route.params.slug
+  return `${baseUrl}/markmaps/${username}/${slug}`
 })
 
 const loadMarkmap = async () => {
   try {
-    const response = await authFetch(`/markmaps/${route.params.id}`)
+    const username = route.params.username
+    const slug = route.params.slug
+    const response = await authFetch(`/markmaps/${username}/${slug}`)
     if (response.ok) {
       markmap.value = await response.json()
       
       // Track view
-      await authFetch(`/markmaps/${route.params.id}/interactions`, {
+      await authFetch(`/markmaps/${markmap.value.id}/interactions`, {
         method: 'POST',
         body: JSON.stringify({ type: 'view', metadata: {} })
       })
@@ -97,7 +103,7 @@ const handleDelete = async () => {
   if (!confirm('Are you sure you want to delete this markmap?')) return
 
   try {
-    const response = await authFetch(`/markmaps/${route.params.id}`, {
+    const response = await authFetch(`/markmaps/${markmap.value.id}`, {
       method: 'DELETE'
     })
     if (response.ok) {
@@ -111,11 +117,15 @@ const handleDelete = async () => {
 }
 
 const toggleFullscreen = () => {
-  isFullscreen.value = !isFullscreen.value
+  const username = route.params.username
+  const slug = route.params.slug
+  router.push(`/markmaps/${username}/${slug}/fullscreen`)
 }
 
 const exitFullscreen = () => {
-  isFullscreen.value = false
+  const username = route.params.username
+  const slug = route.params.slug
+  router.push(`/markmaps/${username}/${slug}`)
 }
 
 const copyDirectLink = async () => {

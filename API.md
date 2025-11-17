@@ -173,6 +173,7 @@ Get a specific markmap by ID. Public markmaps can be accessed by anyone. Private
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
   "title": "My Learning Path",
+  "slug": "my-learning-path",
   "text": "# Programming\n...",
   "language": "en",
   "maxWidth": 300,
@@ -188,6 +189,27 @@ Get a specific markmap by ID. Public markmaps can be accessed by anyone. Private
   }
 }
 ```
+
+#### GET /markmaps/:username/:slug
+Get a specific markmap by username and slug. This provides human-friendly URLs like `/markmaps/johndoe/my-learning-path`. Public markmaps can be accessed by anyone. Private markmaps require authentication and ownership.
+
+**Example:**
+```
+GET /markmaps/johndoe/my-learning-path
+```
+
+**Response:** Same format as GET /markmaps/:id
+
+#### GET /markmaps/:username/:slug/fullscreen
+Get a specific markmap by username and slug for fullscreen display. This endpoint returns the same data as the regular slug endpoint but is intended for fullscreen viewing.
+
+**Example:**
+```
+GET /markmaps/johndoe/my-learning-path/fullscreen
+```
+
+**Response:** Same format as GET /markmaps/:id
+
 
 #### PATCH /markmaps/:id
 Update a markmap. **Requires authentication.** Users can only update their own markmaps.

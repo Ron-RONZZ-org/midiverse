@@ -13,12 +13,70 @@ import { CreateInteractionDto } from './dto/create-interaction.dto';
 export class MarkmapsService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Generate a URL-friendly slug from title
+   */
+  private generateSlugFromTitle(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 100);
+  }
+
+  /**
+   * Generate a unique slug for a markmap
+   * Adds a counter suffix if a slug already exists for the same author
+   */
+  private async generateUniqueSlug(
+    title: string,
+    authorId?: string,
+  ): Promise<string> {
+    const baseSlug = this.generateSlugFromTitle(title);
+
+    // Check if slug exists for this author
+    const existingSlugs = await this.prisma.markmap.findMany({
+      where: {
+        authorId,
+        slug: {
+          startsWith: baseSlug,
+        },
+        deletedAt: null,
+      },
+      select: { slug: true },
+    });
+
+    // If no existing slugs, use the base slug
+    if (existingSlugs.length === 0) {
+      return baseSlug;
+    }
+
+    // Find the highest counter
+    let maxCounter = 0;
+    const slugPattern = new RegExp(`^${baseSlug}(?:-(\\d+))?$`);
+
+    existingSlugs.forEach(({ slug }) => {
+      const match = slug.match(slugPattern);
+      if (match) {
+        const counter = match[1] ? parseInt(match[1], 10) : 0;
+        maxCounter = Math.max(maxCounter, counter);
+      }
+    });
+
+    // Return slug with next counter
+    return maxCounter === 0 ? `${baseSlug}-1` : `${baseSlug}-${maxCounter + 1}`;
+  }
+
   async create(createMarkmapDto: CreateMarkmapDto, userId?: string) {
     const { tags, ...markmapData } = createMarkmapDto;
+
+    // Generate unique slug
+    const slug = await this.generateUniqueSlug(markmapData.title, userId);
 
     return this.prisma.markmap.create({
       data: {
         ...markmapData,
+        slug,
         authorId: userId,
         tags: tags
           ? {
@@ -121,6 +179,57 @@ export class MarkmapsService {
     return markmap;
   }
 
+  async findByUsernameAndSlug(username: string, slug: string, userId?: string) {
+    // First, find the user by username
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: { id: true, username: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Find the markmap by author and slug
+    const markmap = await this.prisma.markmap.findFirst({
+      where: {
+        authorId: user.id,
+        slug,
+        deletedAt: null,
+      },
+      include: {
+        author: {
+          select: { id: true, username: true },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    if (!markmap) {
+      throw new NotFoundException('Markmap not found');
+    }
+
+    if (!markmap.isPublic && (!userId || markmap.authorId !== userId)) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Track view history if user is logged in
+    if (userId) {
+      await this.prisma.viewHistory.create({
+        data: {
+          userId,
+          markmapId: markmap.id,
+        },
+      });
+    }
+
+    return markmap;
+  }
+
   async update(id: string, updateMarkmapDto: UpdateMarkmapDto, userId: string) {
     const markmap = await this.prisma.markmap.findUnique({
       where: { id },
@@ -135,6 +244,15 @@ export class MarkmapsService {
     }
 
     const { tags, ...markmapData } = updateMarkmapDto;
+
+    // If title is being updated, regenerate slug
+    if (updateMarkmapDto.title && updateMarkmapDto.title !== markmap.title) {
+      const newSlug = await this.generateUniqueSlug(
+        updateMarkmapDto.title,
+        userId,
+      );
+      markmapData['slug'] = newSlug;
+    }
 
     // If tags are provided, update them
     if (tags !== undefined) {

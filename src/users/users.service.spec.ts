@@ -15,6 +15,7 @@ import {
 describe('UsersService', () => {
   let service: UsersService;
   let prismaService: PrismaService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let markmapsService: MarkmapsService;
 
   beforeEach(async () => {

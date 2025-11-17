@@ -10,9 +10,20 @@ describe('MarkmapsService', () => {
     markmap: {
       create: jest.fn(),
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+    },
+    user: {
+      findUnique: jest.fn(),
+    },
+    tag: {
+      upsert: jest.fn(),
+    },
+    tagOnMarkmap: {
+      deleteMany: jest.fn(),
+      create: jest.fn(),
     },
     viewHistory: {
       create: jest.fn(),
@@ -57,17 +68,25 @@ describe('MarkmapsService', () => {
       const expectedResult = {
         id: 'markmap-id',
         ...createDto,
+        slug: 'test-markmap',
         authorId: userId,
         tags: [],
       };
 
+      // Mock slug generation - no existing slugs
+      mockPrismaService.markmap.findMany.mockResolvedValue([]);
       mockPrismaService.markmap.create.mockResolvedValue(expectedResult);
 
       const result = await service.create(createDto, userId);
 
       expect(result).toEqual(expectedResult);
       expect(mockPrismaService.markmap.create).toHaveBeenCalledWith({
-        data: { ...createDto, authorId: userId, tags: undefined },
+        data: {
+          ...createDto,
+          slug: 'test-markmap',
+          authorId: userId,
+          tags: undefined,
+        },
         include: {
           author: { select: { id: true, username: true } },
           tags: { include: { tag: true } },
@@ -216,6 +235,103 @@ describe('MarkmapsService', () => {
       await expect(
         service.createInteraction('non-existent', { type: 'expand' }),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findByUsernameAndSlug', () => {
+    const mockUser = {
+      id: 'user-id',
+      username: 'testuser',
+    };
+
+    const mockMarkmap = {
+      id: 'markmap-id',
+      title: 'Test Markmap',
+      slug: 'test-markmap',
+      text: '# Test',
+      isPublic: true,
+      authorId: 'user-id',
+      deletedAt: null,
+      author: mockUser,
+      tags: [],
+    };
+
+    beforeEach(() => {
+      mockPrismaService.user = {
+        findUnique: jest.fn(),
+      };
+      mockPrismaService.markmap.findFirst = jest.fn();
+    });
+
+    it('should find markmap by username and slug', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.markmap.findFirst.mockResolvedValue(mockMarkmap);
+      mockPrismaService.viewHistory.create.mockResolvedValue({});
+
+      const result = await service.findByUsernameAndSlug(
+        'testuser',
+        'test-markmap',
+        'user-id',
+      );
+
+      expect(result).toEqual(mockMarkmap);
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { username: 'testuser' },
+        select: { id: true, username: true },
+      });
+      expect(mockPrismaService.markmap.findFirst).toHaveBeenCalledWith({
+        where: {
+          authorId: 'user-id',
+          slug: 'test-markmap',
+          deletedAt: null,
+        },
+        include: {
+          author: { select: { id: true, username: true } },
+          tags: { include: { tag: true } },
+        },
+      });
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.findByUsernameAndSlug('nonexistent', 'test-markmap'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if markmap not found', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.markmap.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.findByUsernameAndSlug('testuser', 'nonexistent'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException for private markmap without auth', async () => {
+      const privateMarkmap = { ...mockMarkmap, isPublic: false };
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.markmap.findFirst.mockResolvedValue(privateMarkmap);
+
+      await expect(
+        service.findByUsernameAndSlug('testuser', 'test-markmap'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should allow author to access private markmap', async () => {
+      const privateMarkmap = { ...mockMarkmap, isPublic: false };
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.markmap.findFirst.mockResolvedValue(privateMarkmap);
+      mockPrismaService.viewHistory.create.mockResolvedValue({});
+
+      const result = await service.findByUsernameAndSlug(
+        'testuser',
+        'test-markmap',
+        'user-id',
+      );
+
+      expect(result).toEqual(privateMarkmap);
     });
   });
 });

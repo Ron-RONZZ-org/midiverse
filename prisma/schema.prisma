@@ -31,6 +31,7 @@ model User {
 model Markmap {
   id                  String    @id @default(uuid())
   title               String
+  slug                String    // URL-friendly version of title with counter for duplicates
   text                String
   language            String?
   maxWidth            Int       @default(0)
@@ -47,10 +48,12 @@ model Markmap {
   interactions  Interaction[]
   tags          TagOnMarkmap[]
 
+  @@unique([authorId, slug])
   @@index([authorId])
   @@index([isPublic])
   @@index([language])
   @@index([deletedAt])
+  @@index([slug])
 }
 
 model ViewHistory {

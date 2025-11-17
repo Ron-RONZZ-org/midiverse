@@ -81,11 +81,11 @@ describe('MarkmapsService', () => {
 
       expect(result).toEqual(expectedResult);
       expect(mockPrismaService.markmap.create).toHaveBeenCalledWith({
-        data: { 
-          ...createDto, 
+        data: {
+          ...createDto,
           slug: 'test-markmap',
-          authorId: userId, 
-          tags: undefined 
+          authorId: userId,
+          tags: undefined,
         },
         include: {
           author: { select: { id: true, username: true } },

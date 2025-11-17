@@ -51,8 +51,9 @@ const handleLogin = async () => {
   loading.value = true
 
   try {
-    await login(username.value, password.value)
-    navigateTo('/profile')
+    const data = await login(username.value, password.value)
+    // Redirect directly to user's profile page
+    navigateTo(`/profile/${data.user.username}`)
   } catch (err: any) {
     error.value = err.message || 'Login failed. Please try again.'
   } finally {

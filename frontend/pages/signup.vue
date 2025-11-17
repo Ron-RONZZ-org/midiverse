@@ -63,8 +63,9 @@ const handleSignup = async () => {
   loading.value = true
 
   try {
-    await signup(email.value, username.value, password.value)
-    navigateTo('/profile')
+    const data = await signup(email.value, username.value, password.value)
+    // Redirect directly to user's profile page
+    navigateTo(`/profile/${data.user.username}`)
   } catch (err: any) {
     error.value = err.message || 'Signup failed. Please try again.'
   } finally {

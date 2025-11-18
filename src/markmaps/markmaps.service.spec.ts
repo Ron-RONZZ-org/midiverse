@@ -334,4 +334,110 @@ describe('MarkmapsService', () => {
       expect(result).toEqual(privateMarkmap);
     });
   });
+
+  describe('generateDownloadHtml', () => {
+    it('should generate HTML for download', async () => {
+      const markmapId = 'markmap-id';
+      const userId = 'user-id';
+      const mockMarkmap = {
+        id: markmapId,
+        title: 'Test Markmap',
+        text: '# Root\n## Branch',
+        language: 'en',
+        maxWidth: 300,
+        colorFreezeLevel: 2,
+        initialExpandLevel: 2,
+        isPublic: true,
+        authorId: userId,
+        author: { username: 'testuser' },
+        tags: [{ tag: { name: '#test' } }, { tag: { name: '#example' } }],
+      };
+
+      mockPrismaService.markmap.findUnique.mockResolvedValue(mockMarkmap);
+      mockPrismaService.viewHistory.create.mockResolvedValue({});
+
+      const html = await service.generateDownloadHtml(markmapId, userId);
+
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('<html lang="en">');
+      expect(html).toContain('<title>Test Markmap</title>');
+      expect(html).toContain('<meta name="author" content="testuser">');
+      expect(html).toContain('<meta name="tag" content="#test, #example">');
+      expect(html).toContain('maxWidth: 300');
+      expect(html).toContain('colorFreezeLevel: 2');
+      expect(html).toContain('initialExpandLevel: 2');
+      expect(html).toContain('# Root');
+      expect(html).toContain('## Branch');
+      expect(html).toContain('markmap-autoloader');
+    });
+  });
+
+  describe('parseImportedFile', () => {
+    it('should parse HTML file with markmap content', async () => {
+      const filename = 'test.html';
+      const html = `<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="author" content="testuser">
+    <meta name="tag" content="#test, #import">
+    <title>Imported Markmap</title>
+  </head>
+  <body>
+    <div class="markmap">
+      <script type="text/template">
+---
+markmap:
+    maxWidth: 400
+    colorFreezeLevel: 1
+    initialExpandLevel: 3
+---
+# Root
+## Branch 1
+## Branch 2
+      </script>
+    </div>
+  </body>
+</html>`;
+
+      const result = await service.parseImportedFile(filename, html);
+
+      expect(result.title).toBe('Imported Markmap');
+      expect(result.language).toBe('es');
+      expect(result.maxWidth).toBe(400);
+      expect(result.colorFreezeLevel).toBe(1);
+      expect(result.initialExpandLevel).toBe(3);
+      expect(result.text).toContain('# Root');
+      expect(result.text).toContain('## Branch 1');
+      expect(result.tags).toEqual(['#test', '#import']);
+    });
+
+    it('should parse markdown file', async () => {
+      const filename = 'test.md';
+      const markdown = `# Test Markmap
+## Section 1
+### Subsection 1.1
+## Section 2`;
+
+      const result = await service.parseImportedFile(filename, markdown);
+
+      expect(result.title).toBe('Test Markmap');
+      expect(result.text).toBe(markdown);
+      expect(result.language).toBe('en');
+      expect(result.maxWidth).toBe(0);
+      expect(result.colorFreezeLevel).toBe(0);
+      expect(result.initialExpandLevel).toBe(-1);
+      expect(result.tags).toEqual([]);
+    });
+
+    it('should parse text file', async () => {
+      const filename = 'test.txt';
+      const text = `My Notes\nPoint 1\nPoint 2`;
+
+      const result = await service.parseImportedFile(filename, text);
+
+      expect(result.title).toBe('My Notes');
+      expect(result.text).toBe(text);
+    });
+  });
 });

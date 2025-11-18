@@ -390,6 +390,170 @@ export class MarkmapsService {
     });
   }
 
+  async generateDownloadHtml(id: string, userId?: string): Promise<string> {
+    const markmap = await this.findOne(id, userId);
+    
+    if (!markmap) {
+      throw new NotFoundException('Markmap not found');
+    }
+
+    // Helper function to escape HTML entities
+    const escapeHtml = (text: string): string => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    // Get tags as comma-separated string and escape
+    const tags = escapeHtml(markmap.tags?.map((t: any) => t.tag.name).join(', ') || '');
+    const title = escapeHtml(markmap.title);
+    const username = escapeHtml(markmap.author?.username || 'Anonymous');
+    const language = escapeHtml(markmap.language || 'en');
+    
+    // Build markmap frontmatter
+    const markmapConfig = `---
+markmap:
+    maxWidth: ${markmap.maxWidth}
+    colorFreezeLevel: ${markmap.colorFreezeLevel}
+    initialExpandLevel: ${markmap.initialExpandLevel}
+---
+${markmap.text}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="${language}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="author" content="${username}">
+    <meta name="tag" content="${tags}">
+    <title>${title}</title>
+    <style>
+      svg.markmap {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
+  </head>
+  <body>
+    <div class="markmap">
+      <script type="text/template">
+${markmapConfig}
+      </script>
+    </div>
+  </body>
+</html>`;
+
+    return html;
+  }
+
+  async parseImportedFile(filename: string, content: string): Promise<Partial<CreateMarkmapDto>> {
+    const isHtml = filename.toLowerCase().endsWith('.html') || filename.toLowerCase().endsWith('.htm');
+    
+    if (isHtml) {
+      return this.parseHtmlImport(content);
+    } else {
+      return this.parseMarkdownImport(content);
+    }
+  }
+
+  private parseHtmlImport(html: string): Partial<CreateMarkmapDto> {
+    const result: Partial<CreateMarkmapDto> = {
+      title: '',
+      text: '',
+      language: 'en',
+      maxWidth: 0,
+      colorFreezeLevel: 0,
+      initialExpandLevel: -1,
+      tags: [],
+      isPublic: true,
+    };
+
+    // Extract language from <html lang="...">
+    const langMatch = html.match(/<html[^>]*lang=["']([^"']+)["']/i);
+    if (langMatch) {
+      result.language = langMatch[1];
+    }
+
+    // Extract title from <title>...</title>
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+    if (titleMatch) {
+      result.title = titleMatch[1];
+    }
+
+    // Extract tags from <meta name="tag" content="...">
+    const tagsMatch = html.match(/<meta[^>]*name=["']tag["'][^>]*content=["']([^"']+)["']/i);
+    if (tagsMatch) {
+      result.tags = tagsMatch[1]
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
+    }
+
+    // Extract markmap content from <script type="text/template">
+    const scriptMatch = html.match(/<script[^>]*type=["']text\/template["'][^>]*>([\s\S]*?)<\/script>/i);
+    if (scriptMatch) {
+      let markmapContent = scriptMatch[1].trim();
+      
+      // Parse frontmatter if present
+      const frontmatterMatch = markmapContent.match(/^---\s*\nmarkmap:\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+      if (frontmatterMatch) {
+        const frontmatter = frontmatterMatch[1];
+        const content = frontmatterMatch[2];
+        
+        // Parse markmap parameters
+        const maxWidthMatch = frontmatter.match(/maxWidth:\s*(\d+)/);
+        if (maxWidthMatch) {
+          result.maxWidth = parseInt(maxWidthMatch[1], 10);
+        }
+        
+        const colorFreezeLevelMatch = frontmatter.match(/colorFreezeLevel:\s*(\d+)/);
+        if (colorFreezeLevelMatch) {
+          result.colorFreezeLevel = parseInt(colorFreezeLevelMatch[1], 10);
+        }
+        
+        const initialExpandLevelMatch = frontmatter.match(/initialExpandLevel:\s*(-?\d+)/);
+        if (initialExpandLevelMatch) {
+          result.initialExpandLevel = parseInt(initialExpandLevelMatch[1], 10);
+        }
+        
+        result.text = content.trim();
+      } else {
+        result.text = markmapContent;
+      }
+    }
+
+    // Fallback: use filename as title if no title found
+    if (!result.title) {
+      result.title = 'Imported Markmap';
+    }
+
+    return result;
+  }
+
+  private parseMarkdownImport(content: string): Partial<CreateMarkmapDto> {
+    const lines = content.split('\n');
+    const firstLine = lines[0]?.trim() || 'Imported Markmap';
+    
+    // Remove markdown header syntax from first line if present
+    const title = firstLine.replace(/^#+\s*/, '');
+    
+    return {
+      title,
+      text: content,
+      language: 'en',
+      maxWidth: 0,
+      colorFreezeLevel: 0,
+      initialExpandLevel: -1,
+      tags: [],
+      isPublic: true,
+    };
+  }
+
   async search(searchDto: SearchMarkmapDto, userId?: string) {
     interface WhereCondition {
       deletedAt?: null;

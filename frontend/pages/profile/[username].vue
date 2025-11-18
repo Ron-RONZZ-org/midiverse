@@ -67,6 +67,9 @@
               <button @click="duplicateMarkmap(markmap.id)" class="btn-icon" title="Duplicate">
                 📋
               </button>
+              <button @click="downloadMarkmap(markmap.id, markmap.title)" class="btn-icon" title="Download">
+                💾
+              </button>
               <button @click="deleteMarkmap(markmap.id)" class="btn-icon btn-danger" title="Delete">
                 🗑️
               </button>
@@ -268,6 +271,28 @@ const duplicateMarkmap = async (id: string) => {
     }
   } catch (err) {
     alert('Failed to duplicate markmap')
+  }
+}
+
+const downloadMarkmap = async (id: string, title: string) => {
+  try {
+    const response = await authFetch(`/markmaps/${id}/download`)
+
+    if (response.ok) {
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } else {
+      alert('Failed to download markmap')
+    }
+  } catch (err) {
+    alert('Failed to download markmap')
   }
 }
 

@@ -10,6 +10,7 @@
           <ClientOnly>
             <template v-if="isAuthenticated">
               <NuxtLink to="/editor">Create</NuxtLink>
+              <button @click="showImportModal = true" class="btn btn-info">Import</button>
               <NuxtLink :to="dashboardUrl" class="btn">Dashboard</NuxtLink>
               <button @click="handleLogout" class="btn btn-secondary">Logout</button>
             </template>
@@ -24,6 +25,52 @@
     <main>
       <slot />
     </main>
+    
+    <!-- Import Modal -->
+    <div v-if="showImportModal" class="modal-overlay" @click.self="showImportModal = false">
+      <div class="modal">
+        <h2>Import Markmaps</h2>
+        <p class="modal-description">
+          Upload HTML or Markdown files to import as markmaps.
+          HTML files will preserve metadata, while Markdown files will use the first line as the title.
+        </p>
+        
+        <div v-if="importError" class="error">{{ importError }}</div>
+        <div v-if="importSuccess" class="success">{{ importSuccess }}</div>
+        
+        <div class="form-group">
+          <label for="import-files">Select Files</label>
+          <input 
+            id="import-files" 
+            ref="fileInput"
+            type="file" 
+            multiple
+            accept=".html,.htm,.md,.markdown,.txt"
+            @change="handleFileSelect"
+            class="file-input"
+          />
+          <div v-if="selectedFiles.length > 0" class="selected-files">
+            <p><strong>Selected files:</strong></p>
+            <ul>
+              <li v-for="file in selectedFiles" :key="file.name">{{ file.name }} ({{ formatFileSize(file.size) }})</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" @click="showImportModal = false" class="btn btn-secondary">Cancel</button>
+          <button 
+            type="button" 
+            @click="handleImport" 
+            class="btn" 
+            :disabled="importLoading || selectedFiles.length === 0"
+          >
+            {{ importLoading ? 'Importing...' : 'Import' }}
+          </button>
+        </div>
+      </div>
+    </div>
+    
     <footer class="footer">
       <div class="container">
         <p>&copy; 2025 Midiverse. Built with Nuxt.js and NestJS.</p>
@@ -34,6 +81,7 @@
 
 <script setup lang="ts">
 const { isAuthenticated, currentUser, logout } = useAuth()
+const { authFetch } = useApi()
 
 // Compute the dashboard URL based on current user
 const dashboardUrl = computed(() => {
@@ -46,6 +94,118 @@ const dashboardUrl = computed(() => {
 const handleLogout = () => {
   logout()
 }
+
+// Import modal state
+const showImportModal = ref(false)
+const selectedFiles = ref<File[]>([])
+const fileInput = ref<HTMLInputElement | null>(null)
+const importLoading = ref(false)
+const importError = ref('')
+const importSuccess = ref('')
+
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files) {
+    selectedFiles.value = Array.from(target.files)
+  }
+}
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+const handleImport = async () => {
+  if (selectedFiles.value.length === 0) {
+    importError.value = 'Please select at least one file'
+    return
+  }
+
+  importLoading.value = true
+  importError.value = ''
+  importSuccess.value = ''
+
+  try {
+    const formData = new FormData()
+    selectedFiles.value.forEach(file => {
+      formData.append('files', file)
+    })
+
+    const response = await authFetch('/markmaps/import', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      importError.value = errorData.message || 'Failed to import files'
+      return
+    }
+
+    const result = await response.json()
+
+    if (result.count === 1 && result.imported.length === 1 && !result.imported[0].error) {
+      // Single file import - redirect to editor
+      importSuccess.value = 'File imported successfully! Redirecting to editor...'
+      setTimeout(() => {
+        navigateTo(`/editor?id=${result.imported[0].id}`)
+        showImportModal.value = false
+      }, 1000)
+    } else if (result.count === 0 && result.imported.length === 1 && result.imported[0].error) {
+      // Single file import with error - show specific error
+      importError.value = `Failed to import ${result.imported[0].filename}: ${result.imported[0].error}`
+    } else {
+      // Multiple files or mixed results - show detailed results
+      const successCount = result.count
+      const errorCount = result.total - result.count
+      
+      if (errorCount > 0) {
+        // Build detailed error message
+        const failedFiles = result.imported
+          .filter((f: any) => f.error)
+          .map((f: any) => `• ${f.filename}: ${f.error}`)
+          .join('\n');
+        
+        if (successCount === 0) {
+          importError.value = `All ${errorCount} files failed to import:\n${failedFiles}`
+        } else {
+          importSuccess.value = `Imported ${successCount} of ${result.total} files. ${errorCount} failed.`
+          if (failedFiles) {
+            importError.value = `Failed files:\n${failedFiles}`
+          }
+        }
+      } else {
+        importSuccess.value = `Successfully imported ${successCount} files!`
+      }
+      
+      // Only redirect if at least one file was successfully imported
+      if (successCount > 0) {
+        setTimeout(() => {
+          navigateTo(dashboardUrl.value)
+          showImportModal.value = false
+        }, 2000)
+      }
+    }
+  } catch (err: any) {
+    importError.value = err.message || 'Failed to import files'
+  } finally {
+    importLoading.value = false
+  }
+}
+
+// Reset modal state when closed
+watch(showImportModal, (newVal) => {
+  if (!newVal) {
+    selectedFiles.value = []
+    importError.value = ''
+    importSuccess.value = ''
+    importLoading.value = false
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -92,6 +252,17 @@ const handleLogout = () => {
   font-size: 14px;
 }
 
+.btn-info {
+  background: #17a2b8;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-info:hover {
+  background: #138496;
+}
+
 main {
   min-height: calc(100vh - 180px);
 }
@@ -102,5 +273,99 @@ main {
   padding: 2rem 0;
   text-align: center;
   margin-top: 2rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal h2 {
+  margin-bottom: 1rem;
+}
+
+.modal-description {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.file-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.selected-files {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.selected-files ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.5rem;
+}
+
+.selected-files li {
+  margin: 0.25rem 0;
+  color: #666;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.success {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  white-space: pre-line;
 }
 </style>

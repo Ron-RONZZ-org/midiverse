@@ -33,7 +33,41 @@
           <div class="form-row">
             <div class="form-group">
               <label for="language">Language</label>
-              <input id="language" v-model="form.language" type="text" placeholder="e.g., en, es, fr" />
+              <div class="autocomplete-wrapper">
+                <input 
+                  id="language" 
+                  v-model="languageInput" 
+                  type="text" 
+                  placeholder="e.g., en - English, fr - Français"
+                  @input="onLanguageInput"
+                  @focus="onLanguageInput"
+                  @blur="hideLanguageSuggestions"
+                />
+                <div v-if="showLanguageSuggestions && languageSuggestions.length > 0" class="suggestions-dropdown">
+                  <div 
+                    v-for="(suggestion, index) in languageSuggestions" 
+                    :key="suggestion.code"
+                    :class="['suggestion-item', { active: index === selectedLanguageSuggestionIndex }]"
+                    @mousedown.prevent="selectLanguageSuggestion(suggestion)"
+                    @mouseenter="selectedLanguageSuggestionIndex = index"
+                  >
+                    <span class="suggestion-name">{{ suggestion.code }} - {{ suggestion.name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="series">Series (optional)</label>
+              <div class="series-select-container">
+                <select id="series" v-model="form.seriesId">
+                  <option value="">No series</option>
+                  <option v-for="series in userSeries" :key="series.id" :value="series.id">
+                    {{ series.name }}
+                  </option>
+                </select>
+                <button type="button" @click="showCreateSeriesModal = true" class="btn btn-sm">+ New</button>
+              </div>
             </div>
           </div>
 
@@ -114,7 +148,7 @@
             <button type="submit" class="btn" :disabled="loading">
               {{ loading ? 'Saving...' : (editMode ? 'Update' : 'Create') }}
             </button>
-            <NuxtLink to="/profile" class="btn btn-secondary">Cancel</NuxtLink>
+            <NuxtLink :to="cancelUrl" class="btn btn-secondary">Cancel</NuxtLink>
           </div>
         </form>
       </div>
@@ -139,13 +173,48 @@
         </div>
       </div>
     </div>
+
+    <!-- Create Series Modal -->
+    <div v-if="showCreateSeriesModal" class="modal-overlay" @click.self="showCreateSeriesModal = false">
+      <div class="modal">
+        <h2>Create New Series</h2>
+        <div v-if="seriesError" class="error">{{ seriesError }}</div>
+        <form @submit.prevent="createSeries">
+          <div class="form-group">
+            <label for="seriesName">Series Name</label>
+            <input 
+              id="seriesName" 
+              v-model="newSeriesName" 
+              type="text" 
+              required
+              placeholder="My Learning Series"
+            />
+          </div>
+          <div class="form-group">
+            <label for="seriesDescription">Description (optional)</label>
+            <textarea 
+              id="seriesDescription" 
+              v-model="newSeriesDescription" 
+              rows="3"
+              placeholder="A collection of markmaps about..."
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" @click="showCreateSeriesModal = false" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn" :disabled="seriesLoading">
+              {{ seriesLoading ? 'Creating...' : 'Create' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 const route = useRoute()
 const { authFetch } = useApi()
-const { isAuthenticated } = useAuth()
+const { isAuthenticated, currentUser } = useAuth()
 
 const editMode = ref(false)
 const markmapId = ref('')
@@ -157,6 +226,7 @@ const form = ref({
   title: '',
   text: '',
   language: '',
+  seriesId: '',
   tags: [] as string[],
   maxWidth: 0,
   colorFreezeLevel: 0,
@@ -164,11 +234,33 @@ const form = ref({
   isPublic: true
 })
 
+// Series state
+const userSeries = ref<any[]>([])
+const showCreateSeriesModal = ref(false)
+const newSeriesName = ref('')
+const newSeriesDescription = ref('')
+const seriesLoading = ref(false)
+const seriesError = ref('')
+
 const tagInput = ref('')
 const suggestions = ref<{ name: string; count: number }[]>([])
 const showSuggestions = ref(false)
 const selectedSuggestionIndex = ref(0)
 let debounceTimer: NodeJS.Timeout | null = null
+
+// Language suggestions
+const languageInput = ref('')
+const languageSuggestions = ref<{ code: string; name: string }[]>([])
+const showLanguageSuggestions = ref(false)
+const selectedLanguageSuggestionIndex = ref(0)
+let languageDebounceTimer: NodeJS.Timeout | null = null
+
+const cancelUrl = computed(() => {
+  if (currentUser.value?.username) {
+    return `/profile/${currentUser.value.username}`
+  }
+  return '/profile'
+})
 
 const loadMarkmap = async (id: string) => {
   try {
@@ -179,6 +271,7 @@ const loadMarkmap = async (id: string) => {
         title: markmap.title,
         text: markmap.text,
         language: markmap.language || '',
+        seriesId: markmap.seriesId || '',
         tags: markmap.tags?.map((t: any) => t.tag.name) || [],
         maxWidth: markmap.maxWidth,
         colorFreezeLevel: markmap.colorFreezeLevel,
@@ -188,6 +281,56 @@ const loadMarkmap = async (id: string) => {
     }
   } catch (err) {
     error.value = 'Failed to load markmap'
+  }
+}
+
+const loadUserSeries = async () => {
+  try {
+    if (currentUser.value?.username) {
+      const response = await authFetch(`/series/user/${currentUser.value.username}`)
+      if (response.ok) {
+        userSeries.value = await response.json()
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load series', err)
+  }
+}
+
+const createSeries = async () => {
+  if (!newSeriesName.value.trim()) {
+    seriesError.value = 'Series name is required'
+    return
+  }
+
+  seriesLoading.value = true
+  seriesError.value = ''
+
+  try {
+    const response = await authFetch('/series', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: newSeriesName.value,
+        description: newSeriesDescription.value,
+        isPublic: true
+      })
+    })
+
+    if (response.ok) {
+      const newSeries = await response.json()
+      userSeries.value.push(newSeries)
+      form.value.seriesId = newSeries.id
+      showCreateSeriesModal.value = false
+      newSeriesName.value = ''
+      newSeriesDescription.value = ''
+    } else {
+      const errorData = await response.json()
+      seriesError.value = errorData.message || 'Failed to create series'
+    }
+  } catch (err: any) {
+    seriesError.value = err.message || 'Failed to create series'
+  } finally {
+    seriesLoading.value = false
   }
 }
 
@@ -250,6 +393,46 @@ const fetchTagSuggestions = async (query: string) => {
   }
 }
 
+const fetchLanguageSuggestions = async (query: string) => {
+  try {
+    const response = await authFetch(`/markmaps/languages/suggestions?query=${encodeURIComponent(query)}`)
+    if (response.ok) {
+      languageSuggestions.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch language suggestions', err)
+  }
+}
+
+const onLanguageInput = () => {
+  showLanguageSuggestions.value = true
+  selectedLanguageSuggestionIndex.value = 0
+  
+  if (languageDebounceTimer) {
+    clearTimeout(languageDebounceTimer)
+  }
+  
+  languageDebounceTimer = setTimeout(() => {
+    if (languageInput.value.trim()) {
+      fetchLanguageSuggestions(languageInput.value)
+    } else {
+      fetchLanguageSuggestions('')
+    }
+  }, 300)
+}
+
+const selectLanguageSuggestion = (language: { code: string; name: string }) => {
+  form.value.language = language.code
+  languageInput.value = `${language.code} - ${language.name}`
+  showLanguageSuggestions.value = false
+}
+
+const hideLanguageSuggestions = () => {
+  setTimeout(() => {
+    showLanguageSuggestions.value = false
+  }, 200)
+}
+
 const onTagInput = () => {
   showSuggestions.value = true
   selectedSuggestionIndex.value = 0
@@ -307,6 +490,7 @@ onMounted(() => {
     markmapId.value = id
     loadMarkmap(id)
   }
+  loadUserSeries()
 })
 </script>
 
@@ -463,4 +647,58 @@ h1 {
   color: #007bff;
   font-weight: 600;
 }
+
+.autocomplete-wrapper {
+  position: relative;
+}
+
+.series-select-container {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.series-select-container select {
+  flex: 1;
+}
+
+.series-select-container .btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal h2 {
+  margin-bottom: 1.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
 </style>

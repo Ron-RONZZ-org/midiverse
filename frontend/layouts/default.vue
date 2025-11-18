@@ -152,21 +152,40 @@ const handleImport = async () => {
         navigateTo(`/editor?id=${result.imported[0].id}`)
         showImportModal.value = false
       }, 1000)
+    } else if (result.count === 0 && result.imported.length === 1 && result.imported[0].error) {
+      // Single file import with error - show specific error
+      importError.value = `Failed to import ${result.imported[0].filename}: ${result.imported[0].error}`
     } else {
-      // Multiple files or errors - show result and redirect to dashboard
+      // Multiple files or mixed results - show detailed results
       const successCount = result.count
       const errorCount = result.total - result.count
       
       if (errorCount > 0) {
-        importSuccess.value = `Imported ${successCount} of ${result.total} files. ${errorCount} failed.`
+        // Build detailed error message
+        const failedFiles = result.imported
+          .filter((f: any) => f.error)
+          .map((f: any) => `• ${f.filename}: ${f.error}`)
+          .join('\n');
+        
+        if (successCount === 0) {
+          importError.value = `All ${errorCount} files failed to import:\n${failedFiles}`
+        } else {
+          importSuccess.value = `Imported ${successCount} of ${result.total} files. ${errorCount} failed.`
+          if (failedFiles) {
+            importError.value = `Failed files:\n${failedFiles}`
+          }
+        }
       } else {
         importSuccess.value = `Successfully imported ${successCount} files!`
       }
       
-      setTimeout(() => {
-        navigateTo(dashboardUrl.value)
-        showImportModal.value = false
-      }, 2000)
+      // Only redirect if at least one file was successfully imported
+      if (successCount > 0) {
+        setTimeout(() => {
+          navigateTo(dashboardUrl.value)
+          showImportModal.value = false
+        }, 2000)
+      }
     }
   } catch (err: any) {
     importError.value = err.message || 'Failed to import files'
@@ -337,6 +356,8 @@ main {
   padding: 0.75rem;
   border-radius: 4px;
   margin-bottom: 1rem;
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .success {
@@ -345,5 +366,6 @@ main {
   padding: 0.75rem;
   border-radius: 4px;
   margin-bottom: 1rem;
+  white-space: pre-line;
 }
 </style>

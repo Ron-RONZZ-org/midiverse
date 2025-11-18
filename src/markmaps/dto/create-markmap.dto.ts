@@ -5,6 +5,7 @@ import {
   IsBoolean,
   Min,
   IsArray,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateMarkmapDto {
@@ -17,6 +18,10 @@ export class CreateMarkmapDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @IsOptional()
+  @IsUUID()
+  seriesId?: string;
 
   @IsOptional()
   @IsArray()

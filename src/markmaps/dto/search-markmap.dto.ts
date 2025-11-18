@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsArray } from 'class-validator';
 
 export class SearchMarkmapDto {
   @IsOptional()
@@ -8,4 +8,13 @@ export class SearchMarkmapDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @IsOptional()
+  @IsString()
+  author?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 }

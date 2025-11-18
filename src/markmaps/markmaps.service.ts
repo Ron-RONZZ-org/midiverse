@@ -392,7 +392,7 @@ export class MarkmapsService {
 
   async generateDownloadHtml(id: string, userId?: string): Promise<string> {
     const markmap = await this.findOne(id, userId);
-    
+
     if (!markmap) {
       throw new NotFoundException('Markmap not found');
     }
@@ -408,11 +408,13 @@ export class MarkmapsService {
     };
 
     // Get tags as comma-separated string and escape
-    const tags = escapeHtml(markmap.tags?.map((t: any) => t.tag.name).join(', ') || '');
+    const tags = escapeHtml(
+      markmap.tags?.map((t: any) => t.tag.name).join(', ') || '',
+    );
     const title = escapeHtml(markmap.title);
     const username = escapeHtml(markmap.author?.username || 'Anonymous');
     const language = escapeHtml(markmap.language || 'en');
-    
+
     // Build markmap frontmatter
     const markmapConfig = `---
 markmap:
@@ -451,9 +453,14 @@ ${markmapConfig}
     return html;
   }
 
-  async parseImportedFile(filename: string, content: string): Promise<Partial<CreateMarkmapDto>> {
-    const isHtml = filename.toLowerCase().endsWith('.html') || filename.toLowerCase().endsWith('.htm');
-    
+  async parseImportedFile(
+    filename: string,
+    content: string,
+  ): Promise<Partial<CreateMarkmapDto>> {
+    const isHtml =
+      filename.toLowerCase().endsWith('.html') ||
+      filename.toLowerCase().endsWith('.htm');
+
     if (isHtml) {
       return this.parseHtmlImport(content);
     } else {
@@ -486,41 +493,51 @@ ${markmapConfig}
     }
 
     // Extract tags from <meta name="tag" content="...">
-    const tagsMatch = html.match(/<meta[^>]*name=["']tag["'][^>]*content=["']([^"']+)["']/i);
+    const tagsMatch = html.match(
+      /<meta[^>]*name=["']tag["'][^>]*content=["']([^"']+)["']/i,
+    );
     if (tagsMatch) {
       result.tags = tagsMatch[1]
         .split(',')
-        .map(tag => tag.trim())
-        .filter(tag => tag.length > 0);
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
     }
 
     // Extract markmap content from <script type="text/template">
-    const scriptMatch = html.match(/<script[^>]*type=["']text\/template["'][^>]*>([\s\S]*?)<\/script>/i);
+    const scriptMatch = html.match(
+      /<script[^>]*type=["']text\/template["'][^>]*>([\s\S]*?)<\/script>/i,
+    );
     if (scriptMatch) {
-      let markmapContent = scriptMatch[1].trim();
-      
+      const markmapContent = scriptMatch[1].trim();
+
       // Parse frontmatter if present
-      const frontmatterMatch = markmapContent.match(/^---\s*\nmarkmap:\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+      const frontmatterMatch = markmapContent.match(
+        /^---\s*\nmarkmap:\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/,
+      );
       if (frontmatterMatch) {
         const frontmatter = frontmatterMatch[1];
         const content = frontmatterMatch[2];
-        
+
         // Parse markmap parameters
         const maxWidthMatch = frontmatter.match(/maxWidth:\s*(\d+)/);
         if (maxWidthMatch) {
           result.maxWidth = parseInt(maxWidthMatch[1], 10);
         }
-        
-        const colorFreezeLevelMatch = frontmatter.match(/colorFreezeLevel:\s*(\d+)/);
+
+        const colorFreezeLevelMatch = frontmatter.match(
+          /colorFreezeLevel:\s*(\d+)/,
+        );
         if (colorFreezeLevelMatch) {
           result.colorFreezeLevel = parseInt(colorFreezeLevelMatch[1], 10);
         }
-        
-        const initialExpandLevelMatch = frontmatter.match(/initialExpandLevel:\s*(-?\d+)/);
+
+        const initialExpandLevelMatch = frontmatter.match(
+          /initialExpandLevel:\s*(-?\d+)/,
+        );
         if (initialExpandLevelMatch) {
           result.initialExpandLevel = parseInt(initialExpandLevelMatch[1], 10);
         }
-        
+
         result.text = content.trim();
       } else {
         result.text = markmapContent;
@@ -538,10 +555,10 @@ ${markmapConfig}
   private parseMarkdownImport(content: string): Partial<CreateMarkmapDto> {
     const lines = content.split('\n');
     const firstLine = lines[0]?.trim() || 'Imported Markmap';
-    
+
     // Remove markdown header syntax from first line if present
     const title = firstLine.replace(/^#+\s*/, '');
-    
+
     return {
       title,
       text: content,
@@ -559,6 +576,16 @@ ${markmapConfig}
       deletedAt?: null;
       isPublic?: boolean;
       language?: string;
+      authorId?: string;
+      tags?: {
+        some: {
+          tag: {
+            name: {
+              in: string[];
+            };
+          };
+        };
+      };
       OR?: Array<{
         title?: { contains: string; mode: 'insensitive' };
         text?: { contains: string; mode: 'insensitive' };
@@ -573,6 +600,33 @@ ${markmapConfig}
 
     if (searchDto.language) {
       where.language = searchDto.language;
+    }
+
+    // Filter by author username
+    if (searchDto.author) {
+      const author = await this.prisma.user.findUnique({
+        where: { username: searchDto.author },
+        select: { id: true },
+      });
+      if (author) {
+        where.authorId = author.id;
+      }
+    }
+
+    // Filter by tags
+    if (searchDto.tags && searchDto.tags.length > 0) {
+      const normalizedTags = searchDto.tags.map((tag) =>
+        tag.startsWith('#') ? tag : `#${tag}`,
+      );
+      where.tags = {
+        some: {
+          tag: {
+            name: {
+              in: normalizedTags,
+            },
+          },
+        },
+      };
     }
 
     if (searchDto.query) {
@@ -796,5 +850,77 @@ ${markmapConfig}
       .sort((a, b) => a.date.localeCompare(b.date));
 
     return trend;
+  }
+
+  async getLanguageSuggestions(query?: string) {
+    // Common language codes with their full names
+    const languages = [
+      { code: 'en', name: 'English' },
+      { code: 'es', name: 'Español' },
+      { code: 'fr', name: 'Français' },
+      { code: 'de', name: 'Deutsch' },
+      { code: 'it', name: 'Italiano' },
+      { code: 'pt', name: 'Português' },
+      { code: 'ru', name: 'Русский' },
+      { code: 'ja', name: '日本語' },
+      { code: 'zh', name: '中文' },
+      { code: 'ko', name: '한국어' },
+      { code: 'ar', name: 'العربية' },
+      { code: 'hi', name: 'हिन्दी' },
+      { code: 'nl', name: 'Nederlands' },
+      { code: 'pl', name: 'Polski' },
+      { code: 'tr', name: 'Türkçe' },
+      { code: 'sv', name: 'Svenska' },
+      { code: 'da', name: 'Dansk' },
+      { code: 'fi', name: 'Suomi' },
+      { code: 'no', name: 'Norsk' },
+      { code: 'cs', name: 'Čeština' },
+    ];
+
+    if (!query) {
+      return languages;
+    }
+
+    // Filter by query
+    const lowerQuery = query.toLowerCase();
+    return languages.filter(
+      (lang) =>
+        lang.code.toLowerCase().includes(lowerQuery) ||
+        lang.name.toLowerCase().includes(lowerQuery),
+    );
+  }
+
+  async getAuthorSuggestions(query?: string) {
+    const where = query
+      ? {
+          username: {
+            contains: query,
+            mode: 'insensitive' as const,
+          },
+        }
+      : {};
+
+    const users = await this.prisma.user.findMany({
+      where,
+      select: {
+        username: true,
+        displayName: true,
+        _count: {
+          select: { markmaps: true },
+        },
+      },
+      orderBy: {
+        markmaps: {
+          _count: 'desc',
+        },
+      },
+      take: 10,
+    });
+
+    return users.map((user) => ({
+      username: user.username,
+      displayName: user.displayName,
+      markmapCount: user._count.markmaps,
+    }));
   }
 }

@@ -230,6 +230,86 @@ export class MarkmapsService {
     return markmap;
   }
 
+  async findByUsernameSeriesAndSlug(
+    username: string,
+    seriesSlug: string,
+    markmapSlug: string,
+    userId?: string,
+  ) {
+    // First, find the user by username
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: { id: true, username: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Find the series by author and slug
+    const series = await this.prisma.series.findUnique({
+      where: {
+        authorId_slug: {
+          authorId: user.id,
+          slug: seriesSlug,
+        },
+      },
+      select: { id: true, isPublic: true },
+    });
+
+    if (!series) {
+      throw new NotFoundException('Series not found');
+    }
+
+    // Check series access
+    if (!series.isPublic && (!userId || userId !== user.id)) {
+      throw new ForbiddenException('Access denied to this series');
+    }
+
+    // Find the markmap by author, series, and slug
+    const markmap = await this.prisma.markmap.findFirst({
+      where: {
+        authorId: user.id,
+        seriesId: series.id,
+        slug: markmapSlug,
+        deletedAt: null,
+      },
+      include: {
+        author: {
+          select: { id: true, username: true },
+        },
+        series: {
+          select: { id: true, name: true, slug: true },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    if (!markmap) {
+      throw new NotFoundException('Markmap not found in this series');
+    }
+
+    if (!markmap.isPublic && (!userId || markmap.authorId !== userId)) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Track view history if user is logged in
+    if (userId) {
+      await this.prisma.viewHistory.create({
+        data: {
+          userId,
+          markmapId: markmap.id,
+        },
+      });
+    }
+
+    return markmap;
+  }
+
   async update(id: string, updateMarkmapDto: UpdateMarkmapDto, userId: string) {
     const markmap = await this.prisma.markmap.findUnique({
       where: { id },

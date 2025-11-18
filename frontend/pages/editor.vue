@@ -1,13 +1,23 @@
 <template>
   <div class="container">
-    <h1>{{ editMode ? 'Edit Markmap' : 'Create Markmap' }}</h1>
+    <div class="editor-header">
+      <h1>{{ editMode ? 'Edit Markmap' : 'Create Markmap' }}</h1>
+      <div class="editor-controls">
+        <button @click="toggleFullscreen" class="btn btn-sm" type="button">
+          {{ isFullscreen ? '↙ Exit Fullscreen' : '↗ Fullscreen' }}
+        </button>
+        <button @click="togglePreview" class="btn btn-sm" type="button" v-if="isFullscreen">
+          {{ showPreview ? 'Hide Preview' : 'Show Preview' }}
+        </button>
+      </div>
+    </div>
 
     <div v-if="!isAuthenticated" class="card">
       <p>You need to be logged in to create or edit markmaps.</p>
       <NuxtLink to="/login" class="btn">Login</NuxtLink>
     </div>
 
-    <div v-else class="editor-layout">
+    <div v-else class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
       <div class="editor-panel card">
         <h2>Editor</h2>
         <form @submit.prevent="handleSubmit">
@@ -262,6 +272,21 @@ const cancelUrl = computed(() => {
   return '/profile'
 })
 
+// Fullscreen mode
+const isFullscreen = ref(false)
+const showPreview = ref(true)
+
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value
+  if (!isFullscreen.value) {
+    showPreview.value = true
+  }
+}
+
+const togglePreview = () => {
+  showPreview.value = !showPreview.value
+}
+
 const loadMarkmap = async (id: string) => {
   try {
     const response = await authFetch(`/markmaps/${id}`)
@@ -495,6 +520,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.editor-header h1 {
+  margin: 0;
+}
+
+.editor-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
 h1 {
   margin-bottom: 2rem;
   color: #007bff;
@@ -504,10 +550,51 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
+  transition: all 0.3s ease;
+}
+
+.editor-layout.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: #f5f5f5;
+  padding: 1rem;
+  margin: 0;
+  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.editor-layout.fullscreen.hide-preview {
+  grid-template-columns: 1fr;
+}
+
+.editor-layout.fullscreen .preview-panel {
+  display: block;
+}
+
+.editor-layout.fullscreen.hide-preview .preview-panel {
+  display: none;
+}
+
+.editor-layout.fullscreen .editor-panel,
+.editor-layout.fullscreen .preview-panel {
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
 }
 
 @media (max-width: 1024px) {
   .editor-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .editor-layout.fullscreen {
+    grid-template-columns: 1fr;
+  }
+  
+  .editor-layout.fullscreen.hide-preview {
     grid-template-columns: 1fr;
   }
 }
@@ -543,6 +630,10 @@ h1 {
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
+}
+
+.editor-layout.fullscreen .preview-container {
+  height: calc(100vh - 150px);
 }
 
 .preview-placeholder {

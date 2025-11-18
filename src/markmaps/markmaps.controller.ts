@@ -216,6 +216,39 @@ export class MarkmapsController {
     return this.markmapsService.getTagHistoricalTrend(tagName);
   }
 
+  // Human-friendly URL endpoints for series - must come before generic username/slug routes
+  @Get(':username/series/:seriesSlug/:markmapSlug/fullscreen')
+  findBySeriesSlugFullscreen(
+    @Param('username') username: string,
+    @Param('seriesSlug') seriesSlug: string,
+    @Param('markmapSlug') markmapSlug: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    return this.markmapsService.findByUsernameSeriesAndSlug(
+      username,
+      seriesSlug,
+      markmapSlug,
+      userId,
+    );
+  }
+
+  @Get(':username/series/:seriesSlug/:markmapSlug')
+  findBySeriesSlug(
+    @Param('username') username: string,
+    @Param('seriesSlug') seriesSlug: string,
+    @Param('markmapSlug') markmapSlug: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    return this.markmapsService.findByUsernameSeriesAndSlug(
+      username,
+      seriesSlug,
+      markmapSlug,
+      userId,
+    );
+  }
+
   // Human-friendly URL endpoints - must be last to avoid conflicts
   @Get(':username/:slug/fullscreen')
   findBySlugFullscreen(

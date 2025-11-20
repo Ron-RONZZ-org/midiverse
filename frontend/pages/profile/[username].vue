@@ -193,7 +193,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const { authFetch } = useApi()
+const { authFetch, setUser } = useApi()
 const { isAuthenticated, currentUser } = useAuth()
 
 const username = computed(() => route.params.username as string)
@@ -295,6 +295,18 @@ const updateProfile = async () => {
     }
 
     const updatedProfile = await response.json()
+    
+    // Update the stored user data if this is the current user's profile
+    if (currentUser.value && currentUser.value.id === profile.value.id) {
+      setUser({
+        ...currentUser.value,
+        username: updatedProfile.username,
+        email: updatedProfile.email,
+        displayName: updatedProfile.displayName,
+        description: updatedProfile.description,
+        profilePictureUrl: updatedProfile.profilePictureUrl,
+      })
+    }
     
     // If username changed, redirect to new profile URL
     if (updateData.username) {

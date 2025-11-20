@@ -29,6 +29,9 @@
         <button v-if="isFullscreenMode" @click="exitFullscreen" class="exit-fullscreen-btn" title="Exit Fullscreen">
           ✕
         </button>
+        <button v-if="isFullscreenMode" @click="showShareModal = true" class="share-btn" title="Share">
+          🔗
+        </button>
         <ClientOnly>
           <MarkmapViewer 
             :markdown="markmap.text"
@@ -45,6 +48,27 @@
         <h3>Source Markdown</h3>
         <pre>{{ markmap.text }}</pre>
       </div>
+
+      <!-- Share Modal -->
+      <div v-if="showShareModal" class="modal-overlay" @click.self="showShareModal = false">
+        <div class="modal">
+          <h2>Share Markmap</h2>
+          <p class="modal-description">Copy the direct link to share this markmap:</p>
+          <div class="link-container">
+            <input 
+              type="text" 
+              :value="directLink + '/fullscreen'" 
+              readonly 
+              class="link-input"
+              ref="linkInput"
+            />
+          </div>
+          <div class="modal-actions">
+            <button @click="showShareModal = false" class="btn btn-secondary">Close</button>
+            <button @click="copyDirectLinkFromModal" class="btn">🔗 Copy Link</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -58,6 +82,8 @@ const { currentUser } = useAuth()
 const markmap = ref<any>(null)
 const loading = ref(true)
 const error = ref('')
+const showShareModal = ref(false)
+const linkInput = ref<HTMLInputElement | null>(null)
 
 // Parse slug - it can be an array if using catch-all route
 const getSlugParts = () => {
@@ -152,6 +178,22 @@ const copyDirectLink = async () => {
   try {
     await navigator.clipboard.writeText(link)
     alert('Link copied to clipboard!')
+  } catch (err) {
+    console.error('Failed to copy link:', err)
+    alert('Failed to copy link')
+  }
+}
+
+const copyDirectLinkFromModal = async () => {
+  const link = `${directLink.value}/fullscreen`
+  try {
+    await navigator.clipboard.writeText(link)
+    // Select the text in the input for visual feedback
+    if (linkInput.value) {
+      linkInput.value.select()
+    }
+    alert('Link copied to clipboard!')
+    showShareModal.value = false
   } catch (err) {
     console.error('Failed to copy link:', err)
     alert('Failed to copy link')
@@ -284,6 +326,91 @@ onMounted(() => {
 
 .exit-fullscreen-btn:hover {
   background: rgba(0, 0, 0, 0.9);
+}
+
+.share-btn {
+  position: absolute;
+  top: 10px;
+  right: 60px;
+  z-index: 1000;
+  background: rgba(0, 123, 255, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.share-btn:hover {
+  background: rgba(0, 123, 255, 1);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.modal h2 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.modal-description {
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.link-container {
+  margin-bottom: 1.5rem;
+}
+
+.link-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  background: #f8f9fa;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
 }
 
 .markmap-source {

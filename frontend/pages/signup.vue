@@ -3,7 +3,24 @@
     <div class="auth-form">
       <div class="card">
         <h1>Sign Up</h1>
-        <form @submit.prevent="handleSignup">
+        
+        <div v-if="verificationPending" class="success-message">
+          <h2>✓ Account Created!</h2>
+          <p>{{ successMessage }}</p>
+          <p>Please check your email and click the verification link to activate your account.</p>
+          <div class="resend-section">
+            <p>Didn't receive the email?</p>
+            <button 
+              @click="handleResendVerification" 
+              class="btn-secondary"
+              :disabled="resending"
+            >
+              {{ resending ? 'Sending...' : 'Resend Verification Email' }}
+            </button>
+          </div>
+        </div>
+
+        <form v-else @submit.prevent="handleSignup">
           <div class="form-group">
             <label for="email">Email</label>
             <input 
@@ -35,8 +52,14 @@
               placeholder="Choose a password (min 6 characters)"
             />
           </div>
+          
+          <!-- Cloudflare Turnstile -->
+          <div class="form-group">
+            <div id="turnstile-container"></div>
+          </div>
+
           <div v-if="error" class="error">{{ error }}</div>
-          <button type="submit" class="btn" :disabled="loading">
+          <button type="submit" class="btn" :disabled="loading || !turnstileToken">
             {{ loading ? 'Creating account...' : 'Sign Up' }}
           </button>
         </form>
@@ -50,26 +73,78 @@
 </template>
 
 <script setup lang="ts">
-const { signup } = useAuth()
+const { signup, resendVerification } = useAuth()
+const { renderTurnstile, resetTurnstile, removeTurnstile } = useTurnstile()
 
 const email = ref('')
 const username = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
+const turnstileToken = ref('')
+const turnstileWidgetId = ref<string>()
+const verificationPending = ref(false)
+const successMessage = ref('')
+const resending = ref(false)
+
+onMounted(() => {
+  // Render Turnstile widget
+  renderTurnstile('turnstile-container', (token: string) => {
+    turnstileToken.value = token
+  }).then((widgetId) => {
+    turnstileWidgetId.value = widgetId
+  }).catch((err) => {
+    console.error('Failed to load Turnstile:', err)
+    // Continue without Turnstile if it fails to load
+  })
+})
+
+onUnmounted(() => {
+  if (turnstileWidgetId.value) {
+    removeTurnstile(turnstileWidgetId.value)
+  }
+})
 
 const handleSignup = async () => {
   error.value = ''
   loading.value = true
 
   try {
-    const data = await signup(email.value, username.value, password.value)
-    // Redirect directly to user's profile page
-    navigateTo(`/profile/${data.user.username}`)
+    const data = await signup(email.value, username.value, password.value, turnstileToken.value)
+    
+    // Check if email verification is required
+    if (data.message) {
+      verificationPending.value = true
+      successMessage.value = data.message
+    } else if (data.user) {
+      // If token is returned (old flow), redirect to profile
+      navigateTo(`/profile/${data.user.username}`)
+    }
   } catch (err: any) {
     error.value = err.message || 'Signup failed. Please try again.'
+    // Reset Turnstile on error
+    if (turnstileWidgetId.value) {
+      resetTurnstile(turnstileWidgetId.value)
+      turnstileToken.value = ''
+    }
   } finally {
     loading.value = false
+  }
+}
+
+const handleResendVerification = async () => {
+  if (!email.value) return
+  
+  error.value = ''
+  resending.value = true
+  
+  try {
+    const data = await resendVerification(email.value)
+    successMessage.value = data.message || 'Verification email sent successfully!'
+  } catch (err: any) {
+    error.value = err.message || 'Failed to resend verification email'
+  } finally {
+    resending.value = false
   }
 }
 </script>
@@ -103,5 +178,52 @@ const handleSignup = async () => {
 
 .auth-switch a:hover {
   text-decoration: underline;
+}
+
+.success-message {
+  text-align: center;
+  padding: 2rem;
+}
+
+.success-message h2 {
+  color: #28a745;
+  margin-bottom: 1rem;
+}
+
+.success-message p {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.resend-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #ddd;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 0.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#turnstile-container {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
 }
 </style>

@@ -2,7 +2,10 @@
   <div>
     <nav class="navbar">
       <div class="container">
-        <NuxtLink to="/" class="brand">Midiverse</NuxtLink>
+        <NuxtLink to="/" class="brand">
+          <div class="brand-logo">M</div>
+          <span>Midiverse</span>
+        </NuxtLink>
         <div class="nav-links">
           <NuxtLink to="/markmaps">Explore</NuxtLink>
           <NuxtLink to="/search">Search</NuxtLink>
@@ -229,6 +232,22 @@ watch(showImportModal, (newVal) => {
   font-weight: bold;
   color: #007bff;
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
 }
 
 .nav-links {

@@ -18,12 +18,16 @@ model User {
   email               String    @unique
   username            String    @unique
   password            String
+  displayName         String?   // Display name for profile
+  description         String?   // Profile description
+  profilePictureUrl   String?   // Profile picture URL
   lastEmailChange     DateTime?
   lastUsernameChange  DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
   markmaps       Markmap[]
+  series         Series[]
   viewHistory    ViewHistory[]
   interactions   Interaction[]
 }
@@ -44,12 +48,15 @@ model Markmap {
 
   authorId      String?
   author        User?         @relation(fields: [authorId], references: [id])
+  seriesId      String?
+  series        Series?       @relation(fields: [seriesId], references: [id])
   viewHistory   ViewHistory[]
   interactions  Interaction[]
   tags          TagOnMarkmap[]
 
   @@unique([authorId, slug])
   @@index([authorId])
+  @@index([seriesId])
   @@index([isPublic])
   @@index([language])
   @@index([deletedAt])
@@ -108,4 +115,23 @@ model TagOnMarkmap {
   @@index([tagId])
   @@index([markmapId])
   @@index([createdAt])
+}
+
+model Series {
+  id          String    @id @default(uuid())
+  name        String    // Series name
+  slug        String    // URL-friendly version of series name
+  description String?   // Optional series description
+  isPublic    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  markmaps    Markmap[]
+
+  @@unique([authorId, slug])
+  @@index([authorId])
+  @@index([slug])
+  @@index([isPublic])
 }

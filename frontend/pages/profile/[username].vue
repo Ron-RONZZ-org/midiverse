@@ -4,12 +4,22 @@
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else-if="profile">
       <div class="profile-header card">
-        <div class="profile-info">
-          <h1>{{ profile.username }}</h1>
-          <p v-if="profile.isOwnProfile" class="email">{{ profile.email }}</p>
-          <p class="joined">
-            Joined {{ new Date(profile.createdAt).toLocaleDateString() }}
-          </p>
+        <div class="profile-header-content">
+          <div v-if="profile.profilePictureUrl" class="profile-picture">
+            <img :src="profile.profilePictureUrl" :alt="`${profile.username}'s profile picture`" />
+          </div>
+          <div v-else class="profile-picture-placeholder">
+            {{ profile.username.charAt(0).toUpperCase() }}
+          </div>
+          <div class="profile-info">
+            <h1>{{ profile.displayName || profile.username }}</h1>
+            <p class="username">@{{ profile.username }}</p>
+            <p v-if="profile.description" class="description">{{ profile.description }}</p>
+            <p v-if="profile.isOwnProfile" class="email">{{ profile.email }}</p>
+            <p class="joined">
+              Joined {{ new Date(profile.createdAt).toLocaleDateString() }}
+            </p>
+          </div>
         </div>
         
         <div class="stats">
@@ -114,6 +124,36 @@
         <div v-if="editError" class="error">{{ editError }}</div>
         <form @submit.prevent="updateProfile">
           <div class="form-group">
+            <label for="displayName">Display Name</label>
+            <input 
+              id="displayName" 
+              v-model="editForm.displayName" 
+              type="text" 
+              class="form-control"
+              :placeholder="profile.displayName || profile.username"
+            />
+          </div>
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea 
+              id="description" 
+              v-model="editForm.description" 
+              rows="3"
+              class="form-control"
+              :placeholder="profile.description || 'Tell us about yourself...'"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="profilePictureUrl">Profile Picture URL</label>
+            <input 
+              id="profilePictureUrl" 
+              v-model="editForm.profilePictureUrl" 
+              type="url" 
+              class="form-control"
+              :placeholder="profile.profilePictureUrl || 'https://example.com/your-picture.jpg'"
+            />
+          </div>
+          <div class="form-group">
             <label for="email">Email</label>
             <input 
               id="email" 
@@ -153,7 +193,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const { authFetch } = useApi()
+const { authFetch, setUser } = useApi()
 const { isAuthenticated, currentUser } = useAuth()
 
 const username = computed(() => route.params.username as string)
@@ -164,7 +204,13 @@ const loading = ref(true)
 const error = ref('')
 
 const showEditModal = ref(false)
-const editForm = ref({ email: '', username: '' })
+const editForm = ref({ 
+  email: '', 
+  username: '',
+  displayName: '',
+  description: '',
+  profilePictureUrl: ''
+})
 const editError = ref('')
 const editLoading = ref(false)
 
@@ -216,6 +262,15 @@ const updateProfile = async () => {
   
   try {
     const updateData: any = {}
+    if (editForm.value.displayName && editForm.value.displayName !== profile.value.displayName) {
+      updateData.displayName = editForm.value.displayName
+    }
+    if (editForm.value.description && editForm.value.description !== profile.value.description) {
+      updateData.description = editForm.value.description
+    }
+    if (editForm.value.profilePictureUrl && editForm.value.profilePictureUrl !== profile.value.profilePictureUrl) {
+      updateData.profilePictureUrl = editForm.value.profilePictureUrl
+    }
     if (editForm.value.email && editForm.value.email !== profile.value.email) {
       updateData.email = editForm.value.email
     }
@@ -241,6 +296,18 @@ const updateProfile = async () => {
 
     const updatedProfile = await response.json()
     
+    // Update the stored user data if this is the current user's profile
+    if (currentUser.value && currentUser.value.id === profile.value.id) {
+      setUser({
+        ...currentUser.value,
+        username: updatedProfile.username,
+        email: updatedProfile.email,
+        displayName: updatedProfile.displayName,
+        description: updatedProfile.description,
+        profilePictureUrl: updatedProfile.profilePictureUrl,
+      })
+    }
+    
     // If username changed, redirect to new profile URL
     if (updateData.username) {
       navigateTo(`/profile/${updatedProfile.username}`)
@@ -250,7 +317,13 @@ const updateProfile = async () => {
     }
     
     showEditModal.value = false
-    editForm.value = { email: '', username: '' }
+    editForm.value = { 
+      email: '', 
+      username: '',
+      displayName: '',
+      description: '',
+      profilePictureUrl: ''
+    }
   } catch (err: any) {
     editError.value = err.message || 'Failed to update profile'
   } finally {
@@ -265,7 +338,9 @@ const duplicateMarkmap = async (id: string) => {
     })
 
     if (response.ok) {
-      await loadProfile()
+      const duplicatedMarkmap = await response.json()
+      // Add the duplicated markmap to the list without full reload
+      markmaps.value.unshift(duplicatedMarkmap)
     } else {
       alert('Failed to duplicate markmap')
     }
@@ -307,7 +382,16 @@ const deleteMarkmap = async (id: string) => {
     })
 
     if (response.ok) {
-      await loadProfile()
+      // Update local state instead of reloading to preserve scroll position
+      const deletedMarkmap = markmaps.value.find(m => m.id === id)
+      if (deletedMarkmap) {
+        // Move from active markmaps to deleted markmaps
+        markmaps.value = markmaps.value.filter(m => m.id !== id)
+        deletedMarkmaps.value.unshift({
+          ...deletedMarkmap,
+          deletedAt: new Date().toISOString()
+        })
+      }
     } else {
       alert('Failed to delete markmap')
     }
@@ -323,7 +407,10 @@ const restoreMarkmap = async (id: string) => {
     })
 
     if (response.ok) {
-      await loadProfile()
+      const restoredMarkmap = await response.json()
+      // Move from deleted to active markmaps without full reload
+      deletedMarkmaps.value = deletedMarkmaps.value.filter(m => m.id !== id)
+      markmaps.value.unshift(restoredMarkmap)
     } else {
       alert('Failed to restore markmap')
     }
@@ -365,8 +452,54 @@ h2 {
   margin-bottom: 2rem;
 }
 
+.profile-header-content {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.profile-picture {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.profile-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-picture-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
 .profile-info {
-  margin-bottom: 1.5rem;
+  flex: 1;
+}
+
+.username {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  color: #444;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
 }
 
 .email {
@@ -563,6 +696,11 @@ a.markmap-card:hover {
   border: 1px solid #ced4da;
   border-radius: 4px;
   font-size: 1rem;
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
 }
 
 .form-text {

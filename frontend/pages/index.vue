@@ -1,6 +1,9 @@
 <template>
   <div class="container">
     <div class="hero">
+      <div class="logo-container">
+        <div class="logo">M</div>
+      </div>
       <h1>Welcome to Midiverse</h1>
       <p>Create, share, and explore interactive markmaps</p>
       <div class="cta-buttons">
@@ -78,6 +81,31 @@ onMounted(async () => {
 .hero {
   text-align: center;
   padding: 4rem 0;
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.logo {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  font-weight: bold;
+  color: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
 }
 
 .hero h1 {

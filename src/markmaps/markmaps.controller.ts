@@ -103,9 +103,9 @@ export class MarkmapsController {
     const userId = req.user?.id;
     const html = await this.markmapsService.generateDownloadHtml(id, userId);
     const markmap = await this.markmapsService.findOne(id, userId);
-    
+
     const filename = `${markmap.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`;
-    
+
     res.setHeader('Content-Type', 'text/html');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(html);
@@ -128,17 +128,18 @@ export class MarkmapsController {
       title?: string;
       error?: string;
     }> = [];
-    
+
     for (const file of files) {
       try {
         // Validate file type
         const allowedExtensions = ['.html', '.htm', '.md', '.markdown', '.txt'];
         const fileExt = file.originalname.toLowerCase().match(/\.[^.]+$/)?.[0];
-        
+
         if (!fileExt || !allowedExtensions.includes(fileExt)) {
           imported.push({
             filename: file.originalname,
-            error: 'Invalid file type. Only HTML, Markdown, and TXT files are allowed.',
+            error:
+              'Invalid file type. Only HTML, Markdown, and TXT files are allowed.',
           });
           continue;
         }
@@ -148,13 +149,13 @@ export class MarkmapsController {
           file.originalname,
           content,
         );
-        
+
         // Create the markmap
         const created = await this.markmapsService.create(
           parsed as CreateMarkmapDto,
           user.id,
         );
-        
+
         imported.push({
           filename: file.originalname,
           id: created.id,
@@ -170,7 +171,7 @@ export class MarkmapsController {
 
     return {
       success: true,
-      count: imported.filter(i => !i.error).length,
+      count: imported.filter((i) => !i.error).length,
       total: files.length,
       imported,
     };
@@ -195,6 +196,16 @@ export class MarkmapsController {
     return this.markmapsService.getTagSuggestions(dto.query);
   }
 
+  @Get('languages/suggestions')
+  getLanguageSuggestions(@Query('query') query?: string) {
+    return this.markmapsService.getLanguageSuggestions(query);
+  }
+
+  @Get('authors/suggestions')
+  getAuthorSuggestions(@Query('query') query?: string) {
+    return this.markmapsService.getAuthorSuggestions(query);
+  }
+
   @Get('tags/statistics')
   getTagStatistics(@Query(ValidationPipe) dto: GetTagStatisticsDto) {
     return this.markmapsService.getTagStatistics(dto.timeFilter);
@@ -203,6 +214,39 @@ export class MarkmapsController {
   @Get('tags/trend/:tagName')
   getTagHistoricalTrend(@Param('tagName') tagName: string) {
     return this.markmapsService.getTagHistoricalTrend(tagName);
+  }
+
+  // Human-friendly URL endpoints for series - must come before generic username/slug routes
+  @Get(':username/series/:seriesSlug/:markmapSlug/fullscreen')
+  findBySeriesSlugFullscreen(
+    @Param('username') username: string,
+    @Param('seriesSlug') seriesSlug: string,
+    @Param('markmapSlug') markmapSlug: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    return this.markmapsService.findByUsernameSeriesAndSlug(
+      username,
+      seriesSlug,
+      markmapSlug,
+      userId,
+    );
+  }
+
+  @Get(':username/series/:seriesSlug/:markmapSlug')
+  findBySeriesSlug(
+    @Param('username') username: string,
+    @Param('seriesSlug') seriesSlug: string,
+    @Param('markmapSlug') markmapSlug: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    return this.markmapsService.findByUsernameSeriesAndSlug(
+      username,
+      seriesSlug,
+      markmapSlug,
+      userId,
+    );
   }
 
   // Human-friendly URL endpoints - must be last to avoid conflicts

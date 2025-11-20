@@ -22,6 +22,9 @@ export class UsersService {
         id: true,
         email: true,
         username: true,
+        displayName: true,
+        description: true,
+        profilePictureUrl: true,
         createdAt: true,
         lastEmailChange: true,
         lastUsernameChange: true,
@@ -42,6 +45,9 @@ export class UsersService {
       select: {
         id: true,
         username: true,
+        displayName: true,
+        description: true,
+        profilePictureUrl: true,
         createdAt: true,
         _count: {
           select: {
@@ -66,6 +72,9 @@ export class UsersService {
           id: true,
           email: true,
           username: true,
+          displayName: true,
+          description: true,
+          profilePictureUrl: true,
           createdAt: true,
           lastEmailChange: true,
           lastUsernameChange: true,
@@ -133,6 +142,9 @@ export class UsersService {
       lastEmailChange?: Date;
       username?: string;
       lastUsernameChange?: Date;
+      displayName?: string;
+      description?: string;
+      profilePictureUrl?: string;
     } = {};
     if (updateUserDto.email) {
       updateData.email = updateUserDto.email;
@@ -141,6 +153,15 @@ export class UsersService {
     if (updateUserDto.username) {
       updateData.username = updateUserDto.username;
       updateData.lastUsernameChange = now;
+    }
+    if (updateUserDto.displayName !== undefined) {
+      updateData.displayName = updateUserDto.displayName;
+    }
+    if (updateUserDto.description !== undefined) {
+      updateData.description = updateUserDto.description;
+    }
+    if (updateUserDto.profilePictureUrl !== undefined) {
+      updateData.profilePictureUrl = updateUserDto.profilePictureUrl;
     }
 
     try {
@@ -151,6 +172,9 @@ export class UsersService {
           id: true,
           email: true,
           username: true,
+          displayName: true,
+          description: true,
+          profilePictureUrl: true,
           createdAt: true,
           lastEmailChange: true,
           lastUsernameChange: true,

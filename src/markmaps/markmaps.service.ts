@@ -419,19 +419,23 @@ export class MarkmapsService {
       throw new ForbiddenException('Access denied');
     }
 
-    // Create a duplicate
+    // Create a duplicate with a new title and slug
+    const newTitle = `${markmap.title} (Copy)`;
+    const newSlug = await this.generateUniqueSlug(newTitle, userId);
 
     const {
       id: _markmapId, // eslint-disable-line @typescript-eslint/no-unused-vars
       createdAt: _createdAt, // eslint-disable-line @typescript-eslint/no-unused-vars
       updatedAt: _updatedAt, // eslint-disable-line @typescript-eslint/no-unused-vars
       deletedAt: _deletedAt, // eslint-disable-line @typescript-eslint/no-unused-vars
+      slug: _slug, // eslint-disable-line @typescript-eslint/no-unused-vars
       ...markmapData
     } = markmap;
     return this.prisma.markmap.create({
       data: {
         ...markmapData,
-        title: `${markmap.title} (Copy)`,
+        title: newTitle,
+        slug: newSlug,
         authorId: userId,
       },
       include: {

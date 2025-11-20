@@ -326,7 +326,9 @@ const duplicateMarkmap = async (id: string) => {
     })
 
     if (response.ok) {
-      await loadProfile()
+      const duplicatedMarkmap = await response.json()
+      // Add the duplicated markmap to the list without full reload
+      markmaps.value.unshift(duplicatedMarkmap)
     } else {
       alert('Failed to duplicate markmap')
     }
@@ -368,7 +370,16 @@ const deleteMarkmap = async (id: string) => {
     })
 
     if (response.ok) {
-      await loadProfile()
+      // Update local state instead of reloading to preserve scroll position
+      const deletedMarkmap = markmaps.value.find(m => m.id === id)
+      if (deletedMarkmap) {
+        // Move from active markmaps to deleted markmaps
+        markmaps.value = markmaps.value.filter(m => m.id !== id)
+        deletedMarkmaps.value.unshift({
+          ...deletedMarkmap,
+          deletedAt: new Date().toISOString()
+        })
+      }
     } else {
       alert('Failed to delete markmap')
     }
@@ -384,7 +395,10 @@ const restoreMarkmap = async (id: string) => {
     })
 
     if (response.ok) {
-      await loadProfile()
+      const restoredMarkmap = await response.json()
+      // Move from deleted to active markmaps without full reload
+      deletedMarkmaps.value = deletedMarkmaps.value.filter(m => m.id !== id)
+      markmaps.value.unshift(restoredMarkmap)
     } else {
       alert('Failed to restore markmap')
     }

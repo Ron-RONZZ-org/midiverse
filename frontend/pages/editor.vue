@@ -486,9 +486,15 @@ const handleSubmit = async () => {
     const url = editMode.value ? `/markmaps/${markmapId.value}` : '/markmaps'
     const method = editMode.value ? 'PATCH' : 'POST'
 
+    // Clean the form data - convert empty seriesId to undefined
+    const submitData = {
+      ...form.value,
+      seriesId: form.value.seriesId || undefined
+    }
+
     const response = await authFetch(url, {
       method,
-      body: JSON.stringify(form.value)
+      body: JSON.stringify(submitData)
     })
 
     if (response.ok) {

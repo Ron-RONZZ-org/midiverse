@@ -18,6 +18,9 @@ model User {
   email               String    @unique
   username            String    @unique
   password            String
+  emailVerified       Boolean   @default(false)
+  emailVerificationToken String?
+  emailVerificationTokenExpiry DateTime?
   displayName         String?   // Display name for profile
   description         String?   // Profile description
   profilePictureUrl   String?   // Profile picture URL

@@ -13,12 +13,14 @@ export class TurnstileService {
 
   async verifyToken(token: string): Promise<boolean> {
     if (!this.secretKey) {
-      this.logger.warn('Turnstile secret key not configured, skipping verification');
+      this.logger.warn(
+        'Turnstile secret key not configured, skipping verification',
+      );
       return true; // Skip verification in development if not configured
     }
 
     try {
-      const response = await axios.post(
+      const response = await axios.post<{ success: boolean }>(
         'https://challenges.cloudflare.com/turnstile/v0/siteverify',
         {
           secret: this.secretKey,

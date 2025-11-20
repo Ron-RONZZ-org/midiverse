@@ -1,0 +1,38 @@
+module.exports = {
+  apps: [
+    {
+      name: 'midiverse-backend',
+      script: './dist/main.js',
+      cwd: __dirname,
+      env: {
+        NODE_ENV: 'production',
+      },
+      instances: 2,
+      exec_mode: 'cluster',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+      error_file: './logs/backend-error.log',
+      out_file: './logs/backend-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    },
+    {
+      name: 'midiverse-frontend',
+      script: 'node_modules/nuxt/bin/nuxt.mjs',
+      args: 'start',
+      cwd: './frontend',
+      env: {
+        NODE_ENV: 'production',
+        HOST: '0.0.0.0',
+        PORT: 3001,
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+      error_file: '../logs/frontend-error.log',
+      out_file: '../logs/frontend-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    },
+  ],
+};

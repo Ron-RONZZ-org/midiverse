@@ -9,12 +9,12 @@ export class EmailService {
 
   constructor(private configService: ConfigService) {
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get('EMAIL_HOST'),
-      port: this.configService.get('EMAIL_PORT'),
-      secure: this.configService.get('EMAIL_SECURE') === 'true',
+      host: this.configService.get<string>('EMAIL_HOST'),
+      port: this.configService.get<number>('EMAIL_PORT'),
+      secure: this.configService.get<string>('EMAIL_SECURE') === 'true',
       auth: {
-        user: this.configService.get('EMAIL_USER'),
-        pass: this.configService.get('EMAIL_PASSWORD'),
+        user: this.configService.get<string>('EMAIL_USER'),
+        pass: this.configService.get<string>('EMAIL_PASSWORD'),
       },
     });
   }
@@ -24,11 +24,11 @@ export class EmailService {
     username: string,
     token: string,
   ): Promise<void> {
-    const appUrl = this.configService.get('APP_URL');
+    const appUrl = this.configService.get<string>('APP_URL');
     const verificationUrl = `${appUrl}/verify-email?token=${token}`;
 
     const mailOptions = {
-      from: this.configService.get('EMAIL_FROM'),
+      from: this.configService.get<string>('EMAIL_FROM'),
       to: email,
       subject: 'Verify Your Email - Midiverse',
       html: `

@@ -1,9 +1,16 @@
 export const useTurnstile = () => {
   const config = useRuntimeConfig()
   const siteKey = config.public.turnstileSiteKey
+  const isConfigured = siteKey && siteKey !== '' && siteKey !== 'your-turnstile-site-key'
 
   const loadTurnstileScript = () => {
     return new Promise<void>((resolve, reject) => {
+      // Skip if not configured
+      if (!isConfigured) {
+        resolve()
+        return
+      }
+
       // Check if script already loaded
       if (window.turnstile) {
         resolve()
@@ -22,6 +29,14 @@ export const useTurnstile = () => {
 
   const renderTurnstile = (containerId: string, callback: (token: string) => void) => {
     return new Promise<string>((resolve, reject) => {
+      // Skip if not configured
+      if (!isConfigured) {
+        console.warn('Turnstile site key not configured, skipping widget rendering')
+        callback('dev-bypass-token') // Provide a dummy token for development
+        resolve('dev-bypass')
+        return
+      }
+
       loadTurnstileScript()
         .then(() => {
           if (!window.turnstile) {
@@ -58,6 +73,7 @@ export const useTurnstile = () => {
 
   return {
     siteKey,
+    isConfigured,
     loadTurnstileScript,
     renderTurnstile,
     resetTurnstile,

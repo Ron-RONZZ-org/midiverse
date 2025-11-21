@@ -26,12 +26,17 @@
           </div>
 
           <!-- Cloudflare Turnstile -->
-          <div class="form-group">
+          <div v-if="!showTurnstileWarning" class="form-group">
             <div id="turnstile-container"></div>
+          </div>
+          
+          <!-- Development Warning -->
+          <div v-if="showTurnstileWarning" class="warning-message">
+            ⚠️ Running in development mode without Turnstile bot protection
           </div>
 
           <div v-if="error" class="error">{{ error }}</div>
-          <button type="submit" class="btn" :disabled="loading || !turnstileToken">
+          <button type="submit" class="btn" :disabled="loading">
             {{ loading ? 'Logging in...' : 'Login' }}
           </button>
         </form>
@@ -46,7 +51,7 @@
 
 <script setup lang="ts">
 const { login } = useAuth()
-const { renderTurnstile, resetTurnstile, removeTurnstile } = useTurnstile()
+const { renderTurnstile, resetTurnstile, removeTurnstile, isConfigured } = useTurnstile()
 
 const username = ref('')
 const password = ref('')
@@ -54,8 +59,16 @@ const error = ref('')
 const loading = ref(false)
 const turnstileToken = ref('')
 const turnstileWidgetId = ref<string>()
+const showTurnstileWarning = ref(false)
 
 onMounted(() => {
+  // Show warning if Turnstile is not configured
+  if (!isConfigured) {
+    showTurnstileWarning.value = true
+    // Set a dummy token to allow form submission in development
+    turnstileToken.value = 'dev-bypass-token'
+  }
+
   // Render Turnstile widget
   renderTurnstile('turnstile-container', (token: string) => {
     turnstileToken.value = token
@@ -63,7 +76,10 @@ onMounted(() => {
     turnstileWidgetId.value = widgetId
   }).catch((err) => {
     console.error('Failed to load Turnstile:', err)
-    // Continue without Turnstile if it fails to load
+    // Set a dummy token to allow form submission if Turnstile fails
+    if (!turnstileToken.value) {
+      turnstileToken.value = 'dev-bypass-token'
+    }
   })
 })
 
@@ -129,5 +145,16 @@ const handleLogin = async () => {
   display: flex;
   justify-content: center;
   margin: 1rem 0;
+}
+
+.warning-message {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+  text-align: center;
+  font-size: 14px;
 }
 </style>

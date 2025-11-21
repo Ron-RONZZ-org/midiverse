@@ -131,6 +131,8 @@ All tests passing (41 tests):
 
 **Development:**
 - Turnstile optional (skips if not configured)
+- Shows warning message when Turnstile is disabled
+- Automatically provides bypass token for development
 - Email optional (logs to console if fails)
 - Can use dummy values for testing
 
@@ -139,6 +141,20 @@ All tests passing (41 tests):
 - Email required (proper SMTP setup needed)
 - SSL certificate recommended
 - Environment variables must be set
+
+## Disabling Turnstile for Local Testing
+
+To test the application locally without Cloudflare Turnstile:
+
+1. **Frontend**: Leave `NUXT_PUBLIC_TURNSTILE_SITE_KEY` unset, empty, or set to `your-turnstile-site-key`
+2. **Backend**: Leave `TURNSTILE_SECRET_KEY` unset or empty
+3. **Result**: 
+   - A yellow warning banner appears on signup/login forms
+   - Forms remain functional without Turnstile widget
+   - Backend skips token verification
+   - App logs warning messages to console
+
+This allows developers to test authentication flows without requiring Cloudflare API keys.
 
 ## Security Considerations
 

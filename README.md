@@ -136,7 +136,10 @@ NUXT_PUBLIC_API_BASE=http://localhost:3000
 NUXT_PUBLIC_TURNSTILE_SITE_KEY=your-turnstile-site-key
 ```
 
-**Note**: Get the Turnstile **Site Key** (not Secret Key) from [Cloudflare Dashboard](https://dash.cloudflare.com/)
+**Note**: 
+- Get the Turnstile **Site Key** (not Secret Key) from [Cloudflare Dashboard](https://dash.cloudflare.com/)
+- **For local testing without Turnstile**: Leave `NUXT_PUBLIC_TURNSTILE_SITE_KEY` empty or set to empty string. The app will show a development warning and allow signup/login without bot protection.
+- **For production**: Always configure Turnstile keys for bot protection
 
 #### Optional: Enable HTTPS for Development
 

@@ -25,6 +25,7 @@ export class UsersService {
         displayName: true,
         description: true,
         profilePictureUrl: true,
+        profileBackgroundColor: true,
         createdAt: true,
         lastEmailChange: true,
         lastUsernameChange: true,
@@ -48,12 +49,21 @@ export class UsersService {
         displayName: true,
         description: true,
         profilePictureUrl: true,
+        profileBackgroundColor: true,
+        email: true,
         createdAt: true,
         _count: {
           select: {
             markmaps: true,
             viewHistory: true,
             interactions: true,
+          },
+        },
+        preferences: {
+          select: {
+            profilePageVisible: true,
+            profilePictureVisible: true,
+            emailVisible: true,
           },
         },
       },
@@ -75,6 +85,7 @@ export class UsersService {
           displayName: true,
           description: true,
           profilePictureUrl: true,
+          profileBackgroundColor: true,
           createdAt: true,
           lastEmailChange: true,
           lastUsernameChange: true,
@@ -90,7 +101,41 @@ export class UsersService {
       return { ...fullProfile, isOwnProfile };
     }
 
-    return { ...user, isOwnProfile };
+    // Apply privacy settings for other users
+    const preferences = user.preferences || {
+      profilePageVisible: true,
+      profilePictureVisible: true,
+      emailVisible: true,
+    };
+
+    // If profile page is not visible, return 404
+    if (!preferences.profilePageVisible) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Build response based on privacy settings
+    const publicProfile: any = {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      description: user.description,
+      createdAt: user.createdAt,
+      _count: user._count,
+      isOwnProfile,
+    };
+
+    // Only include profile picture if visible
+    if (preferences.profilePictureVisible) {
+      publicProfile.profilePictureUrl = user.profilePictureUrl;
+      publicProfile.profileBackgroundColor = user.profileBackgroundColor;
+    }
+
+    // Only include email if visible
+    if (preferences.emailVisible) {
+      publicProfile.email = user.email;
+    }
+
+    return publicProfile;
   }
 
   async updateProfile(userId: string, updateUserDto: UpdateUserDto) {
@@ -145,6 +190,7 @@ export class UsersService {
       displayName?: string;
       description?: string;
       profilePictureUrl?: string;
+      profileBackgroundColor?: string;
     } = {};
     if (updateUserDto.email) {
       updateData.email = updateUserDto.email;
@@ -163,6 +209,9 @@ export class UsersService {
     if (updateUserDto.profilePictureUrl !== undefined) {
       updateData.profilePictureUrl = updateUserDto.profilePictureUrl;
     }
+    if (updateUserDto.profileBackgroundColor !== undefined) {
+      updateData.profileBackgroundColor = updateUserDto.profileBackgroundColor;
+    }
 
     try {
       return await this.prisma.user.update({
@@ -175,6 +224,7 @@ export class UsersService {
           displayName: true,
           description: true,
           profilePictureUrl: true,
+          profileBackgroundColor: true,
           createdAt: true,
           lastEmailChange: true,
           lastUsernameChange: true,
@@ -216,5 +266,43 @@ export class UsersService {
 
   async getUserHistory(userId: string) {
     return this.markmapsService.getUserHistory(userId);
+  }
+
+  async getUserPreferences(userId: string) {
+    // Get or create user preferences
+    let preferences = await this.prisma.userPreferences.findUnique({
+      where: { userId },
+    });
+
+    if (!preferences) {
+      // Create default preferences if they don't exist
+      preferences = await this.prisma.userPreferences.create({
+        data: {
+          userId,
+        },
+      });
+    }
+
+    return preferences;
+  }
+
+  async updateUserPreferences(
+    userId: string,
+    updatePreferencesDto: {
+      darkTheme?: boolean;
+      language?: string;
+      profilePageVisible?: boolean;
+      profilePictureVisible?: boolean;
+      emailVisible?: boolean;
+    },
+  ) {
+    // Ensure preferences exist
+    await this.getUserPreferences(userId);
+
+    // Update preferences
+    return this.prisma.userPreferences.update({
+      where: { userId },
+      data: updatePreferencesDto,
+    });
   }
 }

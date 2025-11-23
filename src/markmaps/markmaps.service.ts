@@ -726,7 +726,30 @@ ${markmapConfig}
       delete where.isPublic;
     }
 
-    return this.prisma.markmap.findMany({
+    // Determine ordering based on sortBy parameter
+    let orderBy: any = { createdAt: 'desc' }; // default: newest first
+
+    switch (searchDto.sortBy) {
+      case 'oldest':
+        orderBy = { createdAt: 'asc' };
+        break;
+      case 'newest':
+        orderBy = { createdAt: 'desc' };
+        break;
+      case 'views':
+        // For views, we'll need to use a raw query or count separately
+        // Using viewHistory count for now
+        orderBy = undefined; // Will sort manually after fetching
+        break;
+      case 'relevant':
+        // For relevance, we'll sort manually after fetching based on match quality
+        orderBy = undefined;
+        break;
+      default:
+        orderBy = { createdAt: 'desc' };
+    }
+
+    const markmaps = await this.prisma.markmap.findMany({
       where,
       include: {
         author: {
@@ -737,9 +760,46 @@ ${markmapConfig}
             tag: true,
           },
         },
+        _count: {
+          select: {
+            viewHistory: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: orderBy || { createdAt: 'desc' },
     });
+
+    // Apply custom sorting if needed
+    if (searchDto.sortBy === 'views') {
+      markmaps.sort((a, b) => b._count.viewHistory - a._count.viewHistory);
+    } else if (searchDto.sortBy === 'relevant' && searchDto.query) {
+      // Calculate relevance score based on:
+      // 1. Exact match in title (highest priority)
+      // 2. Partial match in title
+      // 3. Match in text
+      // 4. View count
+      const query = searchDto.query.toLowerCase();
+      markmaps.sort((a, b) => {
+        let scoreA = a._count.viewHistory * 0.1; // Base score from views
+        let scoreB = b._count.viewHistory * 0.1;
+
+        // Title exact match
+        if (a.title.toLowerCase() === query) scoreA += 1000;
+        if (b.title.toLowerCase() === query) scoreB += 1000;
+
+        // Title contains match
+        if (a.title.toLowerCase().includes(query)) scoreA += 100;
+        if (b.title.toLowerCase().includes(query)) scoreB += 100;
+
+        // Text contains match
+        if (a.text.toLowerCase().includes(query)) scoreA += 10;
+        if (b.text.toLowerCase().includes(query)) scoreB += 10;
+
+        return scoreB - scoreA;
+      });
+    }
+
+    return markmaps;
   }
 
   async createInteraction(

@@ -38,6 +38,15 @@
               </div>
             </div>
           </div>
+          <div class="form-group">
+            <label for="sortBy">Sort By</label>
+            <select id="sortBy" v-model="searchForm.sortBy" class="form-control">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="relevant">Most Relevant</option>
+              <option value="views">Most Views</option>
+            </select>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -126,6 +135,9 @@
           <p class="meta">
             By {{ markmap.author?.username || 'Anonymous' }} • 
             {{ new Date(markmap.createdAt).toLocaleDateString() }}
+            <span v-if="markmap._count?.viewHistory">
+               • {{ markmap._count.viewHistory }} views
+            </span>
           </p>
           <div class="tags">
             <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
@@ -144,7 +156,8 @@ const searchForm = ref({
   query: '',
   language: '',
   author: '',
-  tags: [] as string[]
+  tags: [] as string[],
+  sortBy: 'newest' as 'newest' | 'oldest' | 'relevant' | 'views'
 })
 
 const results = ref<any[]>([])
@@ -303,6 +316,7 @@ const handleSearch = async () => {
     if (searchForm.value.query) params.append('query', searchForm.value.query)
     if (searchForm.value.language) params.append('language', searchForm.value.language)
     if (searchForm.value.author) params.append('author', searchForm.value.author)
+    if (searchForm.value.sortBy) params.append('sortBy', searchForm.value.sortBy)
     if (searchForm.value.tags.length > 0) {
       searchForm.value.tags.forEach(tag => params.append('tags', tag))
     }

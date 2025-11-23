@@ -5,6 +5,7 @@ import {
   MinLength,
   MaxLength,
   IsUrl,
+  Matches,
 } from 'class-validator';
 
 export class UpdateUserDto {
@@ -32,4 +33,12 @@ export class UpdateUserDto {
   @IsUrl()
   @MaxLength(500)
   profilePictureUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^#[0-9A-Fa-f]{6}$/, {
+    message:
+      'profileBackgroundColor must be a valid hex color code (e.g., #FF5733)',
+  })
+  profileBackgroundColor?: string;
 }

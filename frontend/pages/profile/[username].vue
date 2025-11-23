@@ -579,6 +579,20 @@ watch(showPreferencesModal, (newVal) => {
   }
 })
 
+// Populate edit form when modal is opened
+watch(showEditModal, (newVal) => {
+  if (newVal && profile.value) {
+    editForm.value = {
+      email: profile.value.email || '',
+      username: profile.value.username || '',
+      displayName: profile.value.displayName || '',
+      description: profile.value.description || '',
+      profilePictureUrl: profile.value.profilePictureUrl || '',
+      profileBackgroundColor: profile.value.profileBackgroundColor || ''
+    }
+  }
+})
+
 onMounted(() => {
   loadProfile()
 })

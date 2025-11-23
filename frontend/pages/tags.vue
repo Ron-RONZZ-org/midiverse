@@ -89,6 +89,7 @@ const lineChartRef = ref<HTMLElement | null>(null)
 
 let searchDebounceTimer: NodeJS.Timeout | null = null
 let barChartRetryCount = 0
+let lineChartRetryCount = 0
 const MAX_CHART_RETRY = 10
 
 const fetchStatistics = async () => {
@@ -177,17 +178,29 @@ const renderBarChart = () => {
     }]
 
     const layout = {
-      title: `Top 10 Tags (${timeFilters.find(f => f.value === selectedFilter.value)?.label})`,
+      title: {
+        text: `Top 10 Tags (${timeFilters.find(f => f.value === selectedFilter.value)?.label})`,
+        font: { size: 18 }
+      },
       xaxis: {
-        title: 'Tag',
-        tickangle: -45
+        title: {
+          text: 'Tag',
+          font: { size: 14 }
+        },
+        tickangle: -45,
+        tickfont: { size: 12 }
       },
       yaxis: {
-        title: 'Number of Markmaps'
+        title: {
+          text: 'Number of Markmaps',
+          font: { size: 14 }
+        },
+        tickfont: { size: 12 }
       },
       margin: {
         b: 100
-      }
+      },
+      font: { size: 12 }
     }
 
     Plotly.newPlot(barChartRef.value, data as any, layout as any, { responsive: true })
@@ -198,33 +211,71 @@ const renderBarChart = () => {
 }
 
 const renderLineChart = () => {
-  if (!plotlyLoaded.value || !Plotly || !lineChartRef.value || trendData.value.length === 0) return
-
-  const data = [{
-    x: trendData.value.map(d => d.date),
-    y: trendData.value.map(d => d.count),
-    type: 'scatter',
-    mode: 'lines+markers',
-    line: {
-      color: '#28a745',
-      width: 2
-    },
-    marker: {
-      size: 6
+  if (!plotlyLoaded.value || !Plotly) {
+    return
+  }
+  
+  if (!lineChartRef.value) {
+    // Retry after a short delay to ensure DOM is ready, with max retry limit
+    if (lineChartRetryCount < MAX_CHART_RETRY) {
+      lineChartRetryCount++
+      setTimeout(() => renderLineChart(), 100)
+    } else {
+      console.error('Failed to render line chart: DOM ref not available after max retries')
+      trendError.value = 'Failed to render chart: DOM not ready'
     }
-  }]
-
-  const layout = {
-    title: `Trend for ${searchTag.value} (Last 30 Days)`,
-    xaxis: {
-      title: 'Date'
-    },
-    yaxis: {
-      title: 'Number of Markmaps'
-    }
+    return
+  }
+  
+  // Reset retry counter on successful ref access
+  lineChartRetryCount = 0
+  
+  if (trendData.value.length === 0) {
+    return
   }
 
-  Plotly.newPlot(lineChartRef.value, data as any, layout as any, { responsive: true })
+  try {
+    const data = [{
+      x: trendData.value.map(d => d.date),
+      y: trendData.value.map(d => d.count),
+      type: 'scatter',
+      mode: 'lines+markers',
+      line: {
+        color: '#28a745',
+        width: 2
+      },
+      marker: {
+        size: 6
+      }
+    }]
+
+    const layout = {
+      title: {
+        text: `Trend for ${searchTag.value} (Last 30 Days)`,
+        font: { size: 18 }
+      },
+      xaxis: {
+        title: {
+          text: 'Date',
+          font: { size: 14 }
+        },
+        tickfont: { size: 12 }
+      },
+      yaxis: {
+        title: {
+          text: 'Number of Markmaps',
+          font: { size: 14 }
+        },
+        tickfont: { size: 12 }
+      },
+      font: { size: 12 }
+    }
+
+    Plotly.newPlot(lineChartRef.value, data as any, layout as any, { responsive: true })
+  } catch (err) {
+    console.error('Error rendering line chart:', err)
+    trendError.value = `Failed to render chart: ${err}`
+  }
 }
 
 const onSearchInput = () => {

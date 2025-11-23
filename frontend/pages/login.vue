@@ -24,6 +24,17 @@
               placeholder="Enter your password"
             />
           </div>
+
+          <!-- Cloudflare Turnstile -->
+          <div v-if="!showTurnstileWarning" class="form-group">
+            <div id="turnstile-container"></div>
+          </div>
+          
+          <!-- Development Warning -->
+          <div v-if="showTurnstileWarning" class="warning-message">
+            ⚠️ Running in development mode without Turnstile bot protection
+          </div>
+
           <div v-if="error" class="error">{{ error }}</div>
           <button type="submit" class="btn" :disabled="loading">
             {{ loading ? 'Logging in...' : 'Login' }}
@@ -40,22 +51,59 @@
 
 <script setup lang="ts">
 const { login } = useAuth()
+const { renderTurnstile, resetTurnstile, removeTurnstile, isConfigured } = useTurnstile()
 
 const username = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
+const turnstileToken = ref('')
+const turnstileWidgetId = ref<string>()
+const showTurnstileWarning = ref(false)
+
+onMounted(() => {
+  // Show warning if Turnstile is not configured
+  if (!isConfigured) {
+    showTurnstileWarning.value = true
+    // Set a dummy token to allow form submission in development
+    turnstileToken.value = 'dev-bypass-token'
+  }
+
+  // Render Turnstile widget
+  renderTurnstile('turnstile-container', (token: string) => {
+    turnstileToken.value = token
+  }).then((widgetId) => {
+    turnstileWidgetId.value = widgetId
+  }).catch((err) => {
+    console.error('Failed to load Turnstile:', err)
+    // Set a dummy token to allow form submission if Turnstile fails
+    if (!turnstileToken.value) {
+      turnstileToken.value = 'dev-bypass-token'
+    }
+  })
+})
+
+onUnmounted(() => {
+  if (turnstileWidgetId.value) {
+    removeTurnstile(turnstileWidgetId.value)
+  }
+})
 
 const handleLogin = async () => {
   error.value = ''
   loading.value = true
 
   try {
-    const data = await login(username.value, password.value)
+    const data = await login(username.value, password.value, turnstileToken.value)
     // Redirect directly to user's profile page
     navigateTo(`/profile/${data.user.username}`)
   } catch (err: any) {
     error.value = err.message || 'Login failed. Please try again.'
+    // Reset Turnstile on error
+    if (turnstileWidgetId.value) {
+      resetTurnstile(turnstileWidgetId.value)
+      turnstileToken.value = ''
+    }
   } finally {
     loading.value = false
   }
@@ -91,5 +139,22 @@ const handleLogin = async () => {
 
 .auth-switch a:hover {
   text-decoration: underline;
+}
+
+#turnstile-container {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.warning-message {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+  text-align: center;
+  font-size: 14px;
 }
 </style>

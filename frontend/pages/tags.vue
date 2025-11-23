@@ -77,6 +77,7 @@ const fetchStatistics = async () => {
     const response = await authFetch(`/markmaps/tags/statistics?timeFilter=${selectedFilter.value}`)
     if (response.ok) {
       statistics.value = await response.json()
+      await nextTick()
       renderBarChart()
     } else {
       error.value = 'Failed to load tag statistics'
@@ -102,6 +103,7 @@ const fetchTrendData = async (tag: string) => {
     const response = await authFetch(`/markmaps/tags/trend/${encodeURIComponent(normalizedTag)}`)
     if (response.ok) {
       trendData.value = await response.json()
+      await nextTick()
       renderLineChart()
     } else {
       trendError.value = 'Failed to load trend data'

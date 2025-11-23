@@ -15,5 +15,6 @@ import { KeynodesModule } from '../keynodes/keynodes.module';
   ],
   controllers: [MarkmapsController],
   providers: [MarkmapsService],
+  exports: [MarkmapsService],
 })
 export class MarkmapsModule {}

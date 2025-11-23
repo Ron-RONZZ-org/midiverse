@@ -44,9 +44,21 @@
 </template>
 
 <script setup lang="ts">
-import Plotly from 'plotly.js-dist-min'
-
 const { authFetch } = useApi()
+
+// Dynamically import Plotly only on client side to avoid SSR issues
+let Plotly: any = null
+const plotlyLoaded = ref(false)
+
+onMounted(async () => {
+  if (process.client) {
+    const module = await import('plotly.js-dist-min')
+    Plotly = module.default
+    plotlyLoaded.value = true
+    // Trigger initial data fetch after Plotly is loaded
+    fetchStatistics()
+  }
+})
 
 const timeFilters = [
   { label: 'All Time', value: 'all' },
@@ -116,7 +128,7 @@ const fetchTrendData = async (tag: string) => {
 }
 
 const renderBarChart = () => {
-  if (!barChartRef.value || statistics.value.length === 0) return
+  if (!plotlyLoaded.value || !Plotly || !barChartRef.value || statistics.value.length === 0) return
 
   const data = [{
     x: statistics.value.map(s => s.name),
@@ -145,7 +157,7 @@ const renderBarChart = () => {
 }
 
 const renderLineChart = () => {
-  if (!lineChartRef.value || trendData.value.length === 0) return
+  if (!plotlyLoaded.value || !Plotly || !lineChartRef.value || trendData.value.length === 0) return
 
   const data = [{
     x: trendData.value.map(d => d.date),
@@ -185,10 +197,6 @@ const onSearchInput = () => {
 }
 
 watch(selectedFilter, () => {
-  fetchStatistics()
-})
-
-onMounted(() => {
   fetchStatistics()
 })
 </script>

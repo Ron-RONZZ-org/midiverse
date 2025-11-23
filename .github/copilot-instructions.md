@@ -1,5 +1,9 @@
 # GitHub Copilot Instructions for Midiverse
 
+## General instructions
+
+Copilot should thoroughly test its modifications before demanding human review.
+
 ## Project Overview
 
 Midiverse is a NestJS application for editing and displaying markmaps (visual markdown mind maps). It provides a RESTful API backend with JWT authentication, allowing users to create, view, edit, and share markmaps.

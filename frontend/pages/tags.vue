@@ -93,6 +93,7 @@ let searchDebounceTimer: NodeJS.Timeout | null = null
 let barChartRetryCount = 0
 let lineChartRetryCount = 0
 const MAX_CHART_RETRY = 10
+const DOM_RENDER_DELAY = 50  // ms delay to ensure DOM is fully rendered before chart rendering
 
 const fetchStatistics = async () => {
   loading.value = true
@@ -108,7 +109,7 @@ const fetchStatistics = async () => {
       loading.value = false  // Set loading to false before rendering
       await nextTick()  // Wait for DOM to update with loading=false
       // Add small delay to ensure DOM is fully rendered
-      setTimeout(() => renderBarChart(), 50)
+      setTimeout(() => renderBarChart(), DOM_RENDER_DELAY)
     } else {
       const errorText = await response.text()
       console.error('Failed to load tag statistics:', errorText)
@@ -140,7 +141,7 @@ const fetchTrendData = async (tag: string) => {
       trendLoading.value = false  // Set loading to false before rendering
       await nextTick()  // Wait for DOM to update with loading=false
       // Add small delay to ensure DOM is fully rendered
-      setTimeout(() => renderLineChart(), 50)
+      setTimeout(() => renderLineChart(), DOM_RENDER_DELAY)
     } else {
       trendError.value = 'Failed to load trend data'
       trendLoading.value = false

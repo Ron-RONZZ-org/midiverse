@@ -97,6 +97,7 @@ const MAX_CHART_RETRY = 10
 const fetchStatistics = async () => {
   loading.value = true
   error.value = ''
+  barChartRetryCount = 0  // Reset retry counter for new fetch
   
   try {
     const response = await authFetch(`/markmaps/tags/statistics?timeFilter=${selectedFilter.value}`)
@@ -127,6 +128,7 @@ const fetchTrendData = async (tag: string) => {
 
   trendLoading.value = true
   trendError.value = ''
+  lineChartRetryCount = 0  // Reset retry counter for new fetch
   
   try {
     const normalizedTag = tag.startsWith('#') ? tag : `#${tag}`

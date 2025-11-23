@@ -225,7 +225,7 @@
                 type="checkbox" 
                 v-model="preferencesForm.darkTheme"
               />
-              Dark Theme (coming soon)
+              Dark Theme
             </label>
           </div>
           
@@ -287,6 +287,7 @@
 const route = useRoute()
 const { authFetch, setUser } = useApi()
 const { isAuthenticated, currentUser } = useAuth()
+const { setTheme } = useTheme()
 
 const username = computed(() => route.params.username as string)
 const profile = ref<any>(null)
@@ -539,6 +540,8 @@ const loadPreferences = async () => {
         profilePictureVisible: prefs.profilePictureVisible,
         emailVisible: prefs.emailVisible
       }
+      // Apply the theme immediately
+      setTheme(prefs.darkTheme)
     }
   } catch (err) {
     console.error('Failed to load preferences', err)
@@ -561,6 +564,9 @@ const updatePreferences = async () => {
       return
     }
 
+    // Apply the theme immediately
+    setTheme(preferencesForm.value.darkTheme)
+    
     showPreferencesModal.value = false
     // Reload profile to reflect changes
     await loadProfile()
@@ -612,13 +618,13 @@ h1 {
 
 h2 {
   margin-bottom: 1.5rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .loading {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .profile-header {
@@ -635,14 +641,18 @@ h2 {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  overflow: hidden;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
 }
 
 .profile-picture img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .profile-picture-placeholder {
@@ -664,24 +674,24 @@ h2 {
 }
 
 .username {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
 }
 
 .description {
-  color: #444;
+  color: var(--text-primary);
   margin-bottom: 0.75rem;
   font-size: 1rem;
 }
 
 .email {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
 .joined {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 0.9rem;
 }
 

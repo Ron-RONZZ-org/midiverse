@@ -105,17 +105,18 @@ const fetchStatistics = async () => {
     if (response.ok) {
       const data = await response.json()
       statistics.value = data
-      await nextTick()
+      loading.value = false  // Set loading to false before rendering
+      await nextTick()  // Wait for DOM to update with loading=false
       renderBarChart()
     } else {
       const errorText = await response.text()
       console.error('Failed to load tag statistics:', errorText)
       error.value = 'Failed to load tag statistics'
+      loading.value = false
     }
   } catch (err: any) {
     console.error('Error fetching statistics:', err)
     error.value = err.message || 'Failed to load tag statistics'
-  } finally {
     loading.value = false
   }
 }
@@ -135,14 +136,15 @@ const fetchTrendData = async (tag: string) => {
     const response = await authFetch(`/markmaps/tags/trend/${encodeURIComponent(normalizedTag)}`)
     if (response.ok) {
       trendData.value = await response.json()
-      await nextTick()
+      trendLoading.value = false  // Set loading to false before rendering
+      await nextTick()  // Wait for DOM to update with loading=false
       renderLineChart()
     } else {
       trendError.value = 'Failed to load trend data'
+      trendLoading.value = false
     }
   } catch (err: any) {
     trendError.value = err.message || 'Failed to load trend data'
-  } finally {
     trendLoading.value = false
   }
 }

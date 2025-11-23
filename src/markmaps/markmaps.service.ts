@@ -9,6 +9,12 @@ import { UpdateMarkmapDto } from './dto/update-markmap.dto';
 import { SearchMarkmapDto } from './dto/search-markmap.dto';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 
+// Relevance scoring constants for search
+const EXACT_TITLE_MATCH_SCORE = 1000;
+const PARTIAL_TITLE_MATCH_SCORE = 100;
+const TEXT_MATCH_SCORE = 10;
+const VIEW_COUNT_MULTIPLIER = 0.1;
+
 @Injectable()
 export class MarkmapsService {
   constructor(private prisma: PrismaService) {}
@@ -780,20 +786,22 @@ ${markmapConfig}
       // 4. View count
       const query = searchDto.query.toLowerCase();
       markmaps.sort((a, b) => {
-        let scoreA = a._count.viewHistory * 0.1; // Base score from views
-        let scoreB = b._count.viewHistory * 0.1;
+        let scoreA = a._count.viewHistory * VIEW_COUNT_MULTIPLIER;
+        let scoreB = b._count.viewHistory * VIEW_COUNT_MULTIPLIER;
 
         // Title exact match
-        if (a.title.toLowerCase() === query) scoreA += 1000;
-        if (b.title.toLowerCase() === query) scoreB += 1000;
+        if (a.title.toLowerCase() === query) scoreA += EXACT_TITLE_MATCH_SCORE;
+        if (b.title.toLowerCase() === query) scoreB += EXACT_TITLE_MATCH_SCORE;
 
         // Title contains match
-        if (a.title.toLowerCase().includes(query)) scoreA += 100;
-        if (b.title.toLowerCase().includes(query)) scoreB += 100;
+        if (a.title.toLowerCase().includes(query))
+          scoreA += PARTIAL_TITLE_MATCH_SCORE;
+        if (b.title.toLowerCase().includes(query))
+          scoreB += PARTIAL_TITLE_MATCH_SCORE;
 
         // Text contains match
-        if (a.text.toLowerCase().includes(query)) scoreA += 10;
-        if (b.text.toLowerCase().includes(query)) scoreB += 10;
+        if (a.text.toLowerCase().includes(query)) scoreA += TEXT_MATCH_SCORE;
+        if (b.text.toLowerCase().includes(query)) scoreB += TEXT_MATCH_SCORE;
 
         return scoreB - scoreA;
       });

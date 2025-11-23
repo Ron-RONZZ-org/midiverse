@@ -269,21 +269,14 @@ export class UsersService {
   }
 
   async getUserPreferences(userId: string) {
-    // Get or create user preferences
-    let preferences = await this.prisma.userPreferences.findUnique({
+    // Get or create user preferences using upsert
+    return this.prisma.userPreferences.upsert({
       where: { userId },
+      update: {},
+      create: {
+        userId,
+      },
     });
-
-    if (!preferences) {
-      // Create default preferences if they don't exist
-      preferences = await this.prisma.userPreferences.create({
-        data: {
-          userId,
-        },
-      });
-    }
-
-    return preferences;
   }
 
   async updateUserPreferences(
@@ -296,13 +289,14 @@ export class UsersService {
       emailVisible?: boolean;
     },
   ) {
-    // Ensure preferences exist
-    await this.getUserPreferences(userId);
-
-    // Update preferences
-    return this.prisma.userPreferences.update({
+    // Use upsert to handle both create and update atomically
+    return this.prisma.userPreferences.upsert({
       where: { userId },
-      data: updatePreferencesDto,
+      update: updatePreferencesDto,
+      create: {
+        userId,
+        ...updatePreferencesDto,
+      },
     });
   }
 }

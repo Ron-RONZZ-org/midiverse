@@ -15,8 +15,7 @@
             <h1>{{ profile.displayName || profile.username }}</h1>
             <p class="username">@{{ profile.username }}</p>
             <p v-if="profile.description" class="description">{{ profile.description }}</p>
-            <p v-if="profile.isOwnProfile && profile.email" class="email">{{ profile.email }}</p>
-            <p v-else-if="!profile.isOwnProfile && profile.email" class="email">{{ profile.email }}</p>
+            <p v-if="profile.email" class="email">{{ profile.email }}</p>
             <p class="joined">
               Joined {{ new Date(profile.createdAt).toLocaleDateString() }}
             </p>

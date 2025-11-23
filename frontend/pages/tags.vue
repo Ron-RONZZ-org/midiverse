@@ -107,7 +107,8 @@ const fetchStatistics = async () => {
       statistics.value = data
       loading.value = false  // Set loading to false before rendering
       await nextTick()  // Wait for DOM to update with loading=false
-      renderBarChart()
+      // Add small delay to ensure DOM is fully rendered
+      setTimeout(() => renderBarChart(), 50)
     } else {
       const errorText = await response.text()
       console.error('Failed to load tag statistics:', errorText)
@@ -138,7 +139,8 @@ const fetchTrendData = async (tag: string) => {
       trendData.value = await response.json()
       trendLoading.value = false  // Set loading to false before rendering
       await nextTick()  // Wait for DOM to update with loading=false
-      renderLineChart()
+      // Add small delay to ensure DOM is fully rendered
+      setTimeout(() => renderLineChart(), 50)
     } else {
       trendError.value = 'Failed to load trend data'
       trendLoading.value = false

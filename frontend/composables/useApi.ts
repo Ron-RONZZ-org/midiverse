@@ -1,17 +1,32 @@
+// Create reactive state for auth
+const authState = ref<{
+  token: string | null
+  user: any | null
+}>({
+  token: null,
+  user: null
+})
+
+// Initialize auth state from localStorage on client side
+if (process.client) {
+  authState.value = {
+    token: localStorage.getItem('token'),
+    user: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null
+  }
+}
+
 export const useApi = () => {
   const config = useRuntimeConfig()
   const apiBase = config.public.apiBase
 
-  // Get auth token from localStorage
+  // Get auth token from reactive state
   const getToken = () => {
-    if (process.client) {
-      return localStorage.getItem('token')
-    }
-    return null
+    return authState.value.token
   }
 
   // Set auth token
   const setToken = (token: string) => {
+    authState.value.token = token
     if (process.client) {
       localStorage.setItem('token', token)
     }
@@ -19,22 +34,20 @@ export const useApi = () => {
 
   // Remove auth token
   const removeToken = () => {
+    authState.value.token = null
     if (process.client) {
       localStorage.removeItem('token')
     }
   }
 
-  // Get current user from token
+  // Get current user
   const getUser = () => {
-    if (process.client) {
-      const userStr = localStorage.getItem('user')
-      return userStr ? JSON.parse(userStr) : null
-    }
-    return null
+    return authState.value.user
   }
 
   // Set user
   const setUser = (user: any) => {
+    authState.value.user = user
     if (process.client) {
       localStorage.setItem('user', JSON.stringify(user))
     }
@@ -42,6 +55,7 @@ export const useApi = () => {
 
   // Remove user
   const removeUser = () => {
+    authState.value.user = null
     if (process.client) {
       localStorage.removeItem('user')
     }

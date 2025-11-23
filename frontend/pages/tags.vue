@@ -18,7 +18,10 @@
 
       <div v-if="loading" class="loading">Loading...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
-      <div v-else ref="barChartRef" class="chart-container"></div>
+      <div v-else>
+        <div v-if="statistics.length === 0" class="empty-state">No tag data available</div>
+        <div v-else ref="barChartRef" class="chart-container"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -37,16 +40,35 @@
 
       <div v-if="trendLoading" class="loading">Loading trend data...</div>
       <div v-else-if="trendError" class="error">{{ trendError }}</div>
-      <div v-else-if="trendData.length > 0" ref="lineChartRef" class="chart-container"></div>
-      <div v-else class="empty-state">Enter a tag to see its historical trend</div>
+      <div v-else>
+        <div v-if="trendData.length === 0" class="empty-state">Enter a tag to see its historical trend</div>
+        <div v-else ref="lineChartRef" class="chart-container"></div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import Plotly from 'plotly.js-dist-min'
-
 const { authFetch } = useApi()
+
+// Dynamically import Plotly only on client side to avoid SSR issues
+let Plotly: any = null
+const plotlyLoaded = ref(false)
+
+onMounted(async () => {
+  if (process.client) {
+    try {
+      const module = await import('plotly.js-dist-min')
+      Plotly = module.default
+      plotlyLoaded.value = true
+      // Trigger initial data fetch after Plotly is loaded
+      fetchStatistics()
+    } catch (err) {
+      console.error('Failed to load Plotly:', err)
+      error.value = 'Failed to load chart library'
+    }
+  }
+})
 
 const timeFilters = [
   { label: 'All Time', value: 'all' },
@@ -75,13 +97,17 @@ const fetchStatistics = async () => {
   
   try {
     const response = await authFetch(`/markmaps/tags/statistics?timeFilter=${selectedFilter.value}`)
+    
     if (response.ok) {
-      statistics.value = await response.json()
-      renderBarChart()
+      const data = await response.json()
+      statistics.value = data
     } else {
+      const errorText = await response.text()
+      console.error('Failed to load tag statistics:', errorText)
       error.value = 'Failed to load tag statistics'
     }
   } catch (err: any) {
+    console.error('Error fetching statistics:', err)
     error.value = err.message || 'Failed to load tag statistics'
   } finally {
     loading.value = false
@@ -102,7 +128,6 @@ const fetchTrendData = async (tag: string) => {
     const response = await authFetch(`/markmaps/tags/trend/${encodeURIComponent(normalizedTag)}`)
     if (response.ok) {
       trendData.value = await response.json()
-      renderLineChart()
     } else {
       trendError.value = 'Failed to load trend data'
     }
@@ -114,62 +139,109 @@ const fetchTrendData = async (tag: string) => {
 }
 
 const renderBarChart = () => {
-  if (!barChartRef.value || statistics.value.length === 0) return
-
-  const data = [{
-    x: statistics.value.map(s => s.name),
-    y: statistics.value.map(s => s.count),
-    type: 'bar',
-    marker: {
-      color: '#007bff'
-    }
-  }]
-
-  const layout = {
-    title: `Top 10 Tags (${timeFilters.find(f => f.value === selectedFilter.value)?.label})`,
-    xaxis: {
-      title: 'Tag',
-      tickangle: -45
-    },
-    yaxis: {
-      title: 'Number of Markmaps'
-    },
-    margin: {
-      b: 100
-    }
+  if (!plotlyLoaded.value || !Plotly || !barChartRef.value || statistics.value.length === 0) {
+    return
   }
 
-  Plotly.newPlot(barChartRef.value, data as any, layout as any, { responsive: true })
+  try {
+    const data = [{
+      x: statistics.value.map(s => s.name),
+      y: statistics.value.map(s => s.count),
+      type: 'bar',
+      marker: {
+        color: '#007bff'
+      }
+    }]
+
+    const layout = {
+      title: {
+        text: `Top 10 Tags (${timeFilters.find(f => f.value === selectedFilter.value)?.label})`,
+        font: { size: 24 }
+      },
+      xaxis: {
+        title: {
+          text: 'Tag',
+          font: { size: 18 }
+        },
+        tickangle: -45,
+        tickfont: { size: 16 }
+      },
+      yaxis: {
+        title: {
+          text: 'Number of Markmaps',
+          font: { size: 18 }
+        },
+        tickfont: { size: 16 }
+      },
+      margin: {
+        b: 120,
+        l: 80,
+        r: 40,
+        t: 80
+      },
+      font: { size: 16 }
+    }
+
+    Plotly.newPlot(barChartRef.value, data as any, layout as any, { responsive: true })
+  } catch (err) {
+    console.error('Error rendering bar chart:', err)
+    error.value = `Failed to render chart: ${err}`
+  }
 }
 
 const renderLineChart = () => {
-  if (!lineChartRef.value || trendData.value.length === 0) return
-
-  const data = [{
-    x: trendData.value.map(d => d.date),
-    y: trendData.value.map(d => d.count),
-    type: 'scatter',
-    mode: 'lines+markers',
-    line: {
-      color: '#28a745',
-      width: 2
-    },
-    marker: {
-      size: 6
-    }
-  }]
-
-  const layout = {
-    title: `Trend for ${searchTag.value} (Last 30 Days)`,
-    xaxis: {
-      title: 'Date'
-    },
-    yaxis: {
-      title: 'Number of Markmaps'
-    }
+  if (!plotlyLoaded.value || !Plotly || !lineChartRef.value || trendData.value.length === 0) {
+    return
   }
 
-  Plotly.newPlot(lineChartRef.value, data as any, layout as any, { responsive: true })
+  try {
+    const data = [{
+      x: trendData.value.map(d => d.date),
+      y: trendData.value.map(d => d.count),
+      type: 'scatter',
+      mode: 'lines+markers',
+      line: {
+        color: '#28a745',
+        width: 2
+      },
+      marker: {
+        size: 6
+      }
+    }]
+
+    const layout = {
+      title: {
+        text: `Trend for ${searchTag.value} (Last 30 Days)`,
+        font: { size: 24 }
+      },
+      xaxis: {
+        title: {
+          text: 'Date',
+          font: { size: 18 }
+        },
+        tickfont: { size: 16 }
+      },
+      yaxis: {
+        title: {
+          text: 'Number of Markmaps',
+          font: { size: 18 }
+        },
+        tickfont: { size: 16 }
+      },
+      margin: {
+        l: 80,
+        r: 40,
+        t: 80,
+        b: 60
+      },
+      font: { size: 16 }
+    }
+
+    Plotly.newPlot(lineChartRef.value, data as any, layout as any, { responsive: true })
+  } catch (err) {
+    console.error('Error rendering line chart:', err)
+    trendError.value = `Failed to render chart: ${err}`
+  }
 }
 
 const onSearchInput = () => {
@@ -182,11 +254,23 @@ const onSearchInput = () => {
   }, 500)
 }
 
-watch(selectedFilter, () => {
-  fetchStatistics()
+// Watch for changes in statistics data and loading state to automatically render bar chart
+watch([statistics, loading, plotlyLoaded], async () => {
+  if (!loading.value && plotlyLoaded.value) {
+    await nextTick()
+    renderBarChart()
+  }
 })
 
-onMounted(() => {
+// Watch for changes in trend data and loading state to automatically render line chart
+watch([trendData, trendLoading, plotlyLoaded], async () => {
+  if (!trendLoading.value && plotlyLoaded.value) {
+    await nextTick()
+    renderLineChart()
+  }
+})
+
+watch(selectedFilter, () => {
   fetchStatistics()
 })
 </script>

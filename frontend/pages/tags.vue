@@ -18,7 +18,10 @@
 
       <div v-if="loading" class="loading">Loading...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
-      <div v-else ref="barChartRef" class="chart-container"></div>
+      <div v-else>
+        <div v-if="statistics.length === 0" class="empty-state">No tag data available</div>
+        <div v-else ref="barChartRef" class="chart-container"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -52,11 +55,16 @@ const plotlyLoaded = ref(false)
 
 onMounted(async () => {
   if (process.client) {
-    const module = await import('plotly.js-dist-min')
-    Plotly = module.default
-    plotlyLoaded.value = true
-    // Trigger initial data fetch after Plotly is loaded
-    fetchStatistics()
+    try {
+      const module = await import('plotly.js-dist-min')
+      Plotly = module.default
+      plotlyLoaded.value = true
+      // Trigger initial data fetch after Plotly is loaded
+      fetchStatistics()
+    } catch (err) {
+      console.error('Failed to load Plotly:', err)
+      error.value = 'Failed to load chart library'
+    }
   }
 })
 
@@ -87,14 +95,19 @@ const fetchStatistics = async () => {
   
   try {
     const response = await authFetch(`/markmaps/tags/statistics?timeFilter=${selectedFilter.value}`)
+    
     if (response.ok) {
-      statistics.value = await response.json()
+      const data = await response.json()
+      statistics.value = data
       await nextTick()
       renderBarChart()
     } else {
+      const errorText = await response.text()
+      console.error('Failed to load tag statistics:', errorText)
       error.value = 'Failed to load tag statistics'
     }
   } catch (err: any) {
+    console.error('Error fetching statistics:', err)
     error.value = err.message || 'Failed to load tag statistics'
   } finally {
     loading.value = false
@@ -128,32 +141,49 @@ const fetchTrendData = async (tag: string) => {
 }
 
 const renderBarChart = () => {
-  if (!plotlyLoaded.value || !Plotly || !barChartRef.value || statistics.value.length === 0) return
-
-  const data = [{
-    x: statistics.value.map(s => s.name),
-    y: statistics.value.map(s => s.count),
-    type: 'bar',
-    marker: {
-      color: '#007bff'
-    }
-  }]
-
-  const layout = {
-    title: `Top 10 Tags (${timeFilters.find(f => f.value === selectedFilter.value)?.label})`,
-    xaxis: {
-      title: 'Tag',
-      tickangle: -45
-    },
-    yaxis: {
-      title: 'Number of Markmaps'
-    },
-    margin: {
-      b: 100
-    }
+  if (!plotlyLoaded.value || !Plotly) {
+    return
+  }
+  
+  if (!barChartRef.value) {
+    // Retry after a short delay to ensure DOM is ready
+    setTimeout(() => renderBarChart(), 100)
+    return
+  }
+  
+  if (statistics.value.length === 0) {
+    return
   }
 
-  Plotly.newPlot(barChartRef.value, data as any, layout as any, { responsive: true })
+  try {
+    const data = [{
+      x: statistics.value.map(s => s.name),
+      y: statistics.value.map(s => s.count),
+      type: 'bar',
+      marker: {
+        color: '#007bff'
+      }
+    }]
+
+    const layout = {
+      title: `Top 10 Tags (${timeFilters.find(f => f.value === selectedFilter.value)?.label})`,
+      xaxis: {
+        title: 'Tag',
+        tickangle: -45
+      },
+      yaxis: {
+        title: 'Number of Markmaps'
+      },
+      margin: {
+        b: 100
+      }
+    }
+
+    Plotly.newPlot(barChartRef.value, data as any, layout as any, { responsive: true })
+  } catch (err) {
+    console.error('Error rendering bar chart:', err)
+    error.value = `Failed to render chart: ${err}`
+  }
 }
 
 const renderLineChart = () => {
@@ -233,6 +263,8 @@ h2 {
 .chart-container {
   min-height: 400px;
   margin-top: 1rem;
+  border: 1px dashed #ddd;
+  border-radius: 4px;
 }
 
 .loading {

@@ -152,18 +152,18 @@ onMounted(async () => {
 }
 
 .markmap-card {
-  background: white;
+  background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px var(--shadow);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .markmap-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px var(--shadow);
 }
 
 .markmap-card h3 {
@@ -172,7 +172,7 @@ onMounted(async () => {
 }
 
 .meta {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
@@ -184,10 +184,12 @@ onMounted(async () => {
 }
 
 .tag {
-  background: #e9ecef;
+  background: var(--input-border);
+  color: var(--text-primary);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  transition: background-color 0.3s ease;
 }
 
 .loading {

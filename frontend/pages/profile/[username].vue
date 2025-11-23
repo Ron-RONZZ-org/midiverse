@@ -756,19 +756,19 @@ h2 {
 }
 
 .markmap-card {
-  background: white;
+  background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px var(--shadow);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.3s ease, box-shadow 0.3s ease;
   display: block;
 }
 
 a.markmap-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px var(--shadow);
 }
 
 .markmap-card h3 {
@@ -777,7 +777,7 @@ a.markmap-card:hover {
 }
 
 .meta {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
@@ -789,10 +789,12 @@ a.markmap-card:hover {
 }
 
 .tag {
-  background: #e9ecef;
+  background: var(--input-border);
+  color: var(--text-primary);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  transition: background-color 0.3s ease;
 }
 
 .markmap-actions {
@@ -850,17 +852,19 @@ a.markmap-card:hover {
 }
 
 .modal {
-  background: white;
+  background: var(--card-bg);
   padding: 2rem;
   border-radius: 8px;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  transition: background-color 0.3s ease;
 }
 
 .modal h2 {
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .form-group {
@@ -871,14 +875,18 @@ a.markmap-card:hover {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .form-control {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 1rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 textarea.form-control {
@@ -889,7 +897,7 @@ textarea.form-control {
 .form-text {
   display: block;
   margin-top: 0.25rem;
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 

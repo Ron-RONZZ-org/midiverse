@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsArray } from 'class-validator';
+import { IsOptional, IsString, IsArray, IsIn } from 'class-validator';
 
 export class SearchMarkmapDto {
   @IsOptional()
@@ -17,4 +17,8 @@ export class SearchMarkmapDto {
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
+
+  @IsOptional()
+  @IsIn(['newest', 'oldest', 'relevant', 'views'])
+  sortBy?: 'newest' | 'oldest' | 'relevant' | 'views';
 }

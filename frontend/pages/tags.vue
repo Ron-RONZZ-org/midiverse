@@ -144,6 +144,12 @@ const renderBarChart = () => {
   }
 
   try {
+    // Check if dark theme is active
+    const isDark = document.documentElement.classList.contains('dark-theme')
+    const bgColor = isDark ? '#2d2d2d' : '#ffffff'
+    const textColor = isDark ? '#e0e0e0' : '#333333'
+    const gridColor = isDark ? '#404040' : '#e0e0e0'
+
     const data = [{
       x: statistics.value.map(s => s.name),
       y: statistics.value.map(s => s.count),
@@ -156,22 +162,26 @@ const renderBarChart = () => {
     const layout = {
       title: {
         text: `Top 10 Tags (${timeFilters.find(f => f.value === selectedFilter.value)?.label})`,
-        font: { size: 24 }
+        font: { size: 24, color: textColor }
       },
       xaxis: {
         title: {
           text: 'Tag',
-          font: { size: 18 }
+          font: { size: 18, color: textColor }
         },
         tickangle: -45,
-        tickfont: { size: 16 }
+        tickfont: { size: 16, color: textColor },
+        gridcolor: gridColor,
+        color: textColor
       },
       yaxis: {
         title: {
           text: 'Number of Markmaps',
-          font: { size: 18 }
+          font: { size: 18, color: textColor }
         },
-        tickfont: { size: 16 }
+        tickfont: { size: 16, color: textColor },
+        gridcolor: gridColor,
+        color: textColor
       },
       margin: {
         b: 120,
@@ -179,7 +189,9 @@ const renderBarChart = () => {
         r: 40,
         t: 80
       },
-      font: { size: 16 }
+      font: { size: 16, color: textColor },
+      paper_bgcolor: bgColor,
+      plot_bgcolor: bgColor
     }
 
     Plotly.newPlot(barChartRef.value, data as any, layout as any, { responsive: true })
@@ -195,6 +207,12 @@ const renderLineChart = () => {
   }
 
   try {
+    // Check if dark theme is active
+    const isDark = document.documentElement.classList.contains('dark-theme')
+    const bgColor = isDark ? '#2d2d2d' : '#ffffff'
+    const textColor = isDark ? '#e0e0e0' : '#333333'
+    const gridColor = isDark ? '#404040' : '#e0e0e0'
+
     const data = [{
       x: trendData.value.map(d => d.date),
       y: trendData.value.map(d => d.count),
@@ -212,21 +230,25 @@ const renderLineChart = () => {
     const layout = {
       title: {
         text: `Trend for ${searchTag.value} (Last 30 Days)`,
-        font: { size: 24 }
+        font: { size: 24, color: textColor }
       },
       xaxis: {
         title: {
           text: 'Date',
-          font: { size: 18 }
+          font: { size: 18, color: textColor }
         },
-        tickfont: { size: 16 }
+        tickfont: { size: 16, color: textColor },
+        gridcolor: gridColor,
+        color: textColor
       },
       yaxis: {
         title: {
           text: 'Number of Markmaps',
-          font: { size: 18 }
+          font: { size: 18, color: textColor }
         },
-        tickfont: { size: 16 }
+        tickfont: { size: 16, color: textColor },
+        gridcolor: gridColor,
+        color: textColor
       },
       margin: {
         l: 80,
@@ -234,7 +256,9 @@ const renderLineChart = () => {
         t: 80,
         b: 60
       },
-      font: { size: 16 }
+      font: { size: 16, color: textColor },
+      paper_bgcolor: bgColor,
+      plot_bgcolor: bgColor
     }
 
     Plotly.newPlot(lineChartRef.value, data as any, layout as any, { responsive: true })

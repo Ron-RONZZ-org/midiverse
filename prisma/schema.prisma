@@ -24,6 +24,7 @@ model User {
   displayName         String?   // Display name for profile
   description         String?   // Profile description
   profilePictureUrl   String?   // Profile picture URL
+  profileBackgroundColor String? // Optional color background for profile picture (hexcode)
   lastEmailChange     DateTime?
   lastUsernameChange  DateTime?
   createdAt           DateTime  @default(now())
@@ -33,6 +34,7 @@ model User {
   series         Series[]
   viewHistory    ViewHistory[]
   interactions   Interaction[]
+  preferences    UserPreferences?
 }
 
 model Markmap {
@@ -137,4 +139,20 @@ model Series {
   @@index([authorId])
   @@index([slug])
   @@index([isPublic])
+}
+
+model UserPreferences {
+  id                    String   @id @default(uuid())
+  darkTheme             Boolean  @default(false)
+  language              String   @default("en")
+  profilePageVisible    Boolean  @default(true)
+  profilePictureVisible Boolean  @default(true)
+  emailVisible          Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

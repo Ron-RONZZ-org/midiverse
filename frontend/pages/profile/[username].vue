@@ -5,17 +5,17 @@
     <div v-else-if="profile">
       <div class="profile-header card">
         <div class="profile-header-content">
-          <div v-if="profile.profilePictureUrl" class="profile-picture">
+          <div v-if="profile.profilePictureUrl" class="profile-picture" :style="profile.profileBackgroundColor ? { backgroundColor: profile.profileBackgroundColor } : {}">
             <img :src="profile.profilePictureUrl" :alt="`${profile.username}'s profile picture`" />
           </div>
-          <div v-else class="profile-picture-placeholder">
+          <div v-else class="profile-picture-placeholder" :style="profile.profileBackgroundColor ? { backgroundColor: profile.profileBackgroundColor } : {}">
             {{ profile.username.charAt(0).toUpperCase() }}
           </div>
           <div class="profile-info">
             <h1>{{ profile.displayName || profile.username }}</h1>
             <p class="username">@{{ profile.username }}</p>
             <p v-if="profile.description" class="description">{{ profile.description }}</p>
-            <p v-if="profile.isOwnProfile" class="email">{{ profile.email }}</p>
+            <p v-if="profile.email" class="email">{{ profile.email }}</p>
             <p class="joined">
               Joined {{ new Date(profile.createdAt).toLocaleDateString() }}
             </p>
@@ -39,6 +39,7 @@
 
         <div v-if="profile.isOwnProfile" class="actions">
           <button @click="showEditModal = true" class="btn btn-secondary">Edit Profile</button>
+          <button @click="showPreferencesModal = true" class="btn btn-secondary">User Preferences</button>
         </div>
       </div>
 
@@ -154,6 +155,28 @@
             />
           </div>
           <div class="form-group">
+            <label for="profileBackgroundColor">Profile Picture Background Color (optional)</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input 
+                id="profileBackgroundColor" 
+                v-model="editForm.profileBackgroundColor" 
+                type="text" 
+                class="form-control"
+                placeholder="#FF5733"
+                maxlength="7"
+                pattern="^#[0-9A-Fa-f]{6}$"
+                style="flex: 1;"
+              />
+              <input 
+                v-model="editForm.profileBackgroundColor" 
+                type="color" 
+                style="width: 50px; height: 38px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;"
+                title="Pick a color"
+              />
+            </div>
+            <small class="form-text">Enter a hex color code (e.g., #FF5733) or use the color picker</small>
+          </div>
+          <div class="form-group">
             <label for="email">Email</label>
             <input 
               id="email" 
@@ -188,6 +211,75 @@
         </form>
       </div>
     </div>
+
+    <!-- User Preferences Modal -->
+    <div v-if="showPreferencesModal" class="modal-overlay" @click.self="showPreferencesModal = false">
+      <div class="modal">
+        <h2>User Preferences</h2>
+        <div v-if="preferencesError" class="error">{{ preferencesError }}</div>
+        <form @submit.prevent="updatePreferences">
+          <div class="form-group">
+            <h3>Display</h3>
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                v-model="preferencesForm.darkTheme"
+              />
+              Dark Theme
+            </label>
+          </div>
+          
+          <div class="form-group">
+            <h3>Language</h3>
+            <select v-model="preferencesForm.language" class="form-control">
+              <option value="en">English</option>
+            </select>
+            <small class="form-text">More languages coming soon</small>
+          </div>
+
+          <div class="form-group">
+            <h3>Privacy</h3>
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                v-model="preferencesForm.profilePageVisible"
+              />
+              Profile Page Public Visibility
+            </label>
+            <small class="form-text">When disabled, other users cannot view your profile page</small>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                v-model="preferencesForm.profilePictureVisible"
+              />
+              Profile Picture Public Visibility
+            </label>
+            <small class="form-text">When disabled, your profile picture is hidden from other users</small>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                v-model="preferencesForm.emailVisible"
+              />
+              Email Address Public Visibility
+            </label>
+            <small class="form-text">When disabled, your email is hidden from other users</small>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="showPreferencesModal = false" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn" :disabled="preferencesLoading">
+              {{ preferencesLoading ? 'Saving...' : 'Save Preferences' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -195,6 +287,7 @@
 const route = useRoute()
 const { authFetch, setUser } = useApi()
 const { isAuthenticated, currentUser } = useAuth()
+const { setTheme } = useTheme()
 
 const username = computed(() => route.params.username as string)
 const profile = ref<any>(null)
@@ -209,10 +302,22 @@ const editForm = ref({
   username: '',
   displayName: '',
   description: '',
-  profilePictureUrl: ''
+  profilePictureUrl: '',
+  profileBackgroundColor: ''
 })
 const editError = ref('')
 const editLoading = ref(false)
+
+const showPreferencesModal = ref(false)
+const preferencesForm = ref({
+  darkTheme: false,
+  language: 'en',
+  profilePageVisible: true,
+  profilePictureVisible: true,
+  emailVisible: true
+})
+const preferencesError = ref('')
+const preferencesLoading = ref(false)
 
 const loadProfile = async () => {
   loading.value = true
@@ -271,6 +376,9 @@ const updateProfile = async () => {
     if (editForm.value.profilePictureUrl && editForm.value.profilePictureUrl !== profile.value.profilePictureUrl) {
       updateData.profilePictureUrl = editForm.value.profilePictureUrl
     }
+    if (editForm.value.profileBackgroundColor !== undefined && editForm.value.profileBackgroundColor !== profile.value.profileBackgroundColor) {
+      updateData.profileBackgroundColor = editForm.value.profileBackgroundColor || null
+    }
     if (editForm.value.email && editForm.value.email !== profile.value.email) {
       updateData.email = editForm.value.email
     }
@@ -305,6 +413,7 @@ const updateProfile = async () => {
         displayName: updatedProfile.displayName,
         description: updatedProfile.description,
         profilePictureUrl: updatedProfile.profilePictureUrl,
+        profileBackgroundColor: updatedProfile.profileBackgroundColor,
       })
     }
     
@@ -419,6 +528,76 @@ const restoreMarkmap = async (id: string) => {
   }
 }
 
+const loadPreferences = async () => {
+  try {
+    const response = await authFetch('/users/preferences')
+    if (response.ok) {
+      const prefs = await response.json()
+      preferencesForm.value = {
+        darkTheme: prefs.darkTheme,
+        language: prefs.language,
+        profilePageVisible: prefs.profilePageVisible,
+        profilePictureVisible: prefs.profilePictureVisible,
+        emailVisible: prefs.emailVisible
+      }
+      // Apply the theme immediately
+      setTheme(prefs.darkTheme)
+    }
+  } catch (err) {
+    console.error('Failed to load preferences', err)
+  }
+}
+
+const updatePreferences = async () => {
+  preferencesLoading.value = true
+  preferencesError.value = ''
+  
+  try {
+    const response = await authFetch('/users/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(preferencesForm.value),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      preferencesError.value = errorData.message || 'Failed to update preferences'
+      return
+    }
+
+    // Apply the theme immediately
+    setTheme(preferencesForm.value.darkTheme)
+    
+    showPreferencesModal.value = false
+    // Reload profile to reflect changes
+    await loadProfile()
+  } catch (err: any) {
+    preferencesError.value = err.message || 'Failed to update preferences'
+  } finally {
+    preferencesLoading.value = false
+  }
+}
+
+// Open preferences modal and load preferences
+watch(showPreferencesModal, (newVal) => {
+  if (newVal && profile.value?.isOwnProfile) {
+    loadPreferences()
+  }
+})
+
+// Populate edit form when modal is opened
+watch(showEditModal, (newVal) => {
+  if (newVal && profile.value) {
+    editForm.value = {
+      email: profile.value.email || '',
+      username: profile.value.username || '',
+      displayName: profile.value.displayName || '',
+      description: profile.value.description || '',
+      profilePictureUrl: profile.value.profilePictureUrl || '',
+      profileBackgroundColor: profile.value.profileBackgroundColor || ''
+    }
+  }
+})
+
 onMounted(() => {
   loadProfile()
 })
@@ -439,13 +618,13 @@ h1 {
 
 h2 {
   margin-bottom: 1.5rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .loading {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .profile-header {
@@ -462,14 +641,18 @@ h2 {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  overflow: hidden;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
 }
 
 .profile-picture img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .profile-picture-placeholder {
@@ -491,24 +674,24 @@ h2 {
 }
 
 .username {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
 }
 
 .description {
-  color: #444;
+  color: var(--text-primary);
   margin-bottom: 0.75rem;
   font-size: 1rem;
 }
 
 .email {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
 .joined {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 0.9rem;
 }
 
@@ -573,19 +756,19 @@ h2 {
 }
 
 .markmap-card {
-  background: white;
+  background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px var(--shadow);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.3s ease, box-shadow 0.3s ease;
   display: block;
 }
 
 a.markmap-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px var(--shadow);
 }
 
 .markmap-card h3 {
@@ -594,7 +777,7 @@ a.markmap-card:hover {
 }
 
 .meta {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
@@ -606,10 +789,12 @@ a.markmap-card:hover {
 }
 
 .tag {
-  background: #e9ecef;
+  background: var(--input-border);
+  color: var(--text-primary);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  transition: background-color 0.3s ease;
 }
 
 .markmap-actions {
@@ -667,17 +852,19 @@ a.markmap-card:hover {
 }
 
 .modal {
-  background: white;
+  background: var(--card-bg);
   padding: 2rem;
   border-radius: 8px;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  transition: background-color 0.3s ease;
 }
 
 .modal h2 {
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .form-group {
@@ -688,14 +875,18 @@ a.markmap-card:hover {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .form-control {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 1rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 textarea.form-control {
@@ -706,7 +897,7 @@ textarea.form-control {
 .form-text {
   display: block;
   margin-top: 0.25rem;
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
@@ -714,5 +905,31 @@ textarea.form-control {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.form-group h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #495057;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
 }
 </style>

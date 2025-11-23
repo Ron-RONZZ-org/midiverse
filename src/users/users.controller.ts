@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import type { UserFromToken } from '../common/interfaces/auth.interface';
 
 @Controller('users')
@@ -58,5 +59,23 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   getUserHistory(@CurrentUser() user: UserFromToken) {
     return this.usersService.getUserHistory(user.id);
+  }
+
+  @Get('preferences')
+  @UseGuards(JwtAuthGuard)
+  getUserPreferences(@CurrentUser() user: UserFromToken) {
+    return this.usersService.getUserPreferences(user.id);
+  }
+
+  @Patch('preferences')
+  @UseGuards(JwtAuthGuard)
+  updateUserPreferences(
+    @CurrentUser() user: UserFromToken,
+    @Body(ValidationPipe) updatePreferencesDto: UpdateUserPreferencesDto,
+  ) {
+    return this.usersService.updateUserPreferences(
+      user.id,
+      updatePreferencesDto,
+    );
   }
 }

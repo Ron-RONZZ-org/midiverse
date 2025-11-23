@@ -9,6 +9,12 @@ import { UpdateMarkmapDto } from './dto/update-markmap.dto';
 import { SearchMarkmapDto } from './dto/search-markmap.dto';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 
+// Relevance scoring constants for search
+const EXACT_TITLE_MATCH_SCORE = 1000;
+const PARTIAL_TITLE_MATCH_SCORE = 100;
+const TEXT_MATCH_SCORE = 10;
+const VIEW_COUNT_MULTIPLIER = 0.1;
+
 @Injectable()
 export class MarkmapsService {
   constructor(private prisma: PrismaService) {}
@@ -726,7 +732,30 @@ ${markmapConfig}
       delete where.isPublic;
     }
 
-    return this.prisma.markmap.findMany({
+    // Determine ordering based on sortBy parameter
+    let orderBy: any = { createdAt: 'desc' }; // default: newest first
+
+    switch (searchDto.sortBy) {
+      case 'oldest':
+        orderBy = { createdAt: 'asc' };
+        break;
+      case 'newest':
+        orderBy = { createdAt: 'desc' };
+        break;
+      case 'views':
+        // For views, we'll need to use a raw query or count separately
+        // Using viewHistory count for now
+        orderBy = undefined; // Will sort manually after fetching
+        break;
+      case 'relevant':
+        // For relevance, we'll sort manually after fetching based on match quality
+        orderBy = undefined;
+        break;
+      default:
+        orderBy = { createdAt: 'desc' };
+    }
+
+    const markmaps = await this.prisma.markmap.findMany({
       where,
       include: {
         author: {
@@ -737,9 +766,48 @@ ${markmapConfig}
             tag: true,
           },
         },
+        _count: {
+          select: {
+            viewHistory: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: orderBy || { createdAt: 'desc' },
     });
+
+    // Apply custom sorting if needed
+    if (searchDto.sortBy === 'views') {
+      markmaps.sort((a, b) => b._count.viewHistory - a._count.viewHistory);
+    } else if (searchDto.sortBy === 'relevant' && searchDto.query) {
+      // Calculate relevance score based on:
+      // 1. Exact match in title (highest priority)
+      // 2. Partial match in title
+      // 3. Match in text
+      // 4. View count
+      const query = searchDto.query.toLowerCase();
+      markmaps.sort((a, b) => {
+        let scoreA = a._count.viewHistory * VIEW_COUNT_MULTIPLIER;
+        let scoreB = b._count.viewHistory * VIEW_COUNT_MULTIPLIER;
+
+        // Title exact match
+        if (a.title.toLowerCase() === query) scoreA += EXACT_TITLE_MATCH_SCORE;
+        if (b.title.toLowerCase() === query) scoreB += EXACT_TITLE_MATCH_SCORE;
+
+        // Title contains match
+        if (a.title.toLowerCase().includes(query))
+          scoreA += PARTIAL_TITLE_MATCH_SCORE;
+        if (b.title.toLowerCase().includes(query))
+          scoreB += PARTIAL_TITLE_MATCH_SCORE;
+
+        // Text contains match
+        if (a.text.toLowerCase().includes(query)) scoreA += TEXT_MATCH_SCORE;
+        if (b.text.toLowerCase().includes(query)) scoreB += TEXT_MATCH_SCORE;
+
+        return scoreB - scoreA;
+      });
+    }
+
+    return markmaps;
   }
 
   async createInteraction(

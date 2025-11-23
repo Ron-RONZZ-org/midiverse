@@ -85,6 +85,25 @@
 <script setup lang="ts">
 const { isAuthenticated, currentUser, logout } = useAuth()
 const { authFetch } = useApi()
+const { initTheme, setTheme } = useTheme()
+
+// Initialize theme on mount and load user preferences
+onMounted(async () => {
+  initTheme()
+  
+  // If user is authenticated, load their theme preference
+  if (isAuthenticated.value) {
+    try {
+      const response = await authFetch('/users/preferences')
+      if (response.ok) {
+        const prefs = await response.json()
+        setTheme(prefs.darkTheme)
+      }
+    } catch (err) {
+      console.error('Failed to load preferences', err)
+    }
+  }
+})
 
 // Compute the dashboard URL based on current user
 const dashboardUrl = computed(() => {
@@ -213,12 +232,13 @@ watch(showImportModal, (newVal) => {
 
 <style scoped>
 .navbar {
-  background: #fff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: var(--card-bg);
+  box-shadow: 0 2px 4px var(--shadow);
   padding: 1rem 0;
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .navbar .container {
@@ -257,9 +277,10 @@ watch(showImportModal, (newVal) => {
 }
 
 .nav-links a {
-  color: #333;
+  color: var(--text-primary);
   text-decoration: none;
   padding: 0.5rem 1rem;
+  transition: color 0.3s ease;
 }
 
 .nav-links a:hover {
@@ -308,21 +329,23 @@ main {
 }
 
 .modal {
-  background: white;
+  background: var(--card-bg);
   padding: 2rem;
   border-radius: 8px;
   max-width: 600px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  transition: background-color 0.3s ease;
 }
 
 .modal h2 {
   margin-bottom: 1rem;
+  color: var(--text-primary);
 }
 
 .modal-description {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
 }

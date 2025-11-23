@@ -38,6 +38,15 @@
               </div>
             </div>
           </div>
+          <div class="form-group">
+            <label for="sortBy">Sort By</label>
+            <select id="sortBy" v-model="searchForm.sortBy" class="form-control">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="relevant">Most Relevant</option>
+              <option value="views">Most Views</option>
+            </select>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -126,6 +135,9 @@
           <p class="meta">
             By {{ markmap.author?.username || 'Anonymous' }} • 
             {{ new Date(markmap.createdAt).toLocaleDateString() }}
+            <span v-if="markmap._count?.viewHistory">
+               • {{ markmap._count.viewHistory }} views
+            </span>
           </p>
           <div class="tags">
             <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
@@ -144,7 +156,8 @@ const searchForm = ref({
   query: '',
   language: '',
   author: '',
-  tags: [] as string[]
+  tags: [] as string[],
+  sortBy: 'newest' as 'newest' | 'oldest' | 'relevant' | 'views'
 })
 
 const results = ref<any[]>([])
@@ -303,6 +316,7 @@ const handleSearch = async () => {
     if (searchForm.value.query) params.append('query', searchForm.value.query)
     if (searchForm.value.language) params.append('language', searchForm.value.language)
     if (searchForm.value.author) params.append('author', searchForm.value.author)
+    if (searchForm.value.sortBy) params.append('sortBy', searchForm.value.sortBy)
     if (searchForm.value.tags.length > 0) {
       searchForm.value.tags.forEach(tag => params.append('tags', tag))
     }
@@ -421,10 +435,11 @@ h1 {
 }
 
 .tags-input-container {
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   padding: 8px;
-  background: white;
+  background: var(--input-bg);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .tags-list {
@@ -468,6 +483,8 @@ h1 {
   border: none;
   outline: none;
   padding: 4px 0;
+  background: transparent;
+  color: var(--text-primary);
 }
 
 .suggestions-dropdown {
@@ -475,10 +492,11 @@ h1 {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid #ddd;
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
   max-height: 200px;
   overflow-y: auto;
   z-index: 100;
@@ -495,16 +513,16 @@ h1 {
 }
 
 .suggestion-item:hover {
-  background: #f0f0f0;
+  background: var(--input-border);
 }
 
 .suggestion-name {
-  color: #000;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .suggestion-detail {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9em;
   margin-left: 0.5rem;
 }

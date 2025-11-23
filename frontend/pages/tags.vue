@@ -88,6 +88,8 @@ const barChartRef = ref<HTMLElement | null>(null)
 const lineChartRef = ref<HTMLElement | null>(null)
 
 let searchDebounceTimer: NodeJS.Timeout | null = null
+let barChartRetryCount = 0
+const MAX_CHART_RETRY = 10
 
 const fetchStatistics = async () => {
   loading.value = true
@@ -146,10 +148,19 @@ const renderBarChart = () => {
   }
   
   if (!barChartRef.value) {
-    // Retry after a short delay to ensure DOM is ready
-    setTimeout(() => renderBarChart(), 100)
+    // Retry after a short delay to ensure DOM is ready, with max retry limit
+    if (barChartRetryCount < MAX_CHART_RETRY) {
+      barChartRetryCount++
+      setTimeout(() => renderBarChart(), 100)
+    } else {
+      console.error('Failed to render bar chart: DOM ref not available after max retries')
+      error.value = 'Failed to render chart: DOM not ready'
+    }
     return
   }
+  
+  // Reset retry counter on successful ref access
+  barChartRetryCount = 0
   
   if (statistics.value.length === 0) {
     return
@@ -263,8 +274,6 @@ h2 {
 .chart-container {
   min-height: 400px;
   margin-top: 1rem;
-  border: 1px dashed #ddd;
-  border-radius: 4px;
 }
 
 .loading {

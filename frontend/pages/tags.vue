@@ -90,15 +90,10 @@ const barChartRef = ref<HTMLElement | null>(null)
 const lineChartRef = ref<HTMLElement | null>(null)
 
 let searchDebounceTimer: NodeJS.Timeout | null = null
-let barChartRetryCount = 0
-let lineChartRetryCount = 0
-const MAX_CHART_RETRY = 10
-const DOM_RENDER_DELAY = 50  // ms delay to ensure DOM is fully rendered before chart rendering
 
 const fetchStatistics = async () => {
   loading.value = true
   error.value = ''
-  barChartRetryCount = 0  // Reset retry counter for new fetch
   
   try {
     const response = await authFetch(`/markmaps/tags/statistics?timeFilter=${selectedFilter.value}`)
@@ -106,19 +101,15 @@ const fetchStatistics = async () => {
     if (response.ok) {
       const data = await response.json()
       statistics.value = data
-      loading.value = false  // Set loading to false before rendering
-      await nextTick()  // Wait for DOM to update with loading=false
-      // Add small delay to ensure DOM is fully rendered
-      setTimeout(() => renderBarChart(), DOM_RENDER_DELAY)
     } else {
       const errorText = await response.text()
       console.error('Failed to load tag statistics:', errorText)
       error.value = 'Failed to load tag statistics'
-      loading.value = false
     }
   } catch (err: any) {
     console.error('Error fetching statistics:', err)
     error.value = err.message || 'Failed to load tag statistics'
+  } finally {
     loading.value = false
   }
 }
@@ -131,48 +122,24 @@ const fetchTrendData = async (tag: string) => {
 
   trendLoading.value = true
   trendError.value = ''
-  lineChartRetryCount = 0  // Reset retry counter for new fetch
   
   try {
     const normalizedTag = tag.startsWith('#') ? tag : `#${tag}`
     const response = await authFetch(`/markmaps/tags/trend/${encodeURIComponent(normalizedTag)}`)
     if (response.ok) {
       trendData.value = await response.json()
-      trendLoading.value = false  // Set loading to false before rendering
-      await nextTick()  // Wait for DOM to update with loading=false
-      // Add small delay to ensure DOM is fully rendered
-      setTimeout(() => renderLineChart(), DOM_RENDER_DELAY)
     } else {
       trendError.value = 'Failed to load trend data'
-      trendLoading.value = false
     }
   } catch (err: any) {
     trendError.value = err.message || 'Failed to load trend data'
+  } finally {
     trendLoading.value = false
   }
 }
 
 const renderBarChart = () => {
-  if (!plotlyLoaded.value || !Plotly) {
-    return
-  }
-  
-  if (!barChartRef.value) {
-    // Retry after a short delay to ensure DOM is ready, with max retry limit
-    if (barChartRetryCount < MAX_CHART_RETRY) {
-      barChartRetryCount++
-      setTimeout(() => renderBarChart(), 100)
-    } else {
-      console.error('Failed to render bar chart: DOM ref not available after max retries')
-      error.value = 'Failed to render chart: DOM not ready'
-    }
-    return
-  }
-  
-  // Reset retry counter on successful ref access
-  barChartRetryCount = 0
-  
-  if (statistics.value.length === 0) {
+  if (!plotlyLoaded.value || !Plotly || !barChartRef.value || statistics.value.length === 0) {
     return
   }
 
@@ -223,26 +190,7 @@ const renderBarChart = () => {
 }
 
 const renderLineChart = () => {
-  if (!plotlyLoaded.value || !Plotly) {
-    return
-  }
-  
-  if (!lineChartRef.value) {
-    // Retry after a short delay to ensure DOM is ready, with max retry limit
-    if (lineChartRetryCount < MAX_CHART_RETRY) {
-      lineChartRetryCount++
-      setTimeout(() => renderLineChart(), 100)
-    } else {
-      console.error('Failed to render line chart: DOM ref not available after max retries')
-      trendError.value = 'Failed to render chart: DOM not ready'
-    }
-    return
-  }
-  
-  // Reset retry counter on successful ref access
-  lineChartRetryCount = 0
-  
-  if (trendData.value.length === 0) {
+  if (!plotlyLoaded.value || !Plotly || !lineChartRef.value || trendData.value.length === 0) {
     return
   }
 
@@ -305,6 +253,22 @@ const onSearchInput = () => {
     fetchTrendData(searchTag.value)
   }, 500)
 }
+
+// Watch for changes in statistics data and loading state to automatically render bar chart
+watch([statistics, loading, plotlyLoaded], async () => {
+  if (!loading.value && plotlyLoaded.value && statistics.value.length > 0) {
+    await nextTick()
+    renderBarChart()
+  }
+})
+
+// Watch for changes in trend data and loading state to automatically render line chart
+watch([trendData, trendLoading, plotlyLoaded], async () => {
+  if (!trendLoading.value && plotlyLoaded.value && trendData.value.length > 0) {
+    await nextTick()
+    renderLineChart()
+  }
+})
 
 watch(selectedFilter, () => {
   fetchStatistics()

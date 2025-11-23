@@ -762,12 +762,12 @@ const hideParentKeynoteSuggestions = () => {
 
 const createKeynode = async () => {
   if (!newKeynode.value.name.trim() || !newKeynode.value.category) {
-    keynoteError.value = 'Name and category are required'
+    keynodeError.value = 'Name and category are required'
     return
   }
   
   keynodeLoading.value = true
-  keynoteError.value = ''
+  keynodeError.value = ''
   
   try {
     const payload: any = {
@@ -818,10 +818,10 @@ const createKeynode = async () => {
       parentKeynodeInput.value = ''
     } else {
       const errorData = await response.json()
-      keynoteError.value = errorData.message || 'Failed to create keynode'
+      keynodeError.value = errorData.message || 'Failed to create keynode'
     }
   } catch (err) {
-    keynoteError.value = 'Failed to create keynode'
+    keynodeError.value = 'Failed to create keynode'
   } finally {
     keynodeLoading.value = false
   }

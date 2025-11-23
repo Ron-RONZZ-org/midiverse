@@ -52,10 +52,7 @@ export class KeynodesService {
 
     const keynodes = await this.prisma.keynode.findMany({
       where,
-      orderBy: [
-        { childNodeCount: 'desc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ childNodeCount: 'desc' }, { name: 'asc' }],
       take: 10,
       select: {
         id: true,

@@ -15,7 +15,6 @@ const EXACT_TITLE_MATCH_SCORE = 1000;
 const PARTIAL_TITLE_MATCH_SCORE = 100;
 const TEXT_MATCH_SCORE = 10;
 const VIEW_COUNT_MULTIPLIER = 0.1;
-const KEYNODE_CHILD_COUNT_MULTIPLIER = 5; // Weight for keynode child count ranking
 
 @Injectable()
 export class MarkmapsService {
@@ -119,9 +118,8 @@ export class MarkmapsService {
               create: await Promise.all(
                 keynodes.map(async (keynode) => {
                   // Find keynode by name
-                  const keynodeEntity = await this.keynodesService.findByName(
-                    keynode,
-                  );
+                  const keynodeEntity =
+                    await this.keynodesService.findByName(keynode);
 
                   if (keynodeEntity) {
                     // Increment child node count
@@ -444,9 +442,8 @@ export class MarkmapsService {
       if (keynodes.length > 0) {
         await Promise.all(
           keynodes.map(async (keynode) => {
-            const keynodeEntity = await this.keynodesService.findByName(
-              keynode,
-            );
+            const keynodeEntity =
+              await this.keynodesService.findByName(keynode);
 
             if (keynodeEntity) {
               // Increment child node count

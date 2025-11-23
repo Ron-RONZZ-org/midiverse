@@ -40,8 +40,10 @@
 
       <div v-if="trendLoading" class="loading">Loading trend data...</div>
       <div v-else-if="trendError" class="error">{{ trendError }}</div>
-      <div v-else-if="trendData.length > 0" ref="lineChartRef" class="chart-container"></div>
-      <div v-else class="empty-state">Enter a tag to see its historical trend</div>
+      <div v-else>
+        <div v-if="trendData.length === 0" class="empty-state">Enter a tag to see its historical trend</div>
+        <div v-else ref="lineChartRef" class="chart-container"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -180,27 +182,30 @@ const renderBarChart = () => {
     const layout = {
       title: {
         text: `Top 10 Tags (${timeFilters.find(f => f.value === selectedFilter.value)?.label})`,
-        font: { size: 18 }
+        font: { size: 24 }
       },
       xaxis: {
         title: {
           text: 'Tag',
-          font: { size: 14 }
+          font: { size: 18 }
         },
         tickangle: -45,
-        tickfont: { size: 12 }
+        tickfont: { size: 16 }
       },
       yaxis: {
         title: {
           text: 'Number of Markmaps',
-          font: { size: 14 }
+          font: { size: 18 }
         },
-        tickfont: { size: 12 }
+        tickfont: { size: 16 }
       },
       margin: {
-        b: 100
+        b: 120,
+        l: 80,
+        r: 40,
+        t: 80
       },
-      font: { size: 12 }
+      font: { size: 16 }
     }
 
     Plotly.newPlot(barChartRef.value, data as any, layout as any, { responsive: true })
@@ -252,23 +257,29 @@ const renderLineChart = () => {
     const layout = {
       title: {
         text: `Trend for ${searchTag.value} (Last 30 Days)`,
-        font: { size: 18 }
+        font: { size: 24 }
       },
       xaxis: {
         title: {
           text: 'Date',
-          font: { size: 14 }
+          font: { size: 18 }
         },
-        tickfont: { size: 12 }
+        tickfont: { size: 16 }
       },
       yaxis: {
         title: {
           text: 'Number of Markmaps',
-          font: { size: 14 }
+          font: { size: 18 }
         },
-        tickfont: { size: 12 }
+        tickfont: { size: 16 }
       },
-      font: { size: 12 }
+      margin: {
+        l: 80,
+        r: 40,
+        t: 80,
+        b: 60
+      },
+      font: { size: 16 }
     }
 
     Plotly.newPlot(lineChartRef.value, data as any, layout as any, { responsive: true })

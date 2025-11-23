@@ -228,6 +228,105 @@ export class CreateMarkmapDto {
 }
 ```
 
+## Frontend Development Patterns
+
+### Vue 3 + Nuxt 3 Best Practices
+
+#### Chart Rendering with External Libraries
+
+When integrating heavy libraries like Plotly that aren't SSR-compatible:
+
+**Problem**: Libraries that depend on browser globals (like `window`, `document`, `self`) will fail during server-side rendering.
+
+**Solution Pattern**:
+1. **Dynamic Import**: Load the library only on the client side using `onMounted` hook
+2. **Reactive Watchers**: Use Vue's `watch()` to automatically render when data is ready
+3. **Avoid Manual Timing**: Let Vue's reactivity system handle timing instead of using retries/delays
+
+**Example Implementation** (Tags Page Charts):
+
+```typescript
+// 1. Dynamic client-side import
+let Plotly: any = null
+const plotlyLoaded = ref(false)
+
+onMounted(async () => {
+  if (process.client) {
+    const module = await import('plotly.js-dist-min')
+    Plotly = module.default
+    plotlyLoaded.value = true
+    fetchStatistics() // Initial data fetch
+  }
+})
+
+// 2. Use watchers to automatically render when conditions are met
+watch([statistics, loading, plotlyLoaded], async () => {
+  if (!loading.value && plotlyLoaded.value) {
+    await nextTick() // Wait for DOM update
+    renderChart()
+  }
+})
+
+// 3. Simple render function - no retries needed
+const renderChart = () => {
+  if (!plotlyLoaded.value || !Plotly || !chartRef.value || data.value.length === 0) {
+    return
+  }
+  Plotly.newPlot(chartRef.value, data, layout, config)
+}
+```
+
+**Benefits of This Approach**:
+- ✅ No SSR errors (library only loads in browser)
+- ✅ Automatic rendering when data arrives (Vue reactivity)
+- ✅ Smaller server bundle (library not included in SSR)
+- ✅ No race conditions or timing issues
+- ✅ Simpler, more maintainable code
+
+**Anti-patterns to Avoid**:
+- ❌ Static imports of browser-only libraries
+- ❌ Manual timing with `setTimeout` delays
+- ❌ Complex retry logic with counters
+- ❌ Manually calling render functions after data fetch
+- ❌ Setting loading state to false before calling render (creates race conditions)
+
+### Reactive State Management
+
+#### Authentication State
+
+For state that needs to be reactive across components but is stored in localStorage:
+
+**Problem**: Direct localStorage access isn't tracked by Vue's reactivity system.
+
+**Solution**: Wrap localStorage access in reactive refs:
+
+```typescript
+const authState = ref({
+  token: null as string | null,
+  user: null as any
+})
+
+// Initialize from localStorage
+if (process.client) {
+  authState.value.token = localStorage.getItem('token')
+  authState.value.user = JSON.parse(localStorage.getItem('user') || 'null')
+}
+
+// Getters that read from reactive state
+const getToken = () => authState.value.token
+const getUser = () => authState.value.user
+
+// Setters that update both localStorage AND reactive state
+const setToken = (token: string) => {
+  if (process.client) {
+    localStorage.setItem('token', token)
+    authState.value.token = token
+  }
+}
+```
+
+This ensures UI components that use `getToken()` or `getUser()` automatically update when auth state changes.
+
 ## Environment Variables
 
 Required environment variables (see `.env.example`):

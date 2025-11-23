@@ -256,7 +256,7 @@ const onSearchInput = () => {
 
 // Watch for changes in statistics data and loading state to automatically render bar chart
 watch([statistics, loading, plotlyLoaded], async () => {
-  if (!loading.value && plotlyLoaded.value && statistics.value.length > 0) {
+  if (!loading.value && plotlyLoaded.value) {
     await nextTick()
     renderBarChart()
   }
@@ -264,7 +264,7 @@ watch([statistics, loading, plotlyLoaded], async () => {
 
 // Watch for changes in trend data and loading state to automatically render line chart
 watch([trendData, trendLoading, plotlyLoaded], async () => {
-  if (!trendLoading.value && plotlyLoaded.value && trendData.value.length > 0) {
+  if (!trendLoading.value && plotlyLoaded.value) {
     await nextTick()
     renderLineChart()
   }

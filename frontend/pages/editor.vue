@@ -44,7 +44,7 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
                 @input="onTextInput"
                 @keydown="onTextKeydown"
               ></textarea>
-              <div v-if="showKeynoteSuggestions && keynodeSuggestions.length > 0" class="suggestions-dropdown keynode-suggestions" :style="keynodeSuggestionsPosition">
+              <div v-if="showKeynoteSuggestions" class="suggestions-dropdown keynode-suggestions" :style="keynodeSuggestionsPosition">
                 <div 
                   v-for="(suggestion, index) in keynodeSuggestions.slice(0, 3)" 
                   :key="suggestion.id"
@@ -887,6 +887,14 @@ onMounted(() => {
   }
   loadUserSeries()
 })
+
+// Watch for text changes to trigger keynode detection
+watch(() => form.value.text, () => {
+  nextTick(() => {
+    onTextInput()
+  })
+})
+
 </script>
 
 <style scoped>

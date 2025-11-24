@@ -630,16 +630,11 @@ const onTextInput = () => {
     showKeynoteSuggestions.value = true
     selectedKeynoteSuggestionIndex.value = 0
     
-    // Calculate position for suggestions dropdown
-    const textarea = textareaRef.value
-    const textBeforeCursor = form.value.text.substring(0, cursorPos)
-    const lines = textBeforeCursor.split('\n')
-    const currentLine = lines.length
-    const lineHeight = 20 // Approximate line height
-    
+    // Position the suggestions dropdown below the textarea
+    // Using a fixed position relative to the textarea wrapper
     keynodeSuggestionsPosition.value = {
-      top: `${currentLine * lineHeight + 30}px`,
-      left: '10px'
+      top: '100%',
+      left: '0'
     }
     
     if (keynodeDebounceTimer) {
@@ -1177,13 +1172,14 @@ h1 {
 
 .keynode-suggestions {
   position: absolute;
-  z-index: 100;
+  z-index: 1000;
   max-width: 400px;
+  min-width: 300px;
 }
 
 .suggestion-category {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary);
   margin-left: 0.5rem;
 }
 

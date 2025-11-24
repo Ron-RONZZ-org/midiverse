@@ -33,12 +33,24 @@ const loadAssets = async (assets: any) => {
   }
 }
 
+// Process markdown to convert !{keynode} syntax to markdown links
+const processKeynodes = (markdown: string): string => {
+  // Replace !{keynode} patterns with [keynode](/search?keynode=keynode)
+  return markdown.replace(/!\{([^}]+)\}/g, (match, keynode) => {
+    const encodedKeynode = encodeURIComponent(keynode.trim())
+    return `[${keynode.trim()}](/search?keynode=${encodedKeynode})`
+  })
+}
+
 const renderMarkmap = async () => {
   if (!markmapRef.value || !props.markdown) return
 
   try {
+    // Process keynodes in the markdown before rendering
+    const processedMarkdown = processKeynodes(props.markdown)
+    
     // Transform markdown to markmap data and get assets
-    const { root, features } = transformer.transform(props.markdown)
+    const { root, features } = transformer.transform(processedMarkdown)
     const assets = transformer.getUsedAssets(features)
     
     // Load required assets

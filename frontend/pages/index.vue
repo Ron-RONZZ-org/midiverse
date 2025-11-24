@@ -116,7 +116,7 @@ onMounted(async () => {
 
 .hero p {
   font-size: 1.5rem;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
 }
 
@@ -195,6 +195,6 @@ onMounted(async () => {
 .loading {
   text-align: center;
   padding: 2rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 </style>

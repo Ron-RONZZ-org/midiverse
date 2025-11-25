@@ -111,7 +111,7 @@ onMounted(async () => {
 .hero h1 {
   font-size: 3rem;
   margin-bottom: 1rem;
-  color: #007bff;
+  color: var(--link-color, #007bff);
 }
 
 .hero p {
@@ -168,7 +168,7 @@ onMounted(async () => {
 
 .markmap-card h3 {
   margin-bottom: 0.5rem;
-  color: #007bff;
+  color: var(--link-color, #007bff);
 }
 
 .meta {

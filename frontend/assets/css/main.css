@@ -16,6 +16,7 @@
   --card-bg: #ffffff;
   --input-bg: #ffffff;
   --input-border: #ddd;
+  --link-color: #007bff;
 }
 
 .dark-theme {
@@ -30,6 +31,7 @@
   --card-bg: #2d2d2d;
   --input-bg: #1a1a1a;
   --input-border: #404040;
+  --link-color: #4da6ff;
 }
 
 body {

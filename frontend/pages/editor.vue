@@ -854,15 +854,15 @@ const filteredSuggestions = computed(() => {
   return suggestions.value.filter(s => !tagExists(s.name))
 })
 
-// Find all manual !{keynode} patterns in text
+// Find all manual !{keynode} patterns in text (deduplicated)
 const findManualKeynodes = (text: string): string[] => {
   const pattern = /!\{([^}]+)\}/g
-  const matches: string[] = []
+  const matches = new Set<string>()
   let match
   while ((match = pattern.exec(text)) !== null) {
-    matches.push(match[1].trim())
+    matches.add(match[1].trim())
   }
-  return matches
+  return Array.from(matches)
 }
 
 // State for pending manual keynodes

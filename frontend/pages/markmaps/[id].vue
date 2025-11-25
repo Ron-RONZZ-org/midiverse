@@ -202,7 +202,7 @@ onMounted(() => {
 }
 
 .markmap-header h1 {
-  color: #007bff;
+  color: var(--link-color, #007bff);
   margin-bottom: 1rem;
 }
 

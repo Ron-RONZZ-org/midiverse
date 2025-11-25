@@ -65,13 +65,13 @@ onMounted(async () => {
 <style scoped>
 h1 {
   margin-bottom: 2rem;
-  color: #007bff;
+  color: var(--link-color, #007bff);
 }
 
 .loading {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .markmap-grid {
@@ -81,27 +81,27 @@ h1 {
 }
 
 .markmap-card {
-  background: white;
+  background: var(--card-bg, white);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px var(--shadow, rgba(0,0,0,0.1));
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .markmap-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px var(--shadow, rgba(0,0,0,0.15));
 }
 
 .markmap-card h3 {
   margin-bottom: 0.5rem;
-  color: #007bff;
+  color: var(--link-color, #007bff);
 }
 
 .meta {
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
@@ -113,20 +113,22 @@ h1 {
 }
 
 .tag {
-  background: #e9ecef;
+  background: var(--input-border, #e9ecef);
+  color: var(--text-primary);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  transition: background-color 0.3s ease;
 }
 
 .no-results {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .no-results a {
-  color: #007bff;
+  color: var(--link-color, #007bff);
   text-decoration: none;
 }
 

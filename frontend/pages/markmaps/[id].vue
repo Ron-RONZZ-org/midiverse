@@ -180,7 +180,7 @@ onMounted(() => {
 .loading {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .fullscreen-container {
@@ -190,7 +190,7 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   z-index: 9999;
-  background: white;
+  background: var(--bg-primary);
   overflow: hidden;
   padding: 0 !important;
   margin: 0 !important;
@@ -207,7 +207,7 @@ onMounted(() => {
 }
 
 .meta {
-  color: #666;
+  color: var(--text-secondary);
   display: flex;
   gap: 1rem;
   align-items: center;
@@ -221,10 +221,12 @@ onMounted(() => {
 }
 
 .tag {
-  background: #e9ecef;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  color: var(--text-primary);
 }
 
 .actions {
@@ -263,9 +265,9 @@ onMounted(() => {
 .markmap-view {
   height: 600px;
   margin-bottom: 2rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: white;
+  background: var(--card-bg);
   position: relative;
 }
 
@@ -336,21 +338,21 @@ onMounted(() => {
 }
 
 .modal {
-  background: white;
+  background: var(--card-bg);
   padding: 2rem;
   border-radius: 8px;
   max-width: 600px;
   width: 90%;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px var(--shadow);
 }
 
 .modal h2 {
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .modal-description {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.95rem;
   margin-bottom: 1.5rem;
 }
@@ -362,11 +364,12 @@ onMounted(() => {
 .link-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-family: monospace;
   font-size: 0.9rem;
-  background: #f8f9fa;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .modal-actions {
@@ -390,12 +393,15 @@ onMounted(() => {
 
 .markmap-source h3 {
   margin-bottom: 1rem;
+  color: var(--text-primary);
 }
 
 .markmap-source pre {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   padding: 1rem;
   border-radius: 4px;
+  border: 1px solid var(--border-color);
   overflow-x: auto;
   font-family: 'Courier New', monospace;
   white-space: pre-wrap;

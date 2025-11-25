@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MarkmapsService } from './markmaps.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { KeynodesService } from '../keynodes/keynodes.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
 describe('MarkmapsService', () => {
@@ -25,6 +26,10 @@ describe('MarkmapsService', () => {
       deleteMany: jest.fn(),
       create: jest.fn(),
     },
+    keynodeOnMarkmap: {
+      deleteMany: jest.fn(),
+      create: jest.fn(),
+    },
     viewHistory: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -35,6 +40,11 @@ describe('MarkmapsService', () => {
     },
   };
 
+  const mockKeynodesService = {
+    findByName: jest.fn(),
+    updateChildNodeCount: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -42,6 +52,10 @@ describe('MarkmapsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: KeynodesService,
+          useValue: mockKeynodesService,
         },
       ],
     }).compile();
@@ -71,6 +85,7 @@ describe('MarkmapsService', () => {
         slug: 'test-markmap',
         authorId: userId,
         tags: [],
+        keynodes: [],
       };
 
       // Mock slug generation - no existing slugs
@@ -86,10 +101,12 @@ describe('MarkmapsService', () => {
           slug: 'test-markmap',
           authorId: userId,
           tags: undefined,
+          keynodes: undefined,
         },
         include: {
           author: { select: { id: true, username: true } },
           tags: { include: { tag: true } },
+          keynodes: { include: { keynode: true } },
         },
       });
     });

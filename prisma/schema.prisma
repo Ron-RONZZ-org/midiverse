@@ -58,6 +58,7 @@ model Markmap {
   viewHistory   ViewHistory[]
   interactions  Interaction[]
   tags          TagOnMarkmap[]
+  keynodes      KeynodeOnMarkmap[]
 
   @@unique([authorId, slug])
   @@index([authorId])
@@ -155,4 +156,38 @@ model UserPreferences {
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Keynode {
+  id              String   @id @default(uuid())
+  name            String   @unique // Keynode name (e.g., "volcano", "Albert Einstein")
+  category        String   // Category: person, fictional_character, geographical_location, date_time, historical_event, biological_species, abstract_concept, others
+  childNodeCount  Int      @default(0) // Number of child nodes referencing this keynode
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  parentId        String?
+  parent          Keynode?  @relation("KeynodeHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Keynode[] @relation("KeynodeHierarchy")
+  markmaps        KeynodeOnMarkmap[]
+
+  @@index([name])
+  @@index([category])
+  @@index([parentId])
+  @@index([childNodeCount])
+}
+
+model KeynodeOnMarkmap {
+  id         String   @id @default(uuid())
+  keynodeId  String
+  markmapId  String
+  createdAt  DateTime @default(now())
+
+  keynode    Keynode  @relation(fields: [keynodeId], references: [id], onDelete: Cascade)
+  markmap    Markmap  @relation(fields: [markmapId], references: [id], onDelete: Cascade)
+
+  @@unique([keynodeId, markmapId])
+  @@index([keynodeId])
+  @@index([markmapId])
+  @@index([createdAt])
 }

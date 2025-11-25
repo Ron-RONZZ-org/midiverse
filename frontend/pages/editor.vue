@@ -20,6 +20,37 @@
     <div v-else class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
       <div class="editor-panel card">
         <h2>Editor</h2>
+        
+        <!-- Keynode Suggestions Dropdown - Fixed Position at top of editor -->
+        <div v-if="showKeynoteSuggestions" class="keynode-dropdown-fixed">
+          <div class="keynode-dropdown-header">
+            <span>Keynode suggestions for: <strong>!{{ '{' }}{{ keynodeInput || '...' }}{{ '}' }}</strong></span>
+            <button type="button" class="close-btn" @click="showKeynoteSuggestions = false">&times;</button>
+          </div>
+          <div 
+            v-for="(suggestion, index) in keynodeSuggestions.slice(0, 3)" 
+            :key="suggestion.id"
+            :class="['keynode-dropdown-item', { active: index === selectedKeynoteSuggestionIndex }]"
+            @mousedown.prevent="selectKeynoteSuggestion(suggestion)"
+            @mouseenter="selectedKeynoteSuggestionIndex = index"
+          >
+            <span class="suggestion-name">{{ suggestion.name }}</span>
+            <span class="suggestion-meta">
+              <span class="suggestion-category">{{ formatKeynodeCategory(suggestion.category) }}</span>
+              <span class="suggestion-count">{{ suggestion.childNodeCount }} nodes</span>
+            </span>
+          </div>
+          <div 
+            v-if="!keynodeSuggestions.some(s => s.name.toLowerCase() === keynodeInput.toLowerCase())"
+            class="keynode-dropdown-item create-new"
+            :class="{ active: selectedKeynoteSuggestionIndex === keynodeSuggestions.slice(0, 3).length }"
+            @mousedown.prevent="showCreateKeynodeModal = true"
+            @mouseenter="selectedKeynoteSuggestionIndex = keynodeSuggestions.slice(0, 3).length"
+          >
+            <span class="suggestion-name">➕ Create new: {{ keynodeInput || '(type keynode name)' }}</span>
+          </div>
+        </div>
+        
         <form @submit.prevent="handleSubmit">
           <div class="form-group">
             <label for="title">Title</label>
@@ -28,16 +59,23 @@
 
           <div class="form-group">
             <label for="text">Markdown Content</label>
-            <textarea 
-              id="text" 
-              v-model="form.text" 
-              required
-              placeholder="# Root
+            <div class="textarea-wrapper">
+              <textarea 
+                id="text" 
+                ref="textareaRef"
+                v-model="form.text" 
+                required
+                placeholder="# Root
 ## Branch 1
 ### Sub-branch 1
 ### Sub-branch 2
-## Branch 2"
-            ></textarea>
+## Branch 2
+
+Use !{keynode} to reference keynodes (e.g., !{volcano})"
+                @input="onTextInput"
+                @keydown="onTextKeydown"
+              ></textarea>
+            </div>
           </div>
 
           <div class="form-row">
@@ -218,6 +256,71 @@
         </form>
       </div>
     </div>
+
+    <!-- Create Keynode Modal -->
+    <div v-if="showCreateKeynodeModal" class="modal-overlay" @click.self="showCreateKeynodeModal = false">
+      <div class="modal">
+        <h2>Create New Keynode</h2>
+        <div v-if="keynodeError" class="error">{{ keynodeError }}</div>
+        <form @submit.prevent="createKeynode">
+          <div class="form-group">
+            <label for="keynode-name">Name</label>
+            <input 
+              id="keynode-name" 
+              v-model="newKeynode.name" 
+              type="text" 
+              required
+              placeholder="volcano"
+            />
+          </div>
+          <div class="form-group">
+            <label for="keynode-category">Category</label>
+            <select id="keynode-category" v-model="newKeynode.category" required>
+              <option value="">Select a category</option>
+              <option value="person">Person</option>
+              <option value="fictional_character">Fictional Character</option>
+              <option value="geographical_location">Geographical Location</option>
+              <option value="date_time">Date/Time</option>
+              <option value="historical_event">Historical Event</option>
+              <option value="biological_species">Biological Species</option>
+              <option value="abstract_concept">Abstract Concept</option>
+              <option value="others">Others</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="keynode-parent">Parent Keynode (optional)</label>
+            <div class="autocomplete-wrapper">
+              <input 
+                id="keynode-parent" 
+                v-model="parentKeynodeInput" 
+                type="text" 
+                placeholder="Search for parent keynode (e.g., mountain)"
+                @input="onParentKeynodeInput"
+                @focus="onParentKeynodeInput"
+                @blur="hideParentKeynoteSuggestions"
+              />
+              <div v-if="showParentKeynoteSuggestions && parentKeynoteSuggestions.length > 0" class="suggestions-dropdown">
+                <div 
+                  v-for="suggestion in parentKeynoteSuggestions" 
+                  :key="suggestion.id"
+                  class="suggestion-item"
+                  @mousedown.prevent="selectParentKeynode(suggestion)"
+                >
+                  <span class="suggestion-name">{{ suggestion.name }}</span>
+                  <span class="suggestion-category">{{ formatKeynodeCategory(suggestion.category) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" @click="showCreateKeynodeModal = false" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn" :disabled="keynodeLoading">
+              {{ keynodeLoading ? 'Creating...' : 'Create' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -238,6 +341,7 @@ const form = ref({
   language: '',
   seriesId: '',
   tags: [] as string[],
+  keynodes: [] as string[],
   maxWidth: 0,
   colorFreezeLevel: 0,
   initialExpandLevel: -1,
@@ -264,6 +368,31 @@ const languageSuggestions = ref<{ code: string; name: string }[]>([])
 const showLanguageSuggestions = ref(false)
 const selectedLanguageSuggestionIndex = ref(0)
 let languageDebounceTimer: NodeJS.Timeout | null = null
+
+// Keynode suggestions
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const keynodeInput = ref('')
+const keynodeSuggestions = ref<any[]>([])
+const showKeynoteSuggestions = ref(false)
+const selectedKeynoteSuggestionIndex = ref(0)
+let keynodeDebounceTimer: NodeJS.Timeout | null = null
+let keynodeStartPos = 0
+
+// Keynode creation modal
+const showCreateKeynodeModal = ref(false)
+const newKeynode = ref({
+  name: '',
+  category: '',
+  parentId: ''
+})
+const keynodeLoading = ref(false)
+const keynodeError = ref('')
+
+// Parent keynode selection
+const parentKeynodeInput = ref('')
+const parentKeynoteSuggestions = ref<any[]>([])
+const showParentKeynoteSuggestions = ref(false)
+let parentKeynodeDebounceTimer: NodeJS.Timeout | null = null
 
 const cancelUrl = computed(() => {
   if (currentUser.value?.username) {
@@ -298,6 +427,7 @@ const loadMarkmap = async (id: string) => {
         language: markmap.language || '',
         seriesId: markmap.seriesId || '',
         tags: markmap.tags?.map((t: any) => t.tag.name) || [],
+        keynodes: markmap.keynodes?.map((k: any) => k.keynode.name) || [],
         maxWidth: markmap.maxWidth,
         colorFreezeLevel: markmap.colorFreezeLevel,
         initialExpandLevel: markmap.initialExpandLevel,
@@ -458,6 +588,253 @@ const hideLanguageSuggestions = () => {
   }, 200)
 }
 
+// Keynode functions
+const formatKeynodeCategory = (category: string): string => {
+  return category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+const detectKeynodeInput = (text: string, cursorPos: number): { start: number; query: string } | null => {
+  // Find the last !{ before cursor
+  const beforeCursor = text.substring(0, cursorPos)
+  const lastOpenBrace = beforeCursor.lastIndexOf('!{')
+  
+  if (lastOpenBrace === -1) return null
+  
+  // Check if there's a closing brace after the last opening brace
+  const afterOpenBrace = text.substring(lastOpenBrace)
+  const closeBracePos = afterOpenBrace.indexOf('}')
+  
+  // If cursor is after closing brace, no input
+  if (closeBracePos !== -1 && closeBracePos < (cursorPos - lastOpenBrace)) {
+    return null
+  }
+  
+  // Extract the query between !{ and cursor
+  const query = beforeCursor.substring(lastOpenBrace + 2)
+  
+  return { start: lastOpenBrace, query }
+}
+
+const fetchKeynoteSuggestions = async (query: string) => {
+  try {
+    const response = await authFetch(`/keynodes/suggestions?query=${encodeURIComponent(query)}`)
+    if (response.ok) {
+      keynodeSuggestions.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch keynode suggestions', err)
+  }
+}
+
+const onTextInput = () => {
+  if (!textareaRef.value) return
+  
+  const cursorPos = textareaRef.value.selectionStart
+  const detection = detectKeynodeInput(form.value.text, cursorPos)
+  
+  if (detection) {
+    keynodeInput.value = detection.query
+    keynodeStartPos = detection.start
+    showKeynoteSuggestions.value = true
+    selectedKeynoteSuggestionIndex.value = 0
+    
+    if (keynodeDebounceTimer) {
+      clearTimeout(keynodeDebounceTimer)
+    }
+    
+    keynodeDebounceTimer = setTimeout(() => {
+      if (detection.query.trim()) {
+        fetchKeynoteSuggestions(detection.query)
+      } else {
+        fetchKeynoteSuggestions('')
+      }
+    }, 300)
+  } else {
+    showKeynoteSuggestions.value = false
+    keynodeInput.value = ''
+  }
+}
+
+const onTextKeydown = (event: KeyboardEvent) => {
+  if (!showKeynoteSuggestions.value) return
+  
+  const maxIndex = Math.min(3, keynodeSuggestions.value.length)
+  const hasCreateOption = keynodeInput.value && !keynodeSuggestions.value.some(
+    s => s.name.toLowerCase() === keynodeInput.value.toLowerCase()
+  )
+  const totalOptions = maxIndex + (hasCreateOption ? 1 : 0)
+  
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    selectedKeynoteSuggestionIndex.value = (selectedKeynoteSuggestionIndex.value + 1) % totalOptions
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    selectedKeynoteSuggestionIndex.value = (selectedKeynoteSuggestionIndex.value - 1 + totalOptions) % totalOptions
+  } else if (event.key === 'Enter') {
+    event.preventDefault()
+    const maxSuggestions = Math.min(3, keynodeSuggestions.value.length)
+    
+    if (selectedKeynoteSuggestionIndex.value < maxSuggestions) {
+      selectKeynoteSuggestion(keynodeSuggestions.value[selectedKeynoteSuggestionIndex.value])
+    } else if (hasCreateOption) {
+      newKeynode.value.name = keynodeInput.value
+      showCreateKeynodeModal.value = true
+      showKeynoteSuggestions.value = false
+    }
+  } else if (event.key === 'Escape') {
+    showKeynoteSuggestions.value = false
+  }
+}
+
+const selectKeynoteSuggestion = (keynode: any) => {
+  if (!textareaRef.value) return
+  
+  const cursorPos = textareaRef.value.selectionStart
+  const text = form.value.text
+  const beforeKeynode = text.substring(0, keynodeStartPos)
+  const afterCursor = text.substring(cursorPos)
+  
+  // Create markdown link to search page with keynode filter
+  const keynodeLink = `[${keynode.name}](/search?keynode=${encodeURIComponent(keynode.name)})`
+  
+  form.value.text = beforeKeynode + keynodeLink + afterCursor
+  
+  // Add keynode to form data
+  if (!form.value.keynodes.includes(keynode.name)) {
+    form.value.keynodes.push(keynode.name)
+  }
+  
+  showKeynoteSuggestions.value = false
+  keynodeInput.value = ''
+  
+  // Set cursor after the inserted link
+  nextTick(() => {
+    if (textareaRef.value) {
+      const newCursorPos = beforeKeynode.length + keynodeLink.length
+      textareaRef.value.setSelectionRange(newCursorPos, newCursorPos)
+      textareaRef.value.focus()
+    }
+  })
+}
+
+const fetchParentKeynoteSuggestions = async (query: string) => {
+  try {
+    const response = await authFetch(`/keynodes/suggestions?query=${encodeURIComponent(query)}`)
+    if (response.ok) {
+      parentKeynoteSuggestions.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch parent keynode suggestions', err)
+  }
+}
+
+const onParentKeynodeInput = () => {
+  showParentKeynoteSuggestions.value = true
+  
+  if (parentKeynodeDebounceTimer) {
+    clearTimeout(parentKeynodeDebounceTimer)
+  }
+  
+  parentKeynodeDebounceTimer = setTimeout(() => {
+    if (parentKeynodeInput.value.trim()) {
+      fetchParentKeynoteSuggestions(parentKeynodeInput.value)
+    } else {
+      fetchParentKeynoteSuggestions('')
+    }
+  }, 300)
+}
+
+const selectParentKeynode = (keynode: any) => {
+  newKeynode.value.parentId = keynode.id
+  parentKeynodeInput.value = keynode.name
+  showParentKeynoteSuggestions.value = false
+}
+
+const hideParentKeynoteSuggestions = () => {
+  setTimeout(() => {
+    showParentKeynoteSuggestions.value = false
+  }, 200)
+}
+
+const createKeynode = async () => {
+  if (!newKeynode.value.name.trim() || !newKeynode.value.category) {
+    keynodeError.value = 'Name and category are required'
+    return
+  }
+  
+  keynodeLoading.value = true
+  keynodeError.value = ''
+  
+  try {
+    const payload: any = {
+      name: newKeynode.value.name,
+      category: newKeynode.value.category
+    }
+    
+    if (newKeynode.value.parentId) {
+      payload.parentId = newKeynode.value.parentId
+    }
+    
+    const response = await authFetch('/keynodes', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+    
+    if (response.ok) {
+      const createdKeynode = await response.json()
+      
+      // Check if this is a manual keynode creation during form submission
+      if (pendingManualKeynodes.value.length > 0) {
+        // Processing manual keynodes from form submission
+        showCreateKeynodeModal.value = false
+        newKeynode.value = { name: '', category: '', parentId: '' }
+        parentKeynodeInput.value = ''
+        
+        // Continue with manual keynode processing
+        await onManualKeynodeCreated(createdKeynode)
+      } else {
+        // Normal inline keynode creation
+        // Insert the keynode into the text
+        if (textareaRef.value) {
+          const cursorPos = textareaRef.value.selectionStart
+          const text = form.value.text
+          const beforeKeynode = text.substring(0, keynodeStartPos)
+          const afterCursor = text.substring(cursorPos)
+          
+          const keynodeLink = `[${createdKeynode.name}](/search?keynode=${encodeURIComponent(createdKeynode.name)})`
+          form.value.text = beforeKeynode + keynodeLink + afterCursor
+          
+          // Add to keynodes array
+          if (!form.value.keynodes.includes(createdKeynode.name)) {
+            form.value.keynodes.push(createdKeynode.name)
+          }
+          
+          // Set cursor after the inserted link
+          nextTick(() => {
+            if (textareaRef.value) {
+              const newCursorPos = beforeKeynode.length + keynodeLink.length
+              textareaRef.value.setSelectionRange(newCursorPos, newCursorPos)
+              textareaRef.value.focus()
+            }
+          })
+        }
+        
+        showCreateKeynodeModal.value = false
+        showKeynoteSuggestions.value = false
+        newKeynode.value = { name: '', category: '', parentId: '' }
+        parentKeynodeInput.value = ''
+      }
+    } else {
+      const errorData = await response.json()
+      keynodeError.value = errorData.message || 'Failed to create keynode'
+    }
+  } catch (err) {
+    keynodeError.value = 'Failed to create keynode'
+  } finally {
+    keynodeLoading.value = false
+  }
+}
+
 const onTagInput = () => {
   showSuggestions.value = true
   selectedSuggestionIndex.value = 0
@@ -477,11 +854,132 @@ const filteredSuggestions = computed(() => {
   return suggestions.value.filter(s => !tagExists(s.name))
 })
 
+// Find all manual !{keynode} patterns in text
+const findManualKeynodes = (text: string): string[] => {
+  const pattern = /!\{([^}]+)\}/g
+  const matches: string[] = []
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    matches.push(match[1].trim())
+  }
+  return matches
+}
+
+// State for pending manual keynodes
+const pendingManualKeynodes = ref<string[]>([])
+const currentManualKeynodeIndex = ref(0)
+
+// Process manual keynodes one by one
+const processNextManualKeynode = () => {
+  if (currentManualKeynodeIndex.value >= pendingManualKeynodes.value.length) {
+    // All manual keynodes processed, continue with submission
+    submitFormData()
+    return
+  }
+  
+  const keynode = pendingManualKeynodes.value[currentManualKeynodeIndex.value]
+  newKeynode.value.name = keynode
+  newKeynode.value.category = ''
+  newKeynode.value.parentId = ''
+  parentKeynodeInput.value = ''
+  showCreateKeynodeModal.value = true
+}
+
+// Called when a manual keynode is created from the modal
+const onManualKeynodeCreated = async (createdKeynode: any) => {
+  // Replace the !{keynode} pattern with proper link in text
+  const keynodeName = pendingManualKeynodes.value[currentManualKeynodeIndex.value]
+  const pattern = new RegExp(`!\\{${escapeRegExp(keynodeName)}\\}`, 'g')
+  const keynodeLink = `[${createdKeynode.name}](/search?keynode=${encodeURIComponent(createdKeynode.name)})`
+  form.value.text = form.value.text.replace(pattern, keynodeLink)
+  
+  // Add to keynodes array
+  if (!form.value.keynodes.includes(createdKeynode.name)) {
+    form.value.keynodes.push(createdKeynode.name)
+  }
+  
+  // Move to next manual keynode
+  currentManualKeynodeIndex.value++
+  processNextManualKeynode()
+}
+
+// Helper function to escape special regex characters
+const escapeRegExp = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Check if a keynode exists in the database
+const checkKeynodeExists = async (name: string): Promise<any | null> => {
+  try {
+    const response = await authFetch(`/keynodes/suggestions?query=${encodeURIComponent(name)}`)
+    if (response.ok) {
+      const suggestions = await response.json()
+      const exactMatch = suggestions.find((s: any) => s.name.toLowerCase() === name.toLowerCase())
+      return exactMatch || null
+    }
+  } catch (err) {
+    console.error('Failed to check keynode:', err)
+  }
+  return null
+}
+
+// Handle existing keynode - replace and add to keynodes array
+const handleExistingKeynode = (keynodeName: string, existingKeynode: any) => {
+  const pattern = new RegExp(`!\\{${escapeRegExp(keynodeName)}\\}`, 'g')
+  const keynodeLink = `[${existingKeynode.name}](/search?keynode=${encodeURIComponent(existingKeynode.name)})`
+  form.value.text = form.value.text.replace(pattern, keynodeLink)
+  
+  if (!form.value.keynodes.includes(existingKeynode.name)) {
+    form.value.keynodes.push(existingKeynode.name)
+  }
+}
+
 const handleSubmit = async () => {
   error.value = ''
   success.value = ''
   loading.value = true
 
+  try {
+    // First, check for any manual !{keynode} patterns
+    const manualKeynodes = findManualKeynodes(form.value.text)
+    
+    if (manualKeynodes.length > 0) {
+      // Process each manual keynode
+      const unknownKeynodes: string[] = []
+      
+      for (const keynode of manualKeynodes) {
+        const existing = await checkKeynodeExists(keynode)
+        if (existing) {
+          // Keynode exists, replace with link
+          handleExistingKeynode(keynode, existing)
+        } else {
+          // Keynode doesn't exist, need to create
+          unknownKeynodes.push(keynode)
+        }
+      }
+      
+      if (unknownKeynodes.length > 0) {
+        // Show modal for creating unknown keynodes
+        pendingManualKeynodes.value = unknownKeynodes
+        currentManualKeynodeIndex.value = 0
+        loading.value = false
+        processNextManualKeynode()
+        return // Wait for user to create keynodes
+      }
+    }
+    
+    // No manual keynodes to process, continue with submission
+    await submitFormData()
+  } catch (err: any) {
+    error.value = err.message || 'Failed to save markmap'
+    loading.value = false
+  }
+}
+
+const submitFormData = async () => {
+  loading.value = true
+  error.value = ''
+  
   try {
     const url = editMode.value ? `/markmaps/${markmapId.value}` : '/markmaps'
     const method = editMode.value ? 'PATCH' : 'POST'
@@ -511,6 +1009,8 @@ const handleSubmit = async () => {
     error.value = err.message || 'Failed to save markmap'
   } finally {
     loading.value = false
+    pendingManualKeynodes.value = []
+    currentManualKeynodeIndex.value = 0
   }
 }
 
@@ -523,6 +1023,14 @@ onMounted(() => {
   }
   loadUserSeries()
 })
+
+// Watch for text changes to trigger keynode detection
+watch(() => form.value.text, () => {
+  nextTick(() => {
+    onTextInput()
+  })
+})
+
 </script>
 
 <style scoped>
@@ -633,9 +1141,9 @@ h1 {
 
 .preview-container {
   height: 500px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: white;
+  background: var(--card-bg);
 }
 
 .editor-layout.fullscreen .preview-container {
@@ -647,7 +1155,7 @@ h1 {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .tags-input-container {
@@ -782,17 +1290,19 @@ h1 {
 }
 
 .modal {
-  background: white;
+  background: var(--card-bg);
   padding: 2rem;
   border-radius: 8px;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  color: var(--text-primary);
 }
 
 .modal h2 {
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .modal-actions {
@@ -800,6 +1310,108 @@ h1 {
   gap: 1rem;
   justify-content: flex-end;
   margin-top: 1.5rem;
+}
+
+.textarea-wrapper {
+  position: relative;
+}
+
+/* New fixed keynode dropdown - appears at top of editor panel */
+.keynode-dropdown-fixed {
+  background: var(--card-bg);
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 123, 255, 0.3);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.keynode-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #007bff;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.keynode-dropdown-header .close-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+}
+
+.keynode-dropdown-header .close-btn:hover {
+  opacity: 0.8;
+}
+
+.keynode-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--input-border);
+  transition: background 0.2s;
+}
+
+.keynode-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.keynode-dropdown-item:hover,
+.keynode-dropdown-item.active {
+  background: var(--input-border);
+}
+
+.keynode-dropdown-item .suggestion-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.keynode-dropdown-item .suggestion-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.keynode-dropdown-item .suggestion-category {
+  color: var(--text-secondary);
+}
+
+.keynode-dropdown-item .suggestion-count {
+  color: var(--text-tertiary);
+}
+
+.keynode-dropdown-item.create-new {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.keynode-dropdown-item.create-new .suggestion-name {
+  color: #007bff;
+  font-weight: 600;
+}
+
+/* Keep old styles for backwards compatibility */
+.keynode-suggestions {
+  position: absolute;
+  z-index: 1000;
+  max-width: 400px;
+  min-width: 300px;
+  right: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.suggestion-category {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
 }
 
 </style>

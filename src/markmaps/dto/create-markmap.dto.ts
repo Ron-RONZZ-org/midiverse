@@ -29,6 +29,11 @@ export class CreateMarkmapDto {
   tags?: string[];
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keynodes?: string[];
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   maxWidth?: number;

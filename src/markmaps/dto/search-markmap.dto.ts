@@ -19,6 +19,10 @@ export class SearchMarkmapDto {
   tags?: string[];
 
   @IsOptional()
+  @IsString()
+  keynode?: string;
+
+  @IsOptional()
   @IsIn(['newest', 'oldest', 'relevant', 'views'])
   sortBy?: 'newest' | 'oldest' | 'relevant' | 'views';
 }

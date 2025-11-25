@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { KeynodesService } from '../keynodes/keynodes.service';
 import { CreateMarkmapDto } from './dto/create-markmap.dto';
 import { UpdateMarkmapDto } from './dto/update-markmap.dto';
 import { SearchMarkmapDto } from './dto/search-markmap.dto';
@@ -17,7 +18,10 @@ const VIEW_COUNT_MULTIPLIER = 0.1;
 
 @Injectable()
 export class MarkmapsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private keynodesService: KeynodesService,
+  ) {}
 
   /**
    * Generate a URL-friendly slug from title
@@ -74,12 +78,12 @@ export class MarkmapsService {
   }
 
   async create(createMarkmapDto: CreateMarkmapDto, userId?: string) {
-    const { tags, ...markmapData } = createMarkmapDto;
+    const { tags, keynodes, ...markmapData } = createMarkmapDto;
 
     // Generate unique slug
     const slug = await this.generateUniqueSlug(markmapData.title, userId);
 
-    return this.prisma.markmap.create({
+    const markmap = await this.prisma.markmap.create({
       data: {
         ...markmapData,
         slug,
@@ -109,6 +113,34 @@ export class MarkmapsService {
               ),
             }
           : undefined,
+        keynodes: keynodes
+          ? {
+              create: await Promise.all(
+                keynodes.map(async (keynode) => {
+                  // Find keynode by name
+                  const keynodeEntity =
+                    await this.keynodesService.findByName(keynode);
+
+                  if (keynodeEntity) {
+                    // Increment child node count
+                    await this.keynodesService.updateChildNodeCount(
+                      keynodeEntity.id,
+                      1,
+                    );
+
+                    return {
+                      keynode: {
+                        connect: { id: keynodeEntity.id },
+                      },
+                    };
+                  }
+
+                  // If keynode doesn't exist, skip it (should be created via editor first)
+                  return null;
+                }),
+              ).then((results) => results.filter((r) => r !== null)),
+            }
+          : undefined,
       },
       include: {
         author: {
@@ -119,8 +151,15 @@ export class MarkmapsService {
             tag: true,
           },
         },
+        keynodes: {
+          include: {
+            keynode: true,
+          },
+        },
       },
     });
+
+    return markmap;
   }
 
   async findAll(userId?: string) {
@@ -319,6 +358,13 @@ export class MarkmapsService {
   async update(id: string, updateMarkmapDto: UpdateMarkmapDto, userId: string) {
     const markmap = await this.prisma.markmap.findUnique({
       where: { id },
+      include: {
+        keynodes: {
+          include: {
+            keynode: true,
+          },
+        },
+      },
     });
 
     if (!markmap || markmap.deletedAt) {
@@ -329,7 +375,7 @@ export class MarkmapsService {
       throw new ForbiddenException('You can only update your own markmaps');
     }
 
-    const { tags, ...markmapData } = updateMarkmapDto;
+    const { tags, keynodes, ...markmapData } = updateMarkmapDto;
 
     // If title is being updated, regenerate slug
     if (updateMarkmapDto.title && updateMarkmapDto.title !== markmap.title) {
@@ -375,6 +421,50 @@ export class MarkmapsService {
       }
     }
 
+    // If keynodes are provided, update them
+    if (keynodes !== undefined) {
+      // Get old keynodes to decrement their counts
+      const oldKeynodes = markmap.keynodes;
+
+      // Decrement count for old keynodes
+      await Promise.all(
+        oldKeynodes.map(async (k) => {
+          await this.keynodesService.updateChildNodeCount(k.keynode.id, -1);
+        }),
+      );
+
+      // Delete existing keynode relationships
+      await this.prisma.keynodeOnMarkmap.deleteMany({
+        where: { markmapId: id },
+      });
+
+      // Create new keynode relationships
+      if (keynodes.length > 0) {
+        await Promise.all(
+          keynodes.map(async (keynode) => {
+            const keynodeEntity =
+              await this.keynodesService.findByName(keynode);
+
+            if (keynodeEntity) {
+              // Increment child node count
+              await this.keynodesService.updateChildNodeCount(
+                keynodeEntity.id,
+                1,
+              );
+
+              // Create relationship
+              await this.prisma.keynodeOnMarkmap.create({
+                data: {
+                  keynodeId: keynodeEntity.id,
+                  markmapId: id,
+                },
+              });
+            }
+          }),
+        );
+      }
+    }
+
     return this.prisma.markmap.update({
       where: { id },
       data: markmapData,
@@ -385,6 +475,11 @@ export class MarkmapsService {
         tags: {
           include: {
             tag: true,
+          },
+        },
+        keynodes: {
+          include: {
+            keynode: true,
           },
         },
       },
@@ -676,6 +771,13 @@ ${markmapConfig}
           };
         };
       };
+      keynodes?: {
+        some: {
+          keynode: {
+            name: string;
+          };
+        };
+      };
       OR?: Array<{
         title?: { contains: string; mode: 'insensitive' };
         text?: { contains: string; mode: 'insensitive' };
@@ -714,6 +816,17 @@ ${markmapConfig}
             name: {
               in: normalizedTags,
             },
+          },
+        },
+      };
+    }
+
+    // Filter by keynode
+    if (searchDto.keynode) {
+      where.keynodes = {
+        some: {
+          keynode: {
+            name: searchDto.keynode,
           },
         },
       };
@@ -766,6 +879,18 @@ ${markmapConfig}
             tag: true,
           },
         },
+        keynodes: {
+          include: {
+            keynode: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+                childNodeCount: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             viewHistory: true,
@@ -778,6 +903,22 @@ ${markmapConfig}
     // Apply custom sorting if needed
     if (searchDto.sortBy === 'views') {
       markmaps.sort((a, b) => b._count.viewHistory - a._count.viewHistory);
+    } else if (searchDto.keynode) {
+      // When keynode filter is specified, rank by child node count
+      markmaps.sort((a, b) => {
+        // Find the matching keynode in each markmap
+        const keynodeA = a.keynodes?.find(
+          (k) => k.keynode.name === searchDto.keynode,
+        );
+        const keynodeB = b.keynodes?.find(
+          (k) => k.keynode.name === searchDto.keynode,
+        );
+
+        const countA = keynodeA?.keynode.childNodeCount || 0;
+        const countB = keynodeB?.keynode.childNodeCount || 0;
+
+        return countB - countA;
+      });
     } else if (searchDto.sortBy === 'relevant' && searchDto.query) {
       // Calculate relevance score based on:
       // 1. Exact match in title (highest priority)

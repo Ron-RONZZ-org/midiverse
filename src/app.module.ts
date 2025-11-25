@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { MarkmapsModule } from './markmaps/markmaps.module';
 import { UsersModule } from './users/users.module';
 import { SeriesModule } from './series/series.module';
+import { KeynodesModule } from './keynodes/keynodes.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SeriesModule } from './series/series.module';
     MarkmapsModule,
     UsersModule,
     SeriesModule,
+    KeynodesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

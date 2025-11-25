@@ -125,6 +125,6 @@ body {
   height: 600px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: white;
-  transition: border-color 0.3s ease;
+  background: var(--card-bg);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
 }

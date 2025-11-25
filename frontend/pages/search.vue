@@ -110,6 +110,32 @@
               </div>
             </div>
           </div>
+          <div class="form-group">
+            <label for="keynode">Keynode</label>
+            <div class="autocomplete-wrapper">
+              <input 
+                id="keynode" 
+                v-model="keynodeInput" 
+                type="text" 
+                placeholder="Filter by keynode (e.g., volcano)"
+                @input="onKeynodeInput"
+                @focus="onKeynodeInput"
+                @blur="hideKeynoteSuggestions"
+              />
+              <div v-if="showKeynoteSuggestions && keynoteSuggestions.length > 0" class="suggestions-dropdown">
+                <div 
+                  v-for="suggestion in keynoteSuggestions" 
+                  :key="suggestion.id"
+                  class="suggestion-item"
+                  @mousedown.prevent="selectKeynoteSuggestion(suggestion)"
+                >
+                  <span class="suggestion-name">{{ suggestion.name }}</span>
+                  <span class="suggestion-category">{{ formatKeynodeCategory(suggestion.category) }}</span>
+                  <span class="suggestion-count">{{ suggestion.childNodeCount }} nodes</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <button type="submit" class="btn" :disabled="loading">
           {{ loading ? 'Searching...' : 'Search' }}
@@ -157,6 +183,7 @@ const searchForm = ref({
   language: '',
   author: '',
   tags: [] as string[],
+  keynode: '',
   sortBy: 'newest' as 'newest' | 'oldest' | 'relevant' | 'views'
 })
 
@@ -181,6 +208,12 @@ const tagInput = ref('')
 const tagSuggestions = ref<{ name: string; count: number }[]>([])
 const showTagSuggestions = ref(false)
 let tagDebounceTimer: NodeJS.Timeout | null = null
+
+// Keynode suggestions
+const keynodeInput = ref('')
+const keynoteSuggestions = ref<any[]>([])
+const showKeynoteSuggestions = ref(false)
+let keynodeDebounceTimer: NodeJS.Timeout | null = null
 
 const fetchLanguageSuggestions = async (query: string) => {
   try {
@@ -306,6 +339,50 @@ const hideTagSuggestions = () => {
   }, 200)
 }
 
+// Keynode functions
+const formatKeynodeCategory = (category: string): string => {
+  return category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+const fetchKeynoteSuggestions = async (query: string) => {
+  try {
+    const response = await authFetch(`/keynodes/suggestions?query=${encodeURIComponent(query)}`)
+    if (response.ok) {
+      keynoteSuggestions.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch keynode suggestions', err)
+  }
+}
+
+const onKeynodeInput = () => {
+  showKeynoteSuggestions.value = true
+  
+  if (keynodeDebounceTimer) {
+    clearTimeout(keynodeDebounceTimer)
+  }
+  
+  keynodeDebounceTimer = setTimeout(() => {
+    if (keynodeInput.value.trim()) {
+      fetchKeynoteSuggestions(keynodeInput.value)
+    } else {
+      fetchKeynoteSuggestions('')
+    }
+  }, 300)
+}
+
+const selectKeynoteSuggestion = (keynode: any) => {
+  searchForm.value.keynode = keynode.name
+  keynodeInput.value = keynode.name
+  showKeynoteSuggestions.value = false
+}
+
+const hideKeynoteSuggestions = () => {
+  setTimeout(() => {
+    showKeynoteSuggestions.value = false
+  }, 200)
+}
+
 const handleSearch = async () => {
   error.value = ''
   loading.value = true
@@ -316,6 +393,7 @@ const handleSearch = async () => {
     if (searchForm.value.query) params.append('query', searchForm.value.query)
     if (searchForm.value.language) params.append('language', searchForm.value.language)
     if (searchForm.value.author) params.append('author', searchForm.value.author)
+    if (searchForm.value.keynode) params.append('keynode', searchForm.value.keynode)
     if (searchForm.value.sortBy) params.append('sortBy', searchForm.value.sortBy)
     if (searchForm.value.tags.length > 0) {
       searchForm.value.tags.forEach(tag => params.append('tags', tag))
@@ -340,15 +418,20 @@ const handleSearch = async () => {
 // Auto-search if query params are present
 onMounted(() => {
   const route = useRoute()
-  if (route.query.query || route.query.language || route.query.author) {
+  if (route.query.query || route.query.language || route.query.author || route.query.keynode) {
     searchForm.value = {
       query: (route.query.query as string) || '',
       language: (route.query.language as string) || '',
       author: (route.query.author as string) || '',
-      tags: []
+      keynode: (route.query.keynode as string) || '',
+      tags: [],
+      sortBy: (route.query.sortBy as any) || 'newest'
     }
     if (route.query.language) {
       languageInput.value = route.query.language as string
+    }
+    if (route.query.keynode) {
+      keynodeInput.value = route.query.keynode as string
     }
     handleSearch()
   }
@@ -375,7 +458,7 @@ h1 {
 .loading {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .markmap-grid {
@@ -386,18 +469,19 @@ h1 {
 }
 
 .markmap-card {
-  background: white;
+  background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px var(--shadow);
+  border: 1px solid var(--border-color);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.3s ease;
 }
 
 .markmap-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px var(--shadow);
 }
 
 .markmap-card h3 {
@@ -406,7 +490,7 @@ h1 {
 }
 
 .meta {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
@@ -418,16 +502,18 @@ h1 {
 }
 
 .tag {
-  background: #e9ecef;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  color: var(--text-primary);
 }
 
 .no-results {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .autocomplete-wrapper {
@@ -528,9 +614,15 @@ h1 {
 }
 
 .suggestion-count {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
   margin-left: 8px;
+}
+
+.suggestion-category {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
 }
 
 </style>

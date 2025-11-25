@@ -20,6 +20,37 @@
     <div v-else class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
       <div class="editor-panel card">
         <h2>Editor</h2>
+        
+        <!-- Keynode Suggestions Dropdown - Fixed Position at top of editor -->
+        <div v-if="showKeynoteSuggestions" class="keynode-dropdown-fixed">
+          <div class="keynode-dropdown-header">
+            <span>Keynode suggestions for: <strong>!{{ '{' }}{{ keynodeInput || '...' }}{{ '}' }}</strong></span>
+            <button type="button" class="close-btn" @click="showKeynoteSuggestions = false">&times;</button>
+          </div>
+          <div 
+            v-for="(suggestion, index) in keynodeSuggestions.slice(0, 3)" 
+            :key="suggestion.id"
+            :class="['keynode-dropdown-item', { active: index === selectedKeynoteSuggestionIndex }]"
+            @mousedown.prevent="selectKeynoteSuggestion(suggestion)"
+            @mouseenter="selectedKeynoteSuggestionIndex = index"
+          >
+            <span class="suggestion-name">{{ suggestion.name }}</span>
+            <span class="suggestion-meta">
+              <span class="suggestion-category">{{ formatKeynodeCategory(suggestion.category) }}</span>
+              <span class="suggestion-count">{{ suggestion.childNodeCount }} nodes</span>
+            </span>
+          </div>
+          <div 
+            v-if="!keynodeSuggestions.some(s => s.name.toLowerCase() === keynodeInput.toLowerCase())"
+            class="keynode-dropdown-item create-new"
+            :class="{ active: selectedKeynoteSuggestionIndex === keynodeSuggestions.slice(0, 3).length }"
+            @mousedown.prevent="showCreateKeynodeModal = true"
+            @mouseenter="selectedKeynoteSuggestionIndex = keynodeSuggestions.slice(0, 3).length"
+          >
+            <span class="suggestion-name">➕ Create new: {{ keynodeInput || '(type keynode name)' }}</span>
+          </div>
+        </div>
+        
         <form @submit.prevent="handleSubmit">
           <div class="form-group">
             <label for="title">Title</label>
@@ -44,28 +75,6 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
                 @input="onTextInput"
                 @keydown="onTextKeydown"
               ></textarea>
-              <div v-if="showKeynoteSuggestions" class="suggestions-dropdown keynode-suggestions" :style="keynodeSuggestionsPosition">
-                <div 
-                  v-for="(suggestion, index) in keynodeSuggestions.slice(0, 3)" 
-                  :key="suggestion.id"
-                  :class="['suggestion-item', { active: index === selectedKeynoteSuggestionIndex }]"
-                  @mousedown.prevent="selectKeynoteSuggestion(suggestion)"
-                  @mouseenter="selectedKeynoteSuggestionIndex = index"
-                >
-                  <span class="suggestion-name">{{ suggestion.name }}</span>
-                  <span class="suggestion-category">{{ formatKeynodeCategory(suggestion.category) }}</span>
-                  <span class="suggestion-count">{{ suggestion.childNodeCount }} nodes</span>
-                </div>
-                <div 
-                  v-if="!keynodeSuggestions.some(s => s.name.toLowerCase() === keynodeInput.toLowerCase())"
-                  class="suggestion-item create-new"
-                  :class="{ active: selectedKeynoteSuggestionIndex === keynodeSuggestions.slice(0, 3).length }"
-                  @mousedown.prevent="showCreateKeynodeModal = true"
-                  @mouseenter="selectedKeynoteSuggestionIndex = keynodeSuggestions.slice(0, 3).length"
-                >
-                  <span class="suggestion-name">Create new: {{ keynodeInput || '(type keynode name)' }}</span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -366,7 +375,6 @@ const keynodeInput = ref('')
 const keynodeSuggestions = ref<any[]>([])
 const showKeynoteSuggestions = ref(false)
 const selectedKeynoteSuggestionIndex = ref(0)
-const keynodeSuggestionsPosition = ref({ top: '0px', left: '0px' })
 let keynodeDebounceTimer: NodeJS.Timeout | null = null
 let keynodeStartPos = 0
 
@@ -629,13 +637,6 @@ const onTextInput = () => {
     keynodeStartPos = detection.start
     showKeynoteSuggestions.value = true
     selectedKeynoteSuggestionIndex.value = 0
-    
-    // Position the suggestions dropdown below the textarea
-    // Using a fixed position relative to the textarea wrapper
-    keynodeSuggestionsPosition.value = {
-      top: '100%',
-      left: '0'
-    }
     
     if (keynodeDebounceTimer) {
       clearTimeout(keynodeDebounceTimer)
@@ -1178,6 +1179,87 @@ h1 {
   position: relative;
 }
 
+/* New fixed keynode dropdown - appears at top of editor panel */
+.keynode-dropdown-fixed {
+  background: var(--card-bg);
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 123, 255, 0.3);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.keynode-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #007bff;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.keynode-dropdown-header .close-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+}
+
+.keynode-dropdown-header .close-btn:hover {
+  opacity: 0.8;
+}
+
+.keynode-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--input-border);
+  transition: background 0.2s;
+}
+
+.keynode-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.keynode-dropdown-item:hover,
+.keynode-dropdown-item.active {
+  background: var(--input-border);
+}
+
+.keynode-dropdown-item .suggestion-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.keynode-dropdown-item .suggestion-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.keynode-dropdown-item .suggestion-category {
+  color: var(--text-secondary);
+}
+
+.keynode-dropdown-item .suggestion-count {
+  color: var(--text-tertiary);
+}
+
+.keynode-dropdown-item.create-new {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.keynode-dropdown-item.create-new .suggestion-name {
+  color: #007bff;
+  font-weight: 600;
+}
+
+/* Keep old styles for backwards compatibility */
 .keynode-suggestions {
   position: absolute;
   z-index: 1000;

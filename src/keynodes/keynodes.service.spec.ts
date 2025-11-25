@@ -41,7 +41,7 @@ describe('KeynodesService', () => {
     it('should create a keynode', async () => {
       const createDto = {
         name: 'volcano',
-        category: 'geographical_location',
+        category: 'geological_form',
         parentId: 'parent-id',
       };
       const expectedResult = {
@@ -53,7 +53,7 @@ describe('KeynodesService', () => {
         parent: {
           id: 'parent-id',
           name: 'mountain',
-          category: 'geographical_location',
+          category: 'geological_form',
         },
         children: [],
       };
@@ -71,6 +71,29 @@ describe('KeynodesService', () => {
         },
       });
     });
+
+    it('should create a keynode with new categories', async () => {
+      const testCases = [
+        { name: 'Mount Everest', category: 'geological_form' },
+        { name: 'H2O', category: 'chemical' },
+        { name: 'Mars', category: 'astronomical_entity' },
+      ];
+
+      for (const testCase of testCases) {
+        mockPrismaService.keynode.create.mockResolvedValue({
+          id: 'keynode-id',
+          ...testCase,
+          childNodeCount: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          parent: null,
+          children: [],
+        });
+
+        const result = await service.create(testCase);
+        expect(result.category).toBe(testCase.category);
+      }
+    });
   });
 
   describe('findOne', () => {
@@ -79,7 +102,7 @@ describe('KeynodesService', () => {
       const expectedResult = {
         id: keynodeId,
         name: 'volcano',
-        category: 'geographical_location',
+        category: 'geological_form',
         childNodeCount: 5,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -87,7 +110,7 @@ describe('KeynodesService', () => {
         parent: {
           id: 'parent-id',
           name: 'mountain',
-          category: 'geographical_location',
+          category: 'geological_form',
         },
         children: [],
       };
@@ -123,7 +146,7 @@ describe('KeynodesService', () => {
         {
           id: 'keynode-1',
           name: 'volcano',
-          category: 'geographical_location',
+          category: 'geological_form',
           childNodeCount: 5,
           parent: { id: 'parent-id', name: 'mountain' },
         },
@@ -165,7 +188,7 @@ describe('KeynodesService', () => {
         {
           id: 'keynode-1',
           name: 'volcano',
-          category: 'geographical_location',
+          category: 'geological_form',
           childNodeCount: 5,
           parent: null,
         },
@@ -198,7 +221,7 @@ describe('KeynodesService', () => {
       const expectedResult = {
         id: keynodeId,
         name: 'volcano',
-        category: 'geographical_location',
+        category: 'geological_form',
         childNodeCount: 6,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -226,7 +249,7 @@ describe('KeynodesService', () => {
       const expectedResult = {
         id: keynodeId,
         name: 'volcano',
-        category: 'geographical_location',
+        category: 'geological_form',
         childNodeCount: 4,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -255,7 +278,7 @@ describe('KeynodesService', () => {
       const expectedResult = {
         id: 'keynode-id',
         name,
-        category: 'geographical_location',
+        category: 'geological_form',
         childNodeCount: 5,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -263,7 +286,7 @@ describe('KeynodesService', () => {
         parent: {
           id: 'parent-id',
           name: 'mountain',
-          category: 'geographical_location',
+          category: 'geological_form',
         },
         children: [],
       };
@@ -289,6 +312,107 @@ describe('KeynodesService', () => {
       const result = await service.findByName(name);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getHierarchy', () => {
+    it('should return markdown hierarchy without reference counts', async () => {
+      const mockKeynodes = [
+        {
+          id: 'root-1',
+          name: 'Volcano',
+          category: 'geological_form',
+          parentId: null,
+          _count: { markmaps: 3 },
+        },
+        {
+          id: 'child-1',
+          name: 'Mount Vesuvius',
+          category: 'geological_form',
+          parentId: 'root-1',
+          _count: { markmaps: 2 },
+        },
+        {
+          id: 'root-2',
+          name: 'Water',
+          category: 'chemical',
+          parentId: null,
+          _count: { markmaps: 5 },
+        },
+      ];
+
+      mockPrismaService.keynode.findMany.mockResolvedValue(mockKeynodes);
+
+      const result = await service.getHierarchy(false);
+
+      expect(result).toContain('# Keynodes');
+      expect(result).toContain('## chemical');
+      expect(result).toContain('## geological form');
+      expect(result).toContain('Water');
+      expect(result).toContain('Volcano');
+      expect(result).toContain('Mount Vesuvius');
+      expect(result).not.toContain('(3)');
+      expect(result).not.toContain('(5)');
+    });
+
+    it('should return markdown hierarchy with reference counts', async () => {
+      const mockKeynodes = [
+        {
+          id: 'root-1',
+          name: 'Volcano',
+          category: 'geological_form',
+          parentId: null,
+          _count: { markmaps: 3 },
+        },
+        {
+          id: 'child-1',
+          name: 'Mount Vesuvius',
+          category: 'geological_form',
+          parentId: 'root-1',
+          _count: { markmaps: 2 },
+        },
+      ];
+
+      mockPrismaService.keynode.findMany.mockResolvedValue(mockKeynodes);
+
+      const result = await service.getHierarchy(true);
+
+      expect(result).toContain('# Keynodes');
+      expect(result).toContain('(5)'); // 3 + 2 = 5 total for Volcano
+      expect(result).toContain('(2)'); // 2 for Mount Vesuvius
+    });
+
+    it('should handle empty keynodes list', async () => {
+      mockPrismaService.keynode.findMany.mockResolvedValue([]);
+
+      const result = await service.getHierarchy(false);
+
+      expect(result).toBe('# Keynodes\n');
+    });
+  });
+
+  describe('getCategories', () => {
+    it('should return distinct categories in use', async () => {
+      const mockCategories = [
+        { category: 'astronomical_entity' },
+        { category: 'chemical' },
+        { category: 'geological_form' },
+      ];
+
+      mockPrismaService.keynode.findMany.mockResolvedValue(mockCategories);
+
+      const result = await service.getCategories();
+
+      expect(result).toEqual([
+        'astronomical_entity',
+        'chemical',
+        'geological_form',
+      ]);
+      expect(mockPrismaService.keynode.findMany).toHaveBeenCalledWith({
+        select: { category: true },
+        distinct: ['category'],
+        orderBy: { category: 'asc' },
+      });
     });
   });
 });

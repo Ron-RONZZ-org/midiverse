@@ -8,7 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { KeynodesService } from './keynodes.service';
-import { CreateKeynodeDto } from './dto/create-keynode.dto';
+import { CreateKeynodeDto, KEYNODE_CATEGORIES } from './dto/create-keynode.dto';
 import { GetKeynoteSuggestionsDto } from './dto/get-keynode-suggestions.dto';
 
 @Controller('keynodes')
@@ -23,6 +23,23 @@ export class KeynodesController {
   @Get('suggestions')
   getSuggestions(@Query(ValidationPipe) dto: GetKeynoteSuggestionsDto) {
     return this.keynodesService.getSuggestions(dto.query);
+  }
+
+  @Get('hierarchy')
+  getHierarchy(
+    @Query('showReferenceCounts') showReferenceCounts?: string,
+  ): Promise<string> {
+    const showCounts =
+      showReferenceCounts === 'true' || showReferenceCounts === '1';
+    return this.keynodesService.getHierarchy(showCounts);
+  }
+
+  @Get('categories')
+  getCategories(): { available: readonly string[]; inUse: Promise<string[]> } {
+    return {
+      available: KEYNODE_CATEGORIES,
+      inUse: this.keynodesService.getCategories(),
+    };
   }
 
   @Get(':id')

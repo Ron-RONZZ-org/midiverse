@@ -123,10 +123,10 @@ describe('KeynodesController', () => {
       const inUseCategories = ['geological_form', 'chemical'];
       mockKeynodesService.getCategories.mockResolvedValue(inUseCategories);
 
-      const result = controller.getCategories();
+      const result = await controller.getCategories();
 
       expect(result.available).toEqual(KEYNODE_CATEGORIES);
-      expect(result.inUse).resolves.toEqual(inUseCategories);
+      expect(result.inUse).toEqual(inUseCategories);
     });
   });
 

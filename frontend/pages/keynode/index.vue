@@ -75,7 +75,9 @@ const loadHierarchy = async () => {
   error.value = ''
   
   try {
-    const response = await authFetch(`/keynodes/hierarchy?showReferenceCounts=${showReferenceCounts.value}`)
+    const params = new URLSearchParams()
+    params.set('showReferenceCounts', String(showReferenceCounts.value))
+    const response = await authFetch(`/keynodes/hierarchy?${params.toString()}`)
     
     if (response.ok) {
       hierarchyMarkdown.value = await response.text()

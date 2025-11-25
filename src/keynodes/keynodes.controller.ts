@@ -35,10 +35,13 @@ export class KeynodesController {
   }
 
   @Get('categories')
-  getCategories(): { available: readonly string[]; inUse: Promise<string[]> } {
+  async getCategories(): Promise<{
+    available: readonly string[];
+    inUse: string[];
+  }> {
     return {
       available: KEYNODE_CATEGORIES,
-      inUse: this.keynodesService.getCategories(),
+      inUse: await this.keynodesService.getCategories(),
     };
   }
 

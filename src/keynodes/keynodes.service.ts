@@ -150,8 +150,13 @@ export class KeynodesService {
       (node) => !node.parentId,
     );
 
-    // Calculate total reference counts (node + all descendants)
+    // Memoized calculation of total reference counts (node + all descendants)
+    const totalRefsCache = new Map<string, number>();
     const calculateTotalRefs = (nodeId: string): number => {
+      if (totalRefsCache.has(nodeId)) {
+        return totalRefsCache.get(nodeId)!;
+      }
+
       const node = keynodeMap.get(nodeId);
       if (!node) return 0;
 
@@ -159,6 +164,8 @@ export class KeynodesService {
       for (const childId of node.children) {
         total += calculateTotalRefs(childId);
       }
+
+      totalRefsCache.set(nodeId, total);
       return total;
     };
 

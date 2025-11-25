@@ -57,13 +57,13 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
                   <span class="suggestion-count">{{ suggestion.childNodeCount }} nodes</span>
                 </div>
                 <div 
-                  v-if="keynodeInput && !keynodeSuggestions.some(s => s.name.toLowerCase() === keynodeInput.toLowerCase())"
+                  v-if="!keynodeSuggestions.some(s => s.name.toLowerCase() === keynodeInput.toLowerCase())"
                   class="suggestion-item create-new"
                   :class="{ active: selectedKeynoteSuggestionIndex === keynodeSuggestions.slice(0, 3).length }"
                   @mousedown.prevent="showCreateKeynodeModal = true"
                   @mouseenter="selectedKeynoteSuggestionIndex = keynodeSuggestions.slice(0, 3).length"
                 >
-                  <span class="suggestion-name">Create new: {{ keynodeInput }}</span>
+                  <span class="suggestion-name">Create new: {{ keynodeInput || '(type keynode name)' }}</span>
                 </div>
               </div>
             </div>
@@ -1183,6 +1183,10 @@ h1 {
   z-index: 1000;
   max-width: 400px;
   min-width: 300px;
+  right: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  box-shadow: 0 4px 12px var(--shadow);
 }
 
 .suggestion-category {

@@ -783,35 +783,47 @@ const createKeynode = async () => {
     if (response.ok) {
       const createdKeynode = await response.json()
       
-      // Insert the keynode into the text
-      if (textareaRef.value) {
-        const cursorPos = textareaRef.value.selectionStart
-        const text = form.value.text
-        const beforeKeynode = text.substring(0, keynodeStartPos)
-        const afterCursor = text.substring(cursorPos)
+      // Check if this is a manual keynode creation during form submission
+      if (pendingManualKeynodes.value.length > 0) {
+        // Processing manual keynodes from form submission
+        showCreateKeynodeModal.value = false
+        newKeynode.value = { name: '', category: '', parentId: '' }
+        parentKeynodeInput.value = ''
         
-        const keynodeLink = `[${createdKeynode.name}](/search?keynode=${encodeURIComponent(createdKeynode.name)})`
-        form.value.text = beforeKeynode + keynodeLink + afterCursor
-        
-        // Add to keynodes array
-        if (!form.value.keynodes.includes(createdKeynode.name)) {
-          form.value.keynodes.push(createdKeynode.name)
+        // Continue with manual keynode processing
+        await onManualKeynodeCreated(createdKeynode)
+      } else {
+        // Normal inline keynode creation
+        // Insert the keynode into the text
+        if (textareaRef.value) {
+          const cursorPos = textareaRef.value.selectionStart
+          const text = form.value.text
+          const beforeKeynode = text.substring(0, keynodeStartPos)
+          const afterCursor = text.substring(cursorPos)
+          
+          const keynodeLink = `[${createdKeynode.name}](/search?keynode=${encodeURIComponent(createdKeynode.name)})`
+          form.value.text = beforeKeynode + keynodeLink + afterCursor
+          
+          // Add to keynodes array
+          if (!form.value.keynodes.includes(createdKeynode.name)) {
+            form.value.keynodes.push(createdKeynode.name)
+          }
+          
+          // Set cursor after the inserted link
+          nextTick(() => {
+            if (textareaRef.value) {
+              const newCursorPos = beforeKeynode.length + keynodeLink.length
+              textareaRef.value.setSelectionRange(newCursorPos, newCursorPos)
+              textareaRef.value.focus()
+            }
+          })
         }
         
-        // Set cursor after the inserted link
-        nextTick(() => {
-          if (textareaRef.value) {
-            const newCursorPos = beforeKeynode.length + keynodeLink.length
-            textareaRef.value.setSelectionRange(newCursorPos, newCursorPos)
-            textareaRef.value.focus()
-          }
-        })
+        showCreateKeynodeModal.value = false
+        showKeynoteSuggestions.value = false
+        newKeynode.value = { name: '', category: '', parentId: '' }
+        parentKeynodeInput.value = ''
       }
-      
-      showCreateKeynodeModal.value = false
-      showKeynoteSuggestions.value = false
-      newKeynode.value = { name: '', category: '', parentId: '' }
-      parentKeynodeInput.value = ''
     } else {
       const errorData = await response.json()
       keynodeError.value = errorData.message || 'Failed to create keynode'
@@ -842,11 +854,132 @@ const filteredSuggestions = computed(() => {
   return suggestions.value.filter(s => !tagExists(s.name))
 })
 
+// Find all manual !{keynode} patterns in text
+const findManualKeynodes = (text: string): string[] => {
+  const pattern = /!\{([^}]+)\}/g
+  const matches: string[] = []
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    matches.push(match[1].trim())
+  }
+  return matches
+}
+
+// State for pending manual keynodes
+const pendingManualKeynodes = ref<string[]>([])
+const currentManualKeynodeIndex = ref(0)
+
+// Process manual keynodes one by one
+const processNextManualKeynode = () => {
+  if (currentManualKeynodeIndex.value >= pendingManualKeynodes.value.length) {
+    // All manual keynodes processed, continue with submission
+    submitFormData()
+    return
+  }
+  
+  const keynode = pendingManualKeynodes.value[currentManualKeynodeIndex.value]
+  newKeynode.value.name = keynode
+  newKeynode.value.category = ''
+  newKeynode.value.parentId = ''
+  parentKeynodeInput.value = ''
+  showCreateKeynodeModal.value = true
+}
+
+// Called when a manual keynode is created from the modal
+const onManualKeynodeCreated = async (createdKeynode: any) => {
+  // Replace the !{keynode} pattern with proper link in text
+  const keynodeName = pendingManualKeynodes.value[currentManualKeynodeIndex.value]
+  const pattern = new RegExp(`!\\{${escapeRegExp(keynodeName)}\\}`, 'g')
+  const keynodeLink = `[${createdKeynode.name}](/search?keynode=${encodeURIComponent(createdKeynode.name)})`
+  form.value.text = form.value.text.replace(pattern, keynodeLink)
+  
+  // Add to keynodes array
+  if (!form.value.keynodes.includes(createdKeynode.name)) {
+    form.value.keynodes.push(createdKeynode.name)
+  }
+  
+  // Move to next manual keynode
+  currentManualKeynodeIndex.value++
+  processNextManualKeynode()
+}
+
+// Helper function to escape special regex characters
+const escapeRegExp = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Check if a keynode exists in the database
+const checkKeynodeExists = async (name: string): Promise<any | null> => {
+  try {
+    const response = await authFetch(`/keynodes/suggestions?query=${encodeURIComponent(name)}`)
+    if (response.ok) {
+      const suggestions = await response.json()
+      const exactMatch = suggestions.find((s: any) => s.name.toLowerCase() === name.toLowerCase())
+      return exactMatch || null
+    }
+  } catch (err) {
+    console.error('Failed to check keynode:', err)
+  }
+  return null
+}
+
+// Handle existing keynode - replace and add to keynodes array
+const handleExistingKeynode = (keynodeName: string, existingKeynode: any) => {
+  const pattern = new RegExp(`!\\{${escapeRegExp(keynodeName)}\\}`, 'g')
+  const keynodeLink = `[${existingKeynode.name}](/search?keynode=${encodeURIComponent(existingKeynode.name)})`
+  form.value.text = form.value.text.replace(pattern, keynodeLink)
+  
+  if (!form.value.keynodes.includes(existingKeynode.name)) {
+    form.value.keynodes.push(existingKeynode.name)
+  }
+}
+
 const handleSubmit = async () => {
   error.value = ''
   success.value = ''
   loading.value = true
 
+  try {
+    // First, check for any manual !{keynode} patterns
+    const manualKeynodes = findManualKeynodes(form.value.text)
+    
+    if (manualKeynodes.length > 0) {
+      // Process each manual keynode
+      const unknownKeynodes: string[] = []
+      
+      for (const keynode of manualKeynodes) {
+        const existing = await checkKeynodeExists(keynode)
+        if (existing) {
+          // Keynode exists, replace with link
+          handleExistingKeynode(keynode, existing)
+        } else {
+          // Keynode doesn't exist, need to create
+          unknownKeynodes.push(keynode)
+        }
+      }
+      
+      if (unknownKeynodes.length > 0) {
+        // Show modal for creating unknown keynodes
+        pendingManualKeynodes.value = unknownKeynodes
+        currentManualKeynodeIndex.value = 0
+        loading.value = false
+        processNextManualKeynode()
+        return // Wait for user to create keynodes
+      }
+    }
+    
+    // No manual keynodes to process, continue with submission
+    await submitFormData()
+  } catch (err: any) {
+    error.value = err.message || 'Failed to save markmap'
+    loading.value = false
+  }
+}
+
+const submitFormData = async () => {
+  loading.value = true
+  error.value = ''
+  
   try {
     const url = editMode.value ? `/markmaps/${markmapId.value}` : '/markmaps'
     const method = editMode.value ? 'PATCH' : 'POST'
@@ -876,6 +1009,8 @@ const handleSubmit = async () => {
     error.value = err.message || 'Failed to save markmap'
   } finally {
     loading.value = false
+    pendingManualKeynodes.value = []
+    currentManualKeynodeIndex.value = 0
   }
 }
 
@@ -1006,9 +1141,9 @@ h1 {
 
 .preview-container {
   height: 500px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: white;
+  background: var(--card-bg);
 }
 
 .editor-layout.fullscreen .preview-container {
@@ -1020,7 +1155,7 @@ h1 {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .tags-input-container {
@@ -1155,17 +1290,19 @@ h1 {
 }
 
 .modal {
-  background: white;
+  background: var(--card-bg);
   padding: 2rem;
   border-radius: 8px;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  color: var(--text-primary);
 }
 
 .modal h2 {
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .modal-actions {

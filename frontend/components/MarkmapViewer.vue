@@ -19,6 +19,51 @@ const props = defineProps<{
 const markmapRef = ref<HTMLElement | null>(null)
 let mm: any = null
 const transformer = new Transformer()
+let themeStyleElement: HTMLStyleElement | null = null
+
+// Detect if dark theme is active
+const isDarkTheme = () => {
+  if (typeof document !== 'undefined') {
+    return document.documentElement.classList.contains('dark-theme')
+  }
+  return false
+}
+
+// Apply dark theme styles to markmap SVG
+const applyThemeStyles = () => {
+  if (!markmapRef.value) return
+  
+  const svg = markmapRef.value
+  const isDark = isDarkTheme()
+  
+  // Set the text color based on theme
+  const textColor = isDark ? '#e0e0e0' : '#333333'
+  const linkColor = isDark ? '#4da6ff' : '#007bff'
+  
+  // Apply styles to the SVG element
+  svg.style.color = textColor
+  
+  // Create or update a style element for markmap SVG styling
+  if (!themeStyleElement) {
+    themeStyleElement = document.createElement('style')
+    themeStyleElement.id = 'markmap-theme-styles'
+    document.head.appendChild(themeStyleElement)
+  }
+  
+  // Update the styles based on theme
+  themeStyleElement.textContent = `
+    .markmap-container text {
+      fill: ${textColor} !important;
+    }
+    .markmap-container .markmap-link {
+      stroke: ${isDark ? '#606060' : '#cccccc'} !important;
+    }
+    .markmap-container a {
+      color: ${linkColor} !important;
+      fill: ${linkColor} !important;
+    }
+  `
+}
 
 // Load required assets
 const loadAssets = async (assets: any) => {
@@ -67,13 +112,35 @@ const renderMarkmap = async () => {
         initialExpandLevel: props.options?.initialExpandLevel || -1,
       }, root)
     }
+    
+    // Apply theme styles after rendering
+    applyThemeStyles()
   } catch (error) {
     console.error('Failed to render markmap:', error)
   }
 }
 
+// Watch for theme changes using MutationObserver
+let themeObserver: MutationObserver | null = null
+
 onMounted(() => {
   renderMarkmap()
+  
+  // Watch for theme changes on the html element
+  if (typeof MutationObserver !== 'undefined') {
+    themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          applyThemeStyles()
+        }
+      })
+    })
+    
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+  }
 })
 
 watch(() => props.markdown, () => {
@@ -87,6 +154,12 @@ watch(() => props.options, () => {
 onUnmounted(() => {
   if (mm) {
     mm.destroy()
+  }
+  if (themeObserver) {
+    themeObserver.disconnect()
+  }
+  if (themeStyleElement) {
+    themeStyleElement.remove()
   }
 })
 </script>

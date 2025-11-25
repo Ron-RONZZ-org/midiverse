@@ -458,7 +458,7 @@ h1 {
 .loading {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .markmap-grid {
@@ -469,18 +469,19 @@ h1 {
 }
 
 .markmap-card {
-  background: white;
+  background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px var(--shadow);
+  border: 1px solid var(--border-color);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.3s ease;
 }
 
 .markmap-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px var(--shadow);
 }
 
 .markmap-card h3 {
@@ -489,7 +490,7 @@ h1 {
 }
 
 .meta {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
@@ -501,16 +502,18 @@ h1 {
 }
 
 .tag {
-  background: #e9ecef;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  color: var(--text-primary);
 }
 
 .no-results {
   text-align: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .autocomplete-wrapper {
@@ -611,9 +614,15 @@ h1 {
 }
 
 .suggestion-count {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
   margin-left: 8px;
+}
+
+.suggestion-category {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
 }
 
 </style>

@@ -33,34 +33,13 @@
 
 <script setup lang="ts">
 const router = useRouter()
-const { authFetch } = useApi()
-
-const hierarchyMarkdown = ref('')
-const loading = ref(true)
-const error = ref('')
-const showReferenceCounts = ref(false)
-
-const loadHierarchy = async () => {
-  loading.value = true
-  error.value = ''
-  
-  try {
-    const params = new URLSearchParams()
-    params.set('showReferenceCounts', String(showReferenceCounts.value))
-    const response = await authFetch(`/keynodes/hierarchy?${params.toString()}`)
-    
-    if (response.ok) {
-      hierarchyMarkdown.value = await response.text()
-    } else {
-      error.value = 'Failed to load keynode hierarchy'
-    }
-  } catch (err: any) {
-    console.error('Error fetching hierarchy:', err)
-    error.value = err.message || 'Failed to load keynode hierarchy'
-  } finally {
-    loading.value = false
-  }
-}
+const {
+  hierarchyMarkdown,
+  loading,
+  error,
+  showReferenceCounts,
+  loadHierarchy,
+} = useKeynodeHierarchy()
 
 const exitFullscreen = () => {
   router.push('/keynode')

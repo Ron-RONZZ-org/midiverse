@@ -151,8 +151,12 @@ export class KeynodesService {
     );
 
     // Memoized calculation of total reference counts (node + all descendants)
+    // Includes depth limit to prevent stack overflow with deeply nested hierarchies
+    const MAX_DEPTH = 100;
     const totalRefsCache = new Map<string, number>();
-    const calculateTotalRefs = (nodeId: string): number => {
+    const calculateTotalRefs = (nodeId: string, depth: number = 0): number => {
+      if (depth > MAX_DEPTH) return 0; // Safety limit
+
       if (totalRefsCache.has(nodeId)) {
         return totalRefsCache.get(nodeId)!;
       }
@@ -162,15 +166,17 @@ export class KeynodesService {
 
       let total = node.referenceCount;
       for (const childId of node.children) {
-        total += calculateTotalRefs(childId);
+        total += calculateTotalRefs(childId, depth + 1);
       }
 
       totalRefsCache.set(nodeId, total);
       return total;
     };
 
-    // Generate markdown hierarchy
+    // Generate markdown hierarchy with depth limit for safety
     const generateMarkdown = (nodeId: string, depth: number): string => {
+      if (depth > MAX_DEPTH) return ''; // Safety limit
+
       const node = keynodeMap.get(nodeId);
       if (!node) return '';
 

@@ -9,6 +9,16 @@ export const useAuth = () => {
     return getUser()
   })
 
+  const isContentManager = computed(() => {
+    const user = getUser()
+    return user && (user.role === 'content_manager' || user.role === 'administrator')
+  })
+
+  const isAdministrator = computed(() => {
+    const user = getUser()
+    return user && user.role === 'administrator'
+  })
+
   const login = async (username: string, password: string, turnstileToken?: string) => {
     try {
       const response = await authFetch('/auth/login', {
@@ -104,6 +114,8 @@ export const useAuth = () => {
   return {
     isAuthenticated,
     currentUser,
+    isContentManager,
+    isAdministrator,
     login,
     signup,
     verifyEmail,

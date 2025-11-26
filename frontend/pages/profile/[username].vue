@@ -12,7 +12,11 @@
             {{ profile.username.charAt(0).toUpperCase() }}
           </div>
           <div class="profile-info">
-            <h1>{{ profile.displayName || profile.username }}</h1>
+            <div class="profile-name-row">
+              <h1>{{ profile.displayName || profile.username }}</h1>
+              <span v-if="profile.role === 'administrator'" class="role-badge role-admin">Administrator</span>
+              <span v-else-if="profile.role === 'content_manager'" class="role-badge role-content-manager">Content Manager</span>
+            </div>
             <p class="username">@{{ profile.username }}</p>
             <p v-if="profile.description" class="description">{{ profile.description }}</p>
             <p v-if="profile.email" class="email">{{ profile.email }}</p>
@@ -931,5 +935,33 @@ textarea.form-control {
 .actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-admin {
+  background-color: #dc3545;
+  color: white;
+}
+
+.role-content-manager {
+  background-color: #6f42c1;
+  color: white;
 }
 </style>

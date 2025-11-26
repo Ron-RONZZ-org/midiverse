@@ -18,6 +18,9 @@
             {{ isFullscreen ? 'Exit Fullscreen' : 'Fullscreen' }}
           </button>
           <button @click="copyDirectLink" class="btn btn-info">Copy Direct Link</button>
+          <button @click="showComplaintModal = true" class="btn btn-warning" title="Report this content">
+            ⚠️ Report
+          </button>
           <template v-if="isOwner">
             <NuxtLink :to="`/editor?id=${markmap.id}`" class="btn">Edit</NuxtLink>
             <button @click="handleDelete" class="btn btn-danger">Delete</button>
@@ -31,6 +34,9 @@
         </button>
         <button v-if="isFullscreen" @click="showShareModal = true" class="share-btn" title="Share">
           🔗
+        </button>
+        <button v-if="isFullscreen" @click="showComplaintModal = true" class="report-btn" title="Report this content">
+          ⚠️
         </button>
         <ClientOnly>
           <MarkmapViewer 
@@ -69,6 +75,55 @@
           </div>
         </div>
       </div>
+
+      <!-- Complaint Modal -->
+      <div v-if="showComplaintModal" class="modal-overlay" @click.self="showComplaintModal = false">
+        <div class="modal">
+          <h2>Report Content</h2>
+          <p class="modal-description">Please provide details about why you're reporting this markmap.</p>
+          
+          <div v-if="complaintError" class="error-message">{{ complaintError }}</div>
+          <div v-if="complaintSuccess" class="success-message">{{ complaintSuccess }}</div>
+          
+          <form v-if="!complaintSuccess" @submit.prevent="submitComplaint">
+            <div class="form-group">
+              <label for="complaint-reason">Reason</label>
+              <select id="complaint-reason" v-model="complaintForm.reason" required class="form-control">
+                <option value="">Select a reason...</option>
+                <option value="harassment">Harassment</option>
+                <option value="false_information">False Information</option>
+                <option value="author_right_infringement">Author Right Infringement</option>
+                <option value="inciting_violence_hate">Inciting Violence/Hate</option>
+                <option value="discriminatory_abusive">Discriminatory/Abusive</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="complaint-explanation">Explanation (minimum 5 words)</label>
+              <textarea 
+                id="complaint-explanation" 
+                v-model="complaintForm.explanation" 
+                required
+                rows="4"
+                class="form-control"
+                placeholder="Please explain why you're reporting this content..."
+              ></textarea>
+              <small class="form-text">Word count: {{ wordCount }}</small>
+            </div>
+            
+            <div class="modal-actions">
+              <button type="button" @click="closeComplaintModal" class="btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-warning" :disabled="complaintLoading || wordCount < 5">
+                {{ complaintLoading ? 'Submitting...' : 'Submit Report' }}
+              </button>
+            </div>
+          </form>
+          
+          <div v-else class="modal-actions">
+            <button @click="closeComplaintModal" class="btn">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -86,6 +141,16 @@ const isFullscreen = ref(false)
 const showShareModal = ref(false)
 const linkInput = ref<HTMLInputElement | null>(null)
 
+// Complaint modal state
+const showComplaintModal = ref(false)
+const complaintForm = ref({
+  reason: '',
+  explanation: ''
+})
+const complaintLoading = ref(false)
+const complaintError = ref('')
+const complaintSuccess = ref('')
+
 const isOwner = computed(() => {
   return currentUser.value && markmap.value?.authorId === currentUser.value.id
 })
@@ -96,6 +161,10 @@ const directLink = computed(() => {
   }
   const baseUrl = window.location.origin
   return `${baseUrl}/markmaps/${markmap.value.author.username}/${markmap.value.slug}`
+})
+
+const wordCount = computed(() => {
+  return complaintForm.value.explanation.trim().split(/\s+/).filter(w => w.length > 0).length
 })
 
 const loadMarkmap = async () => {
@@ -117,6 +186,42 @@ const loadMarkmap = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const submitComplaint = async () => {
+  if (wordCount.value < 5) {
+    complaintError.value = 'Please provide at least 5 words of explanation'
+    return
+  }
+  
+  complaintLoading.value = true
+  complaintError.value = ''
+  
+  try {
+    const response = await authFetch(`/complaints/markmaps/${markmap.value.id}`, {
+      method: 'POST',
+      body: JSON.stringify(complaintForm.value)
+    })
+    
+    if (response.ok) {
+      complaintSuccess.value = 'Your report has been submitted. Thank you for helping keep our community safe.'
+      complaintForm.value = { reason: '', explanation: '' }
+    } else {
+      const data = await response.json()
+      complaintError.value = data.message || 'Failed to submit report'
+    }
+  } catch (err: any) {
+    complaintError.value = err.message || 'Failed to submit report'
+  } finally {
+    complaintLoading.value = false
+  }
+}
+
+const closeComplaintModal = () => {
+  showComplaintModal.value = false
+  complaintForm.value = { reason: '', explanation: '' }
+  complaintError.value = ''
+  complaintSuccess.value = ''
 }
 
 const handleDelete = async () => {
@@ -385,6 +490,99 @@ onMounted(() => {
 
 .btn-secondary:hover {
   background: #5a6268;
+}
+
+.btn-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background: #e0a800;
+}
+
+.btn-warning:disabled {
+  background: #d4a000;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.report-btn {
+  position: absolute;
+  top: 10px;
+  right: 110px;
+  z-index: 1000;
+  background: rgba(255, 193, 7, 0.9);
+  color: #212529;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.report-btn:hover {
+  background: rgba(255, 193, 7, 1);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 1rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-text {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
 }
 
 .markmap-source {

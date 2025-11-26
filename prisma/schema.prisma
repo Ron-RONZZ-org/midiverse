@@ -13,28 +13,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User roles enum
+enum UserRole {
+  user
+  content_manager
+  administrator
+}
+
+// User status enum
+enum UserStatus {
+  active
+  suspended
+}
+
 model User {
-  id                  String    @id @default(uuid())
-  email               String    @unique
-  username            String    @unique
+  id                  String      @id @default(uuid())
+  email               String      @unique
+  username            String      @unique
   password            String
-  emailVerified       Boolean   @default(false)
+  emailVerified       Boolean     @default(false)
   emailVerificationToken String?
   emailVerificationTokenExpiry DateTime?
-  displayName         String?   // Display name for profile
-  description         String?   // Profile description
-  profilePictureUrl   String?   // Profile picture URL
-  profileBackgroundColor String? // Optional color background for profile picture (hexcode)
+  displayName         String?     // Display name for profile
+  description         String?     // Profile description
+  profilePictureUrl   String?     // Profile picture URL
+  profileBackgroundColor String?  // Optional color background for profile picture (hexcode)
+  role                UserRole    @default(user)     // User role: user, content_manager, administrator
+  status              UserStatus  @default(active)   // User status: active, suspended
+  suspendedUntil      DateTime?   // When suspension expires (null = permanent or not suspended)
   lastEmailChange     DateTime?
   lastUsernameChange  DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
-  markmaps       Markmap[]
-  series         Series[]
-  viewHistory    ViewHistory[]
-  interactions   Interaction[]
-  preferences    UserPreferences?
+  markmaps            Markmap[]
+  series              Series[]
+  viewHistory         ViewHistory[]
+  interactions        Interaction[]
+  preferences         UserPreferences?
+  createdKeynodes     Keynode[]        @relation("KeynodeCreator")
+  complaints          Complaint[]      @relation("ComplaintReporter")
+  resolvedComplaints  Complaint[]      @relation("ComplaintResolver")
+
+  @@index([role])
+  @@index([status])
 }
 
 model Markmap {
@@ -47,6 +69,7 @@ model Markmap {
   colorFreezeLevel    Int       @default(0)
   initialExpandLevel  Int       @default(-1)
   isPublic            Boolean   @default(true)
+  isRetired           Boolean   @default(false)  // Retired from public view due to sustained complaint
   deletedAt           DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -59,11 +82,13 @@ model Markmap {
   interactions  Interaction[]
   tags          TagOnMarkmap[]
   keynodes      KeynodeOnMarkmap[]
+  complaints    Complaint[]
 
   @@unique([authorId, slug])
   @@index([authorId])
   @@index([seriesId])
   @@index([isPublic])
+  @@index([isRetired])
   @@index([language])
   @@index([deletedAt])
   @@index([slug])
@@ -158,23 +183,42 @@ model UserPreferences {
   @@index([userId])
 }
 
+// Keynode status enum
+enum KeynodeStatus {
+  unverified
+  verified
+  alias
+}
+
 model Keynode {
-  id              String   @id @default(uuid())
-  name            String   @unique // Keynode name (e.g., "volcano", "Albert Einstein")
-  category        String   // Category: person, fictional_character, geographical_location, date_time, historical_event, biological_species, abstract_concept, others
-  childNodeCount  Int      @default(0) // Number of child nodes referencing this keynode
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id              String         @id @default(uuid())
+  name            String         @unique // Keynode name (e.g., "volcano", "Albert Einstein")
+  category        String         // Category: person, fictional_character, geographical_location, date_time, historical_event, biological_species, abstract_concept, others
+  status          KeynodeStatus  @default(unverified) // Keynode verification status
+  childNodeCount  Int            @default(0) // Number of child nodes referencing this keynode
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   parentId        String?
-  parent          Keynode?  @relation("KeynodeHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children        Keynode[] @relation("KeynodeHierarchy")
+  parent          Keynode?       @relation("KeynodeHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Keynode[]      @relation("KeynodeHierarchy")
+  
+  createdById     String?        // User who created this keynode
+  createdBy       User?          @relation("KeynodeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  
+  aliasOfId       String?        // If this is an alias, points to the canonical keynode
+  aliasOf         Keynode?       @relation("KeynodeAlias", fields: [aliasOfId], references: [id], onDelete: SetNull)
+  aliases         Keynode[]      @relation("KeynodeAlias")
+  
   markmaps        KeynodeOnMarkmap[]
 
   @@index([name])
   @@index([category])
+  @@index([status])
   @@index([parentId])
   @@index([childNodeCount])
+  @@index([createdById])
+  @@index([aliasOfId])
 }
 
 model KeynodeOnMarkmap {
@@ -189,5 +233,46 @@ model KeynodeOnMarkmap {
   @@unique([keynodeId, markmapId])
   @@index([keynodeId])
   @@index([markmapId])
+  @@index([createdAt])
+}
+
+// Complaint reason enum
+enum ComplaintReason {
+  harassment
+  false_information
+  author_right_infringement
+  inciting_violence_hate
+  discriminatory_abusive
+}
+
+// Complaint status enum
+enum ComplaintStatus {
+  pending
+  sustained      // Complaint was valid, markmap retired
+  dismissed      // Complaint was invalid
+  appealed       // User appealed after dismissal (escalated to admin)
+}
+
+model Complaint {
+  id            String           @id @default(uuid())
+  reason        ComplaintReason
+  explanation   String           // Must be at least 5 words
+  status        ComplaintStatus  @default(pending)
+  resolution    String?          // Explanation of resolution decision
+  createdAt     DateTime         @default(now())
+  resolvedAt    DateTime?
+  
+  markmapId     String
+  markmap       Markmap          @relation(fields: [markmapId], references: [id], onDelete: Cascade)
+  
+  reporterId    String?          // Can be null for anonymous complaints
+  reporter      User?            @relation("ComplaintReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  
+  resolvedById  String?          // Content manager or admin who resolved
+  resolvedBy    User?            @relation("ComplaintResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  
+  @@index([markmapId])
+  @@index([reporterId])
+  @@index([status])
   @@index([createdAt])
 }

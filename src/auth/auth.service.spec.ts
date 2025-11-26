@@ -260,6 +260,9 @@ describe('AuthService', () => {
         email: 'test@example.com',
         username: 'testuser',
         emailVerified: true,
+        role: 'user',
+        status: 'active',
+        suspendedUntil: null,
       };
 
       mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
@@ -274,6 +277,9 @@ describe('AuthService', () => {
           email: true,
           username: true,
           emailVerified: true,
+          role: true,
+          status: true,
+          suspendedUntil: true,
         },
       });
     });

@@ -26,6 +26,8 @@ export class UsersService {
         description: true,
         profilePictureUrl: true,
         profileBackgroundColor: true,
+        role: true,
+        status: true,
         createdAt: true,
         lastEmailChange: true,
         lastUsernameChange: true,
@@ -51,6 +53,7 @@ export class UsersService {
         profilePictureUrl: true,
         profileBackgroundColor: true,
         email: true,
+        role: true,
         createdAt: true,
         _count: {
           select: {
@@ -86,6 +89,8 @@ export class UsersService {
           description: true,
           profilePictureUrl: true,
           profileBackgroundColor: true,
+          role: true,
+          status: true,
           createdAt: true,
           lastEmailChange: true,
           lastUsernameChange: true,
@@ -114,11 +119,24 @@ export class UsersService {
     }
 
     // Build response based on privacy settings
-    const publicProfile: any = {
+    const publicProfile: {
+      id: string;
+      username: string;
+      displayName: string | null;
+      description: string | null;
+      role: string;
+      createdAt: Date;
+      _count: { markmaps: number; viewHistory: number; interactions: number };
+      isOwnProfile: boolean;
+      profilePictureUrl?: string | null;
+      profileBackgroundColor?: string | null;
+      email?: string;
+    } = {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
       description: user.description,
+      role: user.role,
       createdAt: user.createdAt,
       _count: user._count,
       isOwnProfile,

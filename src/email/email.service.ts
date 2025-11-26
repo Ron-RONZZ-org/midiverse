@@ -19,6 +19,34 @@ export class EmailService {
     });
   }
 
+  /**
+   * Send a generic email
+   */
+  async sendEmail(to: string, subject: string, text: string): Promise<void> {
+    const mailOptions = {
+      from: this.configService.get<string>('EMAIL_FROM'),
+      to,
+      subject: `${subject} - Midiverse`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #007bff;">${subject}</h2>
+          <div style="white-space: pre-wrap;">${text}</div>
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            This is an automated message from Midiverse.
+          </p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Email sent to ${to}: ${subject}`);
+    } catch (error) {
+      this.logger.error(`Failed to send email to ${to}`, error);
+      throw new Error('Failed to send email');
+    }
+  }
+
   async sendVerificationEmail(
     email: string,
     username: string,

@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -23,6 +24,34 @@ export class AuthService {
     private emailService: EmailService,
     private turnstileService: TurnstileService,
   ) {}
+
+  /**
+   * Check if a user's suspension has expired and auto-reinstate them
+   */
+  private async checkAndUpdateSuspension(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { status: true, suspendedUntil: true },
+    });
+
+    if (
+      user?.status === 'suspended' &&
+      user.suspendedUntil &&
+      user.suspendedUntil <= new Date()
+    ) {
+      // Suspension has expired, reinstate the user
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          status: 'active',
+          suspendedUntil: null,
+        },
+      });
+      return 'active';
+    }
+
+    return user?.status;
+  }
 
   async signUp(signUpDto: SignUpDto) {
     // Verify Turnstile token if provided
@@ -103,7 +132,20 @@ export class AuthService {
       );
     }
 
-    const payload = { sub: user.id, username: user.username };
+    // Check and update suspension status if expired
+    const currentStatus = await this.checkAndUpdateSuspension(user.id);
+
+    // Check if user is suspended
+    if (currentStatus === 'suspended') {
+      const suspendedUntilMsg = user.suspendedUntil
+        ? ` until ${user.suspendedUntil.toISOString()}`
+        : '';
+      throw new ForbiddenException(
+        `Your account is suspended${suspendedUntilMsg}. You cannot publish or edit content.`,
+      );
+    }
+
+    const payload = { sub: user.id, username: user.username, role: user.role };
     const access_token = this.jwtService.sign(payload);
 
     return {
@@ -113,6 +155,8 @@ export class AuthService {
         email: user.email,
         username: user.username,
         emailVerified: user.emailVerified,
+        role: user.role,
+        status: currentStatus,
       },
     };
   }
@@ -142,7 +186,7 @@ export class AuthService {
     });
 
     // Issue JWT token after verification
-    const payload = { sub: user.id, username: user.username };
+    const payload = { sub: user.id, username: user.username, role: user.role };
     const access_token = this.jwtService.sign(payload);
 
     return {
@@ -153,6 +197,8 @@ export class AuthService {
         email: user.email,
         username: user.username,
         emailVerified: true,
+        role: user.role,
+        status: user.status,
       },
     };
   }
@@ -196,9 +242,20 @@ export class AuthService {
   }
 
   async validateUser(userId: string) {
+    // Check and update suspension status if expired
+    await this.checkAndUpdateSuspension(userId);
+
     return this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, username: true, emailVerified: true },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        emailVerified: true,
+        role: true,
+        status: true,
+        suspendedUntil: true,
+      },
     });
   }
 }

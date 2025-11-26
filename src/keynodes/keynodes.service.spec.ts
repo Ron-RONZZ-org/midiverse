@@ -47,15 +47,18 @@ describe('KeynodesService', () => {
       const expectedResult = {
         id: 'keynode-id',
         ...createDto,
+        status: 'unverified',
         childNodeCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
+        createdById: undefined,
         parent: {
           id: 'parent-id',
           name: 'mountain',
           category: 'geological_form',
         },
         children: [],
+        createdBy: null,
       };
 
       mockPrismaService.keynode.create.mockResolvedValue(expectedResult);
@@ -64,10 +67,53 @@ describe('KeynodesService', () => {
 
       expect(result).toEqual(expectedResult);
       expect(mockPrismaService.keynode.create).toHaveBeenCalledWith({
-        data: createDto,
+        data: {
+          ...createDto,
+          status: 'unverified',
+          createdById: undefined,
+        },
         include: {
           parent: { select: { id: true, name: true, category: true } },
           children: { select: { id: true, name: true, category: true } },
+          createdBy: { select: { id: true, username: true } },
+        },
+      });
+    });
+
+    it('should create a verified keynode for content managers', async () => {
+      const createDto = {
+        name: 'verified-volcano',
+        category: 'geological_form',
+        parentId: 'parent-id',
+      };
+      const expectedResult = {
+        id: 'keynode-id',
+        ...createDto,
+        status: 'verified',
+        childNodeCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdById: 'user-id',
+        parent: null,
+        children: [],
+        createdBy: { id: 'user-id', username: 'contentmanager' },
+      };
+
+      mockPrismaService.keynode.create.mockResolvedValue(expectedResult);
+
+      const result = await service.create(createDto, 'user-id', 'content_manager');
+
+      expect(result).toEqual(expectedResult);
+      expect(mockPrismaService.keynode.create).toHaveBeenCalledWith({
+        data: {
+          ...createDto,
+          status: 'verified',
+          createdById: 'user-id',
+        },
+        include: {
+          parent: { select: { id: true, name: true, category: true } },
+          children: { select: { id: true, name: true, category: true } },
+          createdBy: { select: { id: true, username: true } },
         },
       });
     });

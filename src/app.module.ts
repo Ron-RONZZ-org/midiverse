@@ -8,6 +8,8 @@ import { MarkmapsModule } from './markmaps/markmaps.module';
 import { UsersModule } from './users/users.module';
 import { SeriesModule } from './series/series.module';
 import { KeynodesModule } from './keynodes/keynodes.module';
+import { ComplaintsModule } from './complaints/complaints.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { KeynodesModule } from './keynodes/keynodes.module';
     UsersModule,
     SeriesModule,
     KeynodesModule,
+    ComplaintsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

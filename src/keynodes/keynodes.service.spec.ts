@@ -101,7 +101,11 @@ describe('KeynodesService', () => {
 
       mockPrismaService.keynode.create.mockResolvedValue(expectedResult);
 
-      const result = await service.create(createDto, 'user-id', 'content_manager');
+      const result = await service.create(
+        createDto,
+        'user-id',
+        'content_manager',
+      );
 
       expect(result).toEqual(expectedResult);
       expect(mockPrismaService.keynode.create).toHaveBeenCalledWith({

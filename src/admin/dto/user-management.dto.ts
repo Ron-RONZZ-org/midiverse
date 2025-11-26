@@ -26,7 +26,7 @@ export class SuspendUserDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(11)
+  @Max(12)
   months?: number;
 
   @IsOptional()

@@ -92,7 +92,8 @@ export class KeynodesController {
   @Roles('content_manager', 'administrator')
   editAndApprove(
     @Param('id') id: string,
-    @Body(ValidationPipe) data: { name?: string; category?: string; parentId?: string | null },
+    @Body(ValidationPipe)
+    data: { name?: string; category?: string; parentId?: string | null },
   ) {
     return this.keynodesService.editAndApprove(id, data);
   }
@@ -128,7 +129,8 @@ export class KeynodesController {
   @Roles('administrator')
   update(
     @Param('id') id: string,
-    @Body(ValidationPipe) data: { name?: string; category?: string; parentId?: string | null },
+    @Body(ValidationPipe)
+    data: { name?: string; category?: string; parentId?: string | null },
   ) {
     return this.keynodesService.update(id, data);
   }

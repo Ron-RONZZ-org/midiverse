@@ -138,7 +138,7 @@ export class AuthService {
     // Check if user is suspended
     if (currentStatus === 'suspended') {
       const suspendedUntilMsg = user.suspendedUntil
-        ? ` until ${user.suspendedUntil.toISOString()}`
+        ? ` until ${user.suspendedUntil.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
         : '';
       throw new ForbiddenException(
         `Your account is suspended${suspendedUntilMsg}. You cannot publish or edit content.`,

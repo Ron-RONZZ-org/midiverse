@@ -60,7 +60,11 @@ describe('KeynodesController', () => {
       const result = await controller.create(createDto, undefined);
 
       expect(result).toEqual(expectedResult);
-      expect(mockKeynodesService.create).toHaveBeenCalledWith(createDto, undefined, undefined);
+      expect(mockKeynodesService.create).toHaveBeenCalledWith(
+        createDto,
+        undefined,
+        undefined,
+      );
     });
   });
 

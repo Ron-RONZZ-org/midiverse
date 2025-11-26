@@ -13,6 +13,6 @@ export class CreateComplaintDto {
   reason: ComplaintReason;
 
   @IsString()
-  @MinLength(20, { message: 'Explanation must be at least 5 words (20 characters)' })
+  @MinLength(20, { message: 'Explanation must be at least 20 characters' })
   explanation: string;
 }

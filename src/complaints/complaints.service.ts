@@ -235,7 +235,9 @@ export class ComplaintsService {
     }
 
     if (complaint.status !== 'dismissed') {
-      throw new BadRequestException('Only dismissed complaints can be appealed');
+      throw new BadRequestException(
+        'Only dismissed complaints can be appealed',
+      );
     }
 
     if (complaint.reporterId !== reporterId) {

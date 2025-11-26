@@ -10,6 +10,7 @@
           <NuxtLink to="/markmaps">Explore</NuxtLink>
           <NuxtLink to="/search">Search</NuxtLink>
           <NuxtLink to="/tags">Tags</NuxtLink>
+          <NuxtLink to="/keynode">Keynodes</NuxtLink>
           <ClientOnly>
             <template v-if="isAuthenticated">
               <NuxtLink to="/editor">Create</NuxtLink>

@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Patch,
   Delete,
   Body,
@@ -50,13 +49,26 @@ export class KeynodesController {
   }
 
   /**
-   * Update the keynode hierarchy from markdown (admin only)
+   * Get all verified keynodes as a tree structure for the admin tree editor
    */
-  @Put('hierarchy')
+  @Get('tree')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrator')
-  updateHierarchy(@Body() body: { markdown: string }) {
-    return this.keynodesService.updateHierarchy(body.markdown);
+  getTree() {
+    return this.keynodesService.getTree();
+  }
+
+  /**
+   * Create a new verified keynode (admin only, for tree editor)
+   */
+  @Post('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('administrator')
+  createVerified(
+    @Body(ValidationPipe)
+    data: { name: string; category: string; parentId?: string | null },
+  ) {
+    return this.keynodesService.createVerified(data);
   }
 
   @Get('categories')

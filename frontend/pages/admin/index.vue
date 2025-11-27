@@ -185,48 +185,129 @@
       <!-- Keynodes Tab -->
       <div v-if="activeTab === 'keynodes'" class="tab-content">
         <h2>Keynode Hierarchy Editor</h2>
-        <p class="description">View and preview the keynode hierarchy. For individual keynode edits, use the <NuxtLink to="/content-management">Content Management</NuxtLink> panel.</p>
+        <p class="description">Manage the keynode hierarchy with the tree editor. Add, rename, move, or delete nodes.</p>
         
         <div class="hierarchy-actions">
           <NuxtLink to="/keynode" class="btn btn-secondary" target="_blank">
-            View Current Hierarchy
+            View Public Hierarchy
           </NuxtLink>
-          <NuxtLink to="/content-management" class="btn btn-purple">
-            Manage Keynodes
-          </NuxtLink>
-          <button @click="loadKeynodeHierarchy" class="btn btn-info" :disabled="loadingHierarchy">
-            {{ loadingHierarchy ? 'Loading...' : 'Refresh' }}
+          <button @click="loadKeynodeTree" class="btn btn-info" :disabled="loadingTree">
+            {{ loadingTree ? 'Loading...' : 'Refresh' }}
+          </button>
+          <button @click="openAddNodeModal(null)" class="btn btn-success">
+            + Add Root Node
           </button>
         </div>
         
-        <div v-if="hierarchySuccess" class="success-message">{{ hierarchySuccess }}</div>
-        <div v-if="hierarchyError" class="error-message">{{ hierarchyError }}</div>
+        <div v-if="treeSuccess" class="success-message">{{ treeSuccess }}</div>
+        <div v-if="treeError" class="error-message">{{ treeError }}</div>
         
-        <div class="keynode-editor-container">
-          <div v-if="loadingHierarchy" class="loading">Loading keynode hierarchy...</div>
-          <div v-else class="editor-wrapper">
-            <div class="editor-section">
-              <h3>Hierarchy Markdown (Read-Only Preview)</h3>
-              <textarea 
-                v-model="keynodeHierarchy" 
-                class="hierarchy-textarea"
-                placeholder="Loading keynode hierarchy..."
-                rows="20"
-                readonly
-              ></textarea>
-            </div>
-            <div class="preview-section">
-              <h3>Visual Preview</h3>
-              <div class="hierarchy-preview">
-                <ClientOnly>
-                  <MarkmapViewer 
-                    v-if="keynodeHierarchy"
-                    :markdown="keynodeHierarchy"
-                    :options="{ maxWidth: 300, colorFreezeLevel: 2, initialExpandLevel: 3 }"
-                  />
-                </ClientOnly>
+        <div class="tree-editor-container">
+          <div v-if="loadingTree" class="loading">Loading keynode hierarchy...</div>
+          <div v-else-if="keynodeTree.length === 0" class="empty-state">
+            No keynodes in the hierarchy yet. Add a root node to get started.
+          </div>
+          <div v-else class="tree-wrapper">
+            <!-- Category groups -->
+            <div v-for="category in groupedCategories" :key="category.name" class="category-group">
+              <div class="category-header" @click="toggleCategory(category.name)">
+                <span class="expand-icon">{{ expandedCategories[category.name] ? '▼' : '▶' }}</span>
+                <span class="category-name">{{ formatCategoryName(category.name) }}</span>
+                <span class="category-count">({{ category.nodes.length }})</span>
+              </div>
+              <div v-show="expandedCategories[category.name]" class="category-nodes">
+                <KeynodeTreeNode 
+                  v-for="node in category.nodes" 
+                  :key="node.id" 
+                  :node="node" 
+                  :all-nodes="keynodeTree"
+                  :depth="0"
+                  @edit="openEditNodeModal"
+                  @add-child="openAddNodeModal"
+                  @delete="confirmDeleteNode"
+                  @move="openMoveNodeModal"
+                />
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Add/Edit Node Modal -->
+      <div v-if="showNodeModal" class="modal-overlay" @click.self="showNodeModal = false">
+        <div class="modal">
+          <h2>{{ editingNode ? 'Edit Keynode' : 'Add Keynode' }}</h2>
+          <div class="form-group">
+            <label for="node-name">Name</label>
+            <input 
+              id="node-name" 
+              v-model="nodeForm.name" 
+              type="text" 
+              class="form-control" 
+              placeholder="Enter keynode name..."
+            />
+          </div>
+          <div class="form-group">
+            <label for="node-category">Category</label>
+            <select id="node-category" v-model="nodeForm.category" class="form-control">
+              <option value="person">Person</option>
+              <option value="fictional_character">Fictional Character</option>
+              <option value="geographical_location">Geographical Location</option>
+              <option value="date_time">Date/Time</option>
+              <option value="historical_event">Historical Event</option>
+              <option value="biological_species">Biological Species</option>
+              <option value="abstract_concept">Abstract Concept</option>
+              <option value="others">Others</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="node-parent">Parent Node (optional)</label>
+            <select id="node-parent" v-model="nodeForm.parentId" class="form-control">
+              <option :value="null">-- No Parent (Root Node) --</option>
+              <option 
+                v-for="node in availableParentNodes" 
+                :key="node.id" 
+                :value="node.id"
+              >
+                {{ node.name }} ({{ formatCategoryName(node.category) }})
+              </option>
+            </select>
+          </div>
+          <p v-if="nodeForm.parentId && parentNode" class="info-text">
+            Will be added as a child of "{{ parentNode.name }}"
+          </p>
+          <div class="modal-actions">
+            <button @click="showNodeModal = false" class="btn btn-secondary">Cancel</button>
+            <button @click="saveNode" class="btn btn-primary" :disabled="savingNode || !nodeForm.name.trim()">
+              {{ savingNode ? 'Saving...' : (editingNode ? 'Update' : 'Create') }}
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Move Node Modal -->
+      <div v-if="showMoveModal" class="modal-overlay" @click.self="showMoveModal = false">
+        <div class="modal">
+          <h2>Move Keynode</h2>
+          <p>Move "{{ movingNode?.name }}" to a new parent:</p>
+          <div class="form-group">
+            <label for="move-parent">New Parent</label>
+            <select id="move-parent" v-model="moveToParentId" class="form-control">
+              <option :value="null">-- No Parent (Make Root) --</option>
+              <option 
+                v-for="node in availableMoveTargets" 
+                :key="node.id" 
+                :value="node.id"
+              >
+                {{ node.name }} ({{ formatCategoryName(node.category) }})
+              </option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button @click="showMoveModal = false" class="btn btn-secondary">Cancel</button>
+            <button @click="moveNode" class="btn btn-primary" :disabled="savingNode">
+              {{ savingNode ? 'Moving...' : 'Move' }}
+            </button>
           </div>
         </div>
       </div>
@@ -346,12 +427,23 @@ const actionLoading = ref<string | null>(null)
 const actionSuccess = ref('')
 const actionError = ref('')
 
-// Keynode hierarchy state
-const keynodeHierarchy = ref('')
-const loadingHierarchy = ref(false)
-const savingHierarchy = ref(false)
-const hierarchySuccess = ref('')
-const hierarchyError = ref('')
+// Keynode tree state
+const keynodeTree = ref<any[]>([])
+const loadingTree = ref(false)
+const savingNode = ref(false)
+const treeSuccess = ref('')
+const treeError = ref('')
+const expandedCategories = ref<Record<string, boolean>>({})
+
+// Node modal state
+const showNodeModal = ref(false)
+const editingNode = ref<any>(null)
+const nodeForm = ref({ name: '', category: 'others', parentId: null as string | null })
+
+// Move modal state
+const showMoveModal = ref(false)
+const movingNode = ref<any>(null)
+const moveToParentId = ref<string | null>(null)
 
 // Appeals state
 const appealedComplaints = ref<any[]>([])
@@ -396,6 +488,63 @@ const formatReason = (reason: string) => {
   return labels[reason] || reason
 }
 
+const formatCategoryName = (category: string) => {
+  return category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// Computed properties for tree editor
+const groupedCategories = computed(() => {
+  const groups: Record<string, any[]> = {}
+  
+  // Get root nodes (no parent)
+  const rootNodes = keynodeTree.value.filter(n => !n.parentId)
+  
+  for (const node of rootNodes) {
+    if (!groups[node.category]) {
+      groups[node.category] = []
+    }
+    groups[node.category].push(node)
+  }
+  
+  return Object.entries(groups)
+    .map(([name, nodes]) => ({ name, nodes: nodes.sort((a, b) => a.name.localeCompare(b.name)) }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const availableParentNodes = computed(() => {
+  // When editing, exclude the node itself and its descendants
+  if (editingNode.value) {
+    const descendants = getDescendantIds(editingNode.value.id)
+    return keynodeTree.value.filter(n => n.id !== editingNode.value.id && !descendants.includes(n.id))
+  }
+  return keynodeTree.value
+})
+
+const availableMoveTargets = computed(() => {
+  if (!movingNode.value) return []
+  const descendants = getDescendantIds(movingNode.value.id)
+  return keynodeTree.value.filter(n => n.id !== movingNode.value.id && !descendants.includes(n.id))
+})
+
+const parentNode = computed(() => {
+  if (!nodeForm.value.parentId) return null
+  return keynodeTree.value.find(n => n.id === nodeForm.value.parentId)
+})
+
+const getDescendantIds = (nodeId: string): string[] => {
+  const children = keynodeTree.value.filter(n => n.parentId === nodeId)
+  let ids: string[] = []
+  for (const child of children) {
+    ids.push(child.id)
+    ids = ids.concat(getDescendantIds(child.id))
+  }
+  return ids
+}
+
+const toggleCategory = (categoryName: string) => {
+  expandedCategories.value[categoryName] = !expandedCategories.value[categoryName]
+}
+
 const loadUsers = async () => {
   loadingUsers.value = true
   try {
@@ -420,48 +569,179 @@ const loadUsers = async () => {
   }
 }
 
-const loadKeynodeHierarchy = async () => {
-  loadingHierarchy.value = true
-  hierarchyError.value = ''
+const loadKeynodeTree = async () => {
+  loadingTree.value = true
+  treeError.value = ''
   try {
-    const response = await authFetch('/keynodes/hierarchy')
+    const response = await authFetch('/keynodes/tree')
     if (response.ok) {
-      keynodeHierarchy.value = await response.text()
+      keynodeTree.value = await response.json()
+      // Expand all categories by default
+      for (const cat of groupedCategories.value) {
+        if (expandedCategories.value[cat.name] === undefined) {
+          expandedCategories.value[cat.name] = true
+        }
+      }
     } else {
-      hierarchyError.value = 'Failed to load keynode hierarchy'
+      treeError.value = 'Failed to load keynode tree'
     }
   } catch (err) {
-    console.error('Failed to load keynode hierarchy:', err)
-    hierarchyError.value = 'Failed to load keynode hierarchy'
+    console.error('Failed to load keynode tree:', err)
+    treeError.value = 'Failed to load keynode tree'
   } finally {
-    loadingHierarchy.value = false
+    loadingTree.value = false
   }
 }
 
-const saveKeynodeHierarchy = async () => {
-  savingHierarchy.value = true
-  hierarchySuccess.value = ''
-  hierarchyError.value = ''
+const openAddNodeModal = (parentId: string | null) => {
+  editingNode.value = null
+  nodeForm.value = { 
+    name: '', 
+    category: parentId ? (keynodeTree.value.find(n => n.id === parentId)?.category || 'others') : 'others',
+    parentId 
+  }
+  showNodeModal.value = true
+}
+
+const openEditNodeModal = (node: any) => {
+  editingNode.value = node
+  nodeForm.value = { 
+    name: node.name, 
+    category: node.category,
+    parentId: node.parentId
+  }
+  showNodeModal.value = true
+}
+
+const openMoveNodeModal = (node: any) => {
+  movingNode.value = node
+  moveToParentId.value = node.parentId
+  showMoveModal.value = true
+}
+
+const saveNode = async () => {
+  if (!nodeForm.value.name.trim()) return
+  
+  savingNode.value = true
+  treeSuccess.value = ''
+  treeError.value = ''
   
   try {
-    const response = await authFetch('/keynodes/hierarchy', {
-      method: 'PUT',
-      body: JSON.stringify({ markdown: keynodeHierarchy.value })
+    if (editingNode.value) {
+      // Update existing node
+      const response = await authFetch(`/keynodes/${editingNode.value.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: nodeForm.value.name.trim(),
+          category: nodeForm.value.category,
+          parentId: nodeForm.value.parentId
+        })
+      })
+      
+      if (response.ok) {
+        treeSuccess.value = `Keynode "${nodeForm.value.name}" updated successfully`
+        showNodeModal.value = false
+        await loadKeynodeTree()
+      } else {
+        const data = await response.json()
+        treeError.value = data.message || 'Failed to update keynode'
+      }
+    } else {
+      // Create new node
+      const response = await authFetch('/keynodes/admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: nodeForm.value.name.trim(),
+          category: nodeForm.value.category,
+          parentId: nodeForm.value.parentId
+        })
+      })
+      
+      if (response.ok) {
+        treeSuccess.value = `Keynode "${nodeForm.value.name}" created successfully`
+        showNodeModal.value = false
+        await loadKeynodeTree()
+      } else {
+        const data = await response.json()
+        treeError.value = data.message || 'Failed to create keynode'
+      }
+    }
+    
+    setTimeout(() => { treeSuccess.value = '' }, 5000)
+  } catch (err) {
+    console.error('Failed to save keynode:', err)
+    treeError.value = 'Failed to save keynode'
+  } finally {
+    savingNode.value = false
+  }
+}
+
+const confirmDeleteNode = async (node: any) => {
+  const childCount = keynodeTree.value.filter(n => n.parentId === node.id).length
+  let message = `Are you sure you want to delete "${node.name}"?`
+  if (childCount > 0) {
+    message += ` This node has ${childCount} child node(s) that will become root nodes.`
+  }
+  if (node.referenceCount > 0) {
+    message += ` This keynode is referenced by ${node.referenceCount} markmap(s).`
+  }
+  
+  if (!confirm(message)) return
+  
+  treeSuccess.value = ''
+  treeError.value = ''
+  
+  try {
+    const response = await authFetch(`/keynodes/${node.id}`, {
+      method: 'DELETE'
     })
     
     if (response.ok) {
-      const data = await response.json()
-      hierarchySuccess.value = data.message || 'Hierarchy received. Use Content Management for individual keynode edits.'
-      setTimeout(() => { hierarchySuccess.value = '' }, 8000)
+      treeSuccess.value = `Keynode "${node.name}" deleted successfully`
+      await loadKeynodeTree()
     } else {
       const data = await response.json()
-      hierarchyError.value = data.message || 'Failed to process keynode hierarchy'
+      treeError.value = data.message || 'Failed to delete keynode'
     }
+    
+    setTimeout(() => { treeSuccess.value = '' }, 5000)
   } catch (err) {
-    console.error('Failed to save keynode hierarchy:', err)
-    hierarchyError.value = 'Failed to process keynode hierarchy'
+    console.error('Failed to delete keynode:', err)
+    treeError.value = 'Failed to delete keynode'
+  }
+}
+
+const moveNode = async () => {
+  if (!movingNode.value) return
+  
+  savingNode.value = true
+  treeSuccess.value = ''
+  treeError.value = ''
+  
+  try {
+    const response = await authFetch(`/keynodes/${movingNode.value.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ parentId: moveToParentId.value })
+    })
+    
+    if (response.ok) {
+      const newParent = moveToParentId.value 
+        ? keynodeTree.value.find(n => n.id === moveToParentId.value)?.name 
+        : 'root'
+      treeSuccess.value = `Keynode "${movingNode.value.name}" moved to ${newParent}`
+      showMoveModal.value = false
+      await loadKeynodeTree()
+    } else {
+      const data = await response.json()
+      treeError.value = data.message || 'Failed to move keynode'
+    }
+    
+    setTimeout(() => { treeSuccess.value = '' }, 5000)
+  } catch (err) {
+    console.error('Failed to move keynode:', err)
+    treeError.value = 'Failed to move keynode'
   } finally {
-    savingHierarchy.value = false
+    savingNode.value = false
   }
 }
 
@@ -624,8 +904,8 @@ watch(hasAccess, (newVal) => {
 })
 
 watch(activeTab, (newVal) => {
-  if (newVal === 'keynodes' && !keynodeHierarchy.value) {
-    loadKeynodeHierarchy()
+  if (newVal === 'keynodes' && keynodeTree.value.length === 0) {
+    loadKeynodeTree()
   }
 })
 </script>
@@ -866,63 +1146,63 @@ h2 {
   margin-bottom: 1.5rem;
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.keynode-editor-container {
+.tree-editor-container {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1.5rem;
-}
-
-.editor-wrapper {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.editor-section h3,
-.preview-section h3 {
-  margin: 0 0 1rem;
-  color: var(--text-primary);
-  font-size: 1.1rem;
-}
-
-.hierarchy-textarea {
-  width: 100%;
-  padding: 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  resize: vertical;
   min-height: 400px;
 }
 
-.hierarchy-textarea:focus {
-  outline: none;
-  border-color: #007bff;
+.tree-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.editor-actions {
-  margin-top: 1rem;
-}
-
-.hierarchy-preview {
+.category-group {
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  min-height: 400px;
-  background: var(--bg-secondary);
+  border-radius: 8px;
   overflow: hidden;
 }
 
-.keynode-editor {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 2rem;
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+
+.category-header:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+}
+
+.expand-icon {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  width: 1rem;
+}
+
+.category-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.category-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.category-nodes {
+  padding: 0.5rem;
 }
 
 .info-text {

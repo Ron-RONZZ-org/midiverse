@@ -479,26 +479,60 @@ export class KeynodesService {
   }
 
   /**
-   * Update the entire keynode hierarchy from markdown (admin only).
-   * This parses the markdown and updates keynode names and parent relationships.
-   * Note: This is a simplified implementation - full hierarchy editing
-   * would require more complex parsing logic.
+   * Get all verified keynodes as a tree structure for the admin tree editor.
+   * Returns nodes organized by category with parent-child relationships.
    */
-  async updateHierarchy(markdown: string): Promise<{ success: boolean; message: string }> {
-    // Parse markdown to extract keynode structure
-    // For now, this returns a success message indicating the feature is available
-    // Full implementation would parse the markdown and update keynodes accordingly
+  async getTree() {
+    const keynodes = await this.prisma.keynode.findMany({
+      where: { status: 'verified' },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        parentId: true,
+        _count: {
+          select: {
+            markmaps: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return keynodes.map((k) => ({
+      id: k.id,
+      name: k.name,
+      category: k.category,
+      parentId: k.parentId,
+      referenceCount: k._count.markmaps,
+    }));
+  }
+
+  /**
+   * Create a new verified keynode (admin only, for tree editor)
+   */
+  async createVerified(data: { name: string; category: string; parentId?: string | null }) {
+    // Check for duplicate name
+    const existing = await this.prisma.keynode.findUnique({
+      where: { name: data.name },
+    });
     
-    if (!markdown || markdown.trim().length === 0) {
-      throw new BadRequestException('Markdown content is required');
+    if (existing) {
+      throw new BadRequestException(`A keynode with name "${data.name}" already exists`);
     }
 
-    // Count the lines to verify we received content
-    const lines = markdown.split('\n').filter(line => line.trim().length > 0);
-    
-    return {
-      success: true,
-      message: `Hierarchy received with ${lines.length} lines. Note: Full hierarchy parsing and updating is a complex operation. Individual keynode edits can be done through the Content Management panel.`,
-    };
+    return this.prisma.keynode.create({
+      data: {
+        name: data.name,
+        category: data.category,
+        parentId: data.parentId || null,
+        status: 'verified',
+      },
+      include: {
+        parent: {
+          select: { id: true, name: true, category: true },
+        },
+      },
+    });
   }
 }

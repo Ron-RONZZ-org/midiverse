@@ -1221,7 +1221,9 @@ h2 {
 }
 
 .category-nodes {
-  padding: 0.5rem;
+  padding: 0.75rem;
+  padding-left: 1.5rem;
+  background: var(--nodes-bg, rgba(0, 0, 0, 0.05));
 }
 
 .info-text {

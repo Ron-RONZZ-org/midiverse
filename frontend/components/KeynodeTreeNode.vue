@@ -77,19 +77,23 @@ const childNodes = computed(() => {
 <style scoped>
 .tree-node {
   user-select: none;
+  min-height: 32px;
 }
 
 .node-content {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 4px;
   transition: background 0.1s;
+  min-height: 32px;
+  background: var(--node-bg, rgba(255, 255, 255, 0.05));
+  margin-bottom: 2px;
 }
 
 .node-content:hover {
-  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  background: var(--bg-hover, rgba(255, 255, 255, 0.1));
 }
 
 .expand-toggle {
@@ -97,26 +101,26 @@ const childNodes = computed(() => {
   width: 1rem;
   text-align: center;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #aaa);
 }
 
 .expand-placeholder {
   width: 1rem;
   text-align: center;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #aaa);
 }
 
 .node-name {
   flex: 1;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-primary, #fff);
 }
 
 .reference-count {
   font-size: 0.8rem;
-  color: var(--text-secondary);
-  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-secondary, #aaa);
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.1));
   padding: 0.1rem 0.4rem;
   border-radius: 10px;
 }

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { KeynodesService } from './keynodes.service';
 import { CreateKeynodeDto, KEYNODE_CATEGORIES } from './dto/create-keynode.dto';
+import { AdminCreateKeynodeDto } from './dto/admin-create-keynode.dto';
 import { GetKeynoteSuggestionsDto } from './dto/get-keynode-suggestions.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
@@ -64,10 +65,7 @@ export class KeynodesController {
   @Post('admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrator')
-  createVerified(
-    @Body(ValidationPipe)
-    data: { name: string; category: string; parentId?: string | null },
-  ) {
+  createVerified(@Body(ValidationPipe) data: AdminCreateKeynodeDto) {
     return this.keynodesService.createVerified(data);
   }
 

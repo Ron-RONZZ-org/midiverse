@@ -250,14 +250,13 @@
           <div class="form-group">
             <label for="node-category">Category</label>
             <select id="node-category" v-model="nodeForm.category" class="form-control">
-              <option value="person">Person</option>
-              <option value="fictional_character">Fictional Character</option>
-              <option value="geographical_location">Geographical Location</option>
-              <option value="date_time">Date/Time</option>
-              <option value="historical_event">Historical Event</option>
-              <option value="biological_species">Biological Species</option>
-              <option value="abstract_concept">Abstract Concept</option>
-              <option value="others">Others</option>
+              <option 
+                v-for="category in availableCategories" 
+                :key="category" 
+                :value="category"
+              >
+                {{ formatCategoryName(category) }}
+              </option>
             </select>
           </div>
           <div class="form-group">
@@ -434,6 +433,7 @@ const savingNode = ref(false)
 const treeSuccess = ref('')
 const treeError = ref('')
 const expandedCategories = ref<Record<string, boolean>>({})
+const availableCategories = ref<string[]>([])
 
 // Node modal state
 const showNodeModal = ref(false)
@@ -569,10 +569,29 @@ const loadUsers = async () => {
   }
 }
 
+const loadCategories = async () => {
+  try {
+    const response = await authFetch('/keynodes/categories')
+    if (response.ok) {
+      const data = await response.json()
+      availableCategories.value = data.available
+    }
+  } catch (err) {
+    console.error('Failed to load categories:', err)
+    // Fallback to minimal list
+    availableCategories.value = ['person', 'geographical_location', 'abstract_concept', 'others']
+  }
+}
+
 const loadKeynodeTree = async () => {
   loadingTree.value = true
   treeError.value = ''
   try {
+    // Load categories if not loaded yet
+    if (availableCategories.value.length === 0) {
+      await loadCategories()
+    }
+    
     const response = await authFetch('/keynodes/tree')
     if (response.ok) {
       keynodeTree.value = await response.json()

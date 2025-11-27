@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Body,
@@ -46,6 +47,16 @@ export class KeynodesController {
     const showCounts =
       showReferenceCounts === 'true' || showReferenceCounts === '1';
     return this.keynodesService.getHierarchy(showCounts);
+  }
+
+  /**
+   * Update the keynode hierarchy from markdown (admin only)
+   */
+  @Put('hierarchy')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('administrator')
+  updateHierarchy(@Body() body: { markdown: string }) {
+    return this.keynodesService.updateHierarchy(body.markdown);
   }
 
   @Get('categories')

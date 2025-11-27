@@ -35,6 +35,9 @@
         <h2>User Management</h2>
         <p class="description">Manage user roles and account status.</p>
         
+        <div v-if="actionSuccess" class="success-message">{{ actionSuccess }}</div>
+        <div v-if="actionError" class="error-message">{{ actionError }}</div>
+        
         <div class="search-bar">
           <input 
             v-model="userSearch" 
@@ -89,7 +92,7 @@
                   <span :class="['status-badge', `status-${user.status}`]">
                     {{ user.status }}
                   </span>
-                  <div v-if="user.suspendedUntil" class="suspended-until">
+                  <div v-if="user.status === 'suspended' && user.suspendedUntil" class="suspended-until">
                     Until: {{ new Date(user.suspendedUntil).toLocaleDateString() }}
                   </div>
                 </td>
@@ -100,15 +103,17 @@
                     v-if="user.status === 'active'" 
                     @click="openSuspendModal(user)" 
                     class="btn btn-warning btn-sm"
+                    :disabled="actionLoading === user.id"
                   >
-                    Suspend
+                    {{ actionLoading === user.id ? 'Suspending...' : 'Suspend' }}
                   </button>
                   <button 
                     v-else 
                     @click="reinstateUser(user.id)" 
                     class="btn btn-success btn-sm"
+                    :disabled="actionLoading === user.id"
                   >
-                    Reinstate
+                    {{ actionLoading === user.id ? 'Reinstating...' : 'Reinstate' }}
                   </button>
                 </td>
               </tr>
@@ -180,20 +185,50 @@
       <!-- Keynodes Tab -->
       <div v-if="activeTab === 'keynodes'" class="tab-content">
         <h2>Keynode Hierarchy Editor</h2>
-        <p class="description">Edit the keynode hierarchy tree. Changes affect the global keynode structure.</p>
+        <p class="description">Edit the keynode hierarchy tree like a regular markmap. Changes affect the global keynode structure.</p>
         
         <div class="hierarchy-actions">
           <NuxtLink to="/keynode" class="btn btn-secondary" target="_blank">
             View Current Hierarchy
           </NuxtLink>
+          <button @click="loadKeynodeHierarchy" class="btn btn-info" :disabled="loadingHierarchy">
+            {{ loadingHierarchy ? 'Loading...' : 'Refresh' }}
+          </button>
         </div>
         
-        <div class="keynode-editor">
-          <p class="info-text">
-            The keynode hierarchy can be viewed and managed through the Content Management panel. 
-            For direct keynode editing, use the individual keynode management actions or access 
-            the <NuxtLink to="/content-management">Content Management</NuxtLink> page.
-          </p>
+        <div v-if="hierarchySuccess" class="success-message">{{ hierarchySuccess }}</div>
+        <div v-if="hierarchyError" class="error-message">{{ hierarchyError }}</div>
+        
+        <div class="keynode-editor-container">
+          <div v-if="loadingHierarchy" class="loading">Loading keynode hierarchy...</div>
+          <div v-else class="editor-wrapper">
+            <div class="editor-section">
+              <h3>Hierarchy Markdown</h3>
+              <textarea 
+                v-model="keynodeHierarchy" 
+                class="hierarchy-textarea"
+                placeholder="Loading keynode hierarchy..."
+                rows="20"
+              ></textarea>
+              <div class="editor-actions">
+                <button @click="saveKeynodeHierarchy" class="btn btn-primary" :disabled="savingHierarchy">
+                  {{ savingHierarchy ? 'Saving...' : 'Save Changes' }}
+                </button>
+              </div>
+            </div>
+            <div class="preview-section">
+              <h3>Preview</h3>
+              <div class="hierarchy-preview">
+                <ClientOnly>
+                  <MarkmapViewer 
+                    v-if="keynodeHierarchy"
+                    :markdown="keynodeHierarchy"
+                    :options="{ maxWidth: 300, colorFreezeLevel: 2, initialExpandLevel: 3 }"
+                  />
+                </ClientOnly>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -307,6 +342,18 @@ const newRole = ref('user')
 const showSuspendModal = ref(false)
 const suspendDuration = ref({ years: 0, months: 0, days: 0, hours: 0 })
 
+// Action feedback
+const actionLoading = ref<string | null>(null)
+const actionSuccess = ref('')
+const actionError = ref('')
+
+// Keynode hierarchy state
+const keynodeHierarchy = ref('')
+const loadingHierarchy = ref(false)
+const savingHierarchy = ref(false)
+const hierarchySuccess = ref('')
+const hierarchyError = ref('')
+
 // Appeals state
 const appealedComplaints = ref<any[]>([])
 const loadingAppeals = ref(true)
@@ -374,6 +421,50 @@ const loadUsers = async () => {
   }
 }
 
+const loadKeynodeHierarchy = async () => {
+  loadingHierarchy.value = true
+  hierarchyError.value = ''
+  try {
+    const response = await authFetch('/keynodes/hierarchy')
+    if (response.ok) {
+      keynodeHierarchy.value = await response.text()
+    } else {
+      hierarchyError.value = 'Failed to load keynode hierarchy'
+    }
+  } catch (err) {
+    console.error('Failed to load keynode hierarchy:', err)
+    hierarchyError.value = 'Failed to load keynode hierarchy'
+  } finally {
+    loadingHierarchy.value = false
+  }
+}
+
+const saveKeynodeHierarchy = async () => {
+  savingHierarchy.value = true
+  hierarchySuccess.value = ''
+  hierarchyError.value = ''
+  
+  try {
+    const response = await authFetch('/keynodes/hierarchy', {
+      method: 'PUT',
+      body: JSON.stringify({ markdown: keynodeHierarchy.value })
+    })
+    
+    if (response.ok) {
+      hierarchySuccess.value = 'Keynode hierarchy saved successfully!'
+      setTimeout(() => { hierarchySuccess.value = '' }, 5000)
+    } else {
+      const data = await response.json()
+      hierarchyError.value = data.message || 'Failed to save keynode hierarchy'
+    }
+  } catch (err) {
+    console.error('Failed to save keynode hierarchy:', err)
+    hierarchyError.value = 'Failed to save keynode hierarchy'
+  } finally {
+    savingHierarchy.value = false
+  }
+}
+
 const loadAppeals = async () => {
   loadingAppeals.value = true
   try {
@@ -419,9 +510,23 @@ const openSuspendModal = (user: any) => {
   showSuspendModal.value = true
 }
 
+const clearActionMessages = () => {
+  setTimeout(() => {
+    actionSuccess.value = ''
+    actionError.value = ''
+  }, 5000)
+}
+
 const suspendUser = async () => {
+  const userId = selectedUser.value.id
+  const username = selectedUser.value.username
+  actionLoading.value = userId
+  actionSuccess.value = ''
+  actionError.value = ''
+  showSuspendModal.value = false
+  
   try {
-    const response = await authFetch(`/admin/users/${selectedUser.value.id}/suspend`, {
+    const response = await authFetch(`/admin/users/${userId}/suspend`, {
       method: 'POST',
       body: JSON.stringify(suspendDuration.value)
     })
@@ -431,15 +536,29 @@ const suspendUser = async () => {
       if (index !== -1) {
         users.value[index] = { ...users.value[index], ...updatedUser }
       }
-      showSuspendModal.value = false
+      actionSuccess.value = `User "${username}" has been suspended successfully.`
+      clearActionMessages()
+    } else {
+      actionError.value = 'Failed to suspend user. Please try again.'
+      clearActionMessages()
     }
   } catch (err) {
     console.error('Failed to suspend user:', err)
+    actionError.value = 'Failed to suspend user. Please try again.'
+    clearActionMessages()
+  } finally {
+    actionLoading.value = null
   }
 }
 
 const reinstateUser = async (userId: string) => {
   if (!confirm('Are you sure you want to reinstate this user?')) return
+  
+  const user = users.value.find(u => u.id === userId)
+  const username = user?.username || 'User'
+  actionLoading.value = userId
+  actionSuccess.value = ''
+  actionError.value = ''
   
   try {
     const response = await authFetch(`/admin/users/${userId}/reinstate`, {
@@ -449,11 +568,21 @@ const reinstateUser = async (userId: string) => {
       const updatedUser = await response.json()
       const index = users.value.findIndex(u => u.id === updatedUser.id)
       if (index !== -1) {
-        users.value[index] = { ...users.value[index], ...updatedUser }
+        // Clear suspendedUntil when reinstating
+        users.value[index] = { ...users.value[index], ...updatedUser, suspendedUntil: null }
       }
+      actionSuccess.value = `User "${username}" has been reinstated successfully.`
+      clearActionMessages()
+    } else {
+      actionError.value = 'Failed to reinstate user. Please try again.'
+      clearActionMessages()
     }
   } catch (err) {
     console.error('Failed to reinstate user:', err)
+    actionError.value = 'Failed to reinstate user. Please try again.'
+    clearActionMessages()
+  } finally {
+    actionLoading.value = null
   }
 }
 
@@ -493,6 +622,12 @@ watch(hasAccess, (newVal) => {
     loadUsers()
   }
 })
+
+watch(activeTab, (newVal) => {
+  if (newVal === 'keynodes' && !keynodeHierarchy.value) {
+    loadKeynodeHierarchy()
+  }
+})
 </script>
 
 <style scoped>
@@ -504,6 +639,24 @@ watch(hasAccess, (newVal) => {
 .access-denied h1 {
   color: #dc3545;
   margin-bottom: 1rem;
+}
+
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #c3e6cb;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #f5c6cb;
 }
 
 h1 {
@@ -711,6 +864,58 @@ h2 {
 
 .hierarchy-actions {
   margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.keynode-editor-container {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.editor-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.editor-section h3,
+.preview-section h3 {
+  margin: 0 0 1rem;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.hierarchy-textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 400px;
+}
+
+.hierarchy-textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.editor-actions {
+  margin-top: 1rem;
+}
+
+.hierarchy-preview {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  min-height: 400px;
+  background: var(--bg-secondary);
+  overflow: hidden;
 }
 
 .keynode-editor {

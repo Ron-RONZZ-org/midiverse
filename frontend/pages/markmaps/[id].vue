@@ -18,7 +18,7 @@
             {{ isFullscreen ? 'Exit Fullscreen' : 'Fullscreen' }}
           </button>
           <button @click="copyDirectLink" class="btn btn-info">Copy Direct Link</button>
-          <button @click="showComplaintModal = true" class="btn btn-warning" title="Report this content">
+          <button @click="handleReportClick" class="btn btn-danger" title="Report this content">
             ⚠️ Report
           </button>
           <template v-if="isOwner">
@@ -35,7 +35,7 @@
         <button v-if="isFullscreen" @click="showShareModal = true" class="share-btn" title="Share">
           🔗
         </button>
-        <button v-if="isFullscreen" @click="showComplaintModal = true" class="report-btn" title="Report this content">
+        <button v-if="isFullscreen" @click="handleReportClick" class="report-btn" title="Report this content">
           ⚠️
         </button>
         <ClientOnly>
@@ -124,6 +124,19 @@
           </div>
         </div>
       </div>
+
+      <!-- Login Prompt Modal -->
+      <div v-if="showLoginPrompt" class="modal-overlay" @click.self="showLoginPrompt = false">
+        <div class="modal">
+          <h2>Login Required</h2>
+          <p class="modal-description">You need to be logged in to report content. Please log in or create an account to continue.</p>
+          <div class="modal-actions">
+            <button @click="showLoginPrompt = false" class="btn btn-secondary">Cancel</button>
+            <NuxtLink :to="`/login?redirect=${encodeURIComponent($route.fullPath)}`" class="btn">Log In</NuxtLink>
+            <NuxtLink to="/signup" class="btn btn-info">Sign Up</NuxtLink>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -132,7 +145,7 @@
 const route = useRoute()
 const router = useRouter()
 const { authFetch } = useApi()
-const { currentUser } = useAuth()
+const { currentUser, isAuthenticated } = useAuth()
 
 const markmap = ref<any>(null)
 const loading = ref(true)
@@ -143,6 +156,7 @@ const linkInput = ref<HTMLInputElement | null>(null)
 
 // Complaint modal state
 const showComplaintModal = ref(false)
+const showLoginPrompt = ref(false)
 const complaintForm = ref({
   reason: '',
   explanation: ''
@@ -162,6 +176,14 @@ const directLink = computed(() => {
   const baseUrl = window.location.origin
   return `${baseUrl}/markmaps/${markmap.value.author.username}/${markmap.value.slug}`
 })
+
+const handleReportClick = () => {
+  if (!isAuthenticated.value) {
+    showLoginPrompt.value = true
+  } else {
+    showComplaintModal.value = true
+  }
+}
 
 const wordCount = computed(() => {
   return complaintForm.value.explanation.trim().split(/\s+/).filter(w => w.length > 0).length
@@ -492,6 +514,24 @@ onMounted(() => {
   background: #5a6268;
 }
 
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+}
+
+.btn-info {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-info:hover {
+  background: #138496;
+}
+
 .btn-warning {
   background: #ffc107;
   color: #212529;
@@ -512,8 +552,8 @@ onMounted(() => {
   top: 10px;
   right: 110px;
   z-index: 1000;
-  background: rgba(255, 193, 7, 0.9);
-  color: #212529;
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
   border: none;
   border-radius: 50%;
   width: 40px;
@@ -527,7 +567,7 @@ onMounted(() => {
 }
 
 .report-btn:hover {
-  background: rgba(255, 193, 7, 1);
+  background: rgba(220, 53, 69, 1);
 }
 
 .form-group {

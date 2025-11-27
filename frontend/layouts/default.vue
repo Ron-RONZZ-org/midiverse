@@ -15,6 +15,8 @@
             <template v-if="isAuthenticated">
               <NuxtLink to="/editor">Create</NuxtLink>
               <button @click="showImportModal = true" class="btn btn-info">Import</button>
+              <NuxtLink v-if="isContentManager" to="/content-management" class="btn btn-purple">Content</NuxtLink>
+              <NuxtLink v-if="isAdministrator" to="/admin" class="btn btn-admin">Admin</NuxtLink>
               <NuxtLink :to="dashboardUrl" class="btn">Dashboard</NuxtLink>
               <button @click="handleLogout" class="btn btn-secondary">Logout</button>
             </template>
@@ -84,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-const { isAuthenticated, currentUser, logout } = useAuth()
+const { isAuthenticated, currentUser, isContentManager, isAdministrator, logout } = useAuth()
 const { authFetch } = useApi()
 const { initTheme, setTheme } = useTheme()
 
@@ -302,6 +304,28 @@ watch(showImportModal, (newVal) => {
 
 .btn-info:hover {
   background: #138496;
+}
+
+.btn-purple {
+  background: #6f42c1;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-purple:hover {
+  background: #5a32a3;
+}
+
+.btn-admin {
+  background: #dc3545;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-admin:hover {
+  background: #c82333;
 }
 
 main {

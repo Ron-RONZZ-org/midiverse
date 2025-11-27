@@ -185,11 +185,14 @@
       <!-- Keynodes Tab -->
       <div v-if="activeTab === 'keynodes'" class="tab-content">
         <h2>Keynode Hierarchy Editor</h2>
-        <p class="description">Edit the keynode hierarchy tree like a regular markmap. Changes affect the global keynode structure.</p>
+        <p class="description">View and preview the keynode hierarchy. For individual keynode edits, use the <NuxtLink to="/content-management">Content Management</NuxtLink> panel.</p>
         
         <div class="hierarchy-actions">
           <NuxtLink to="/keynode" class="btn btn-secondary" target="_blank">
             View Current Hierarchy
+          </NuxtLink>
+          <NuxtLink to="/content-management" class="btn btn-purple">
+            Manage Keynodes
           </NuxtLink>
           <button @click="loadKeynodeHierarchy" class="btn btn-info" :disabled="loadingHierarchy">
             {{ loadingHierarchy ? 'Loading...' : 'Refresh' }}
@@ -203,21 +206,17 @@
           <div v-if="loadingHierarchy" class="loading">Loading keynode hierarchy...</div>
           <div v-else class="editor-wrapper">
             <div class="editor-section">
-              <h3>Hierarchy Markdown</h3>
+              <h3>Hierarchy Markdown (Read-Only Preview)</h3>
               <textarea 
                 v-model="keynodeHierarchy" 
                 class="hierarchy-textarea"
                 placeholder="Loading keynode hierarchy..."
                 rows="20"
+                readonly
               ></textarea>
-              <div class="editor-actions">
-                <button @click="saveKeynodeHierarchy" class="btn btn-primary" :disabled="savingHierarchy">
-                  {{ savingHierarchy ? 'Saving...' : 'Save Changes' }}
-                </button>
-              </div>
             </div>
             <div class="preview-section">
-              <h3>Preview</h3>
+              <h3>Visual Preview</h3>
               <div class="hierarchy-preview">
                 <ClientOnly>
                   <MarkmapViewer 
@@ -451,15 +450,16 @@ const saveKeynodeHierarchy = async () => {
     })
     
     if (response.ok) {
-      hierarchySuccess.value = 'Keynode hierarchy saved successfully!'
-      setTimeout(() => { hierarchySuccess.value = '' }, 5000)
+      const data = await response.json()
+      hierarchySuccess.value = data.message || 'Hierarchy received. Use Content Management for individual keynode edits.'
+      setTimeout(() => { hierarchySuccess.value = '' }, 8000)
     } else {
       const data = await response.json()
-      hierarchyError.value = data.message || 'Failed to save keynode hierarchy'
+      hierarchyError.value = data.message || 'Failed to process keynode hierarchy'
     }
   } catch (err) {
     console.error('Failed to save keynode hierarchy:', err)
-    hierarchyError.value = 'Failed to save keynode hierarchy'
+    hierarchyError.value = 'Failed to process keynode hierarchy'
   } finally {
     savingHierarchy.value = false
   }
@@ -960,6 +960,15 @@ h2 {
 
 .btn-info:hover {
   background: #138496;
+}
+
+.btn-purple {
+  background: #6f42c1;
+  color: white;
+}
+
+.btn-purple:hover {
+  background: #5a32a3;
 }
 
 .btn-danger {

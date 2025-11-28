@@ -213,6 +213,13 @@ describe('UsersService', () => {
           authorId: 'user-1',
           deletedAt: { not: null },
         },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
         orderBy: { deletedAt: 'desc' },
       });
     });

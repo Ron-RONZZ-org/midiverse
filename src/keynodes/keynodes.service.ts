@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateKeynodeDto } from './dto/create-keynode.dto';
 
@@ -6,15 +10,37 @@ import { CreateKeynodeDto } from './dto/create-keynode.dto';
 export class KeynodesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createKeynodeDto: CreateKeynodeDto) {
+  /**
+   * Create a new keynode.
+   * Regular users create unverified keynodes.
+   * Content managers and admins can create verified keynodes directly.
+   */
+  async create(
+    createKeynodeDto: CreateKeynodeDto,
+    userId?: string,
+    userRole?: 'user' | 'content_manager' | 'administrator',
+  ) {
+    // Determine initial status based on user role
+    const status =
+      userRole === 'content_manager' || userRole === 'administrator'
+        ? 'verified'
+        : 'unverified';
+
     return this.prisma.keynode.create({
-      data: createKeynodeDto,
+      data: {
+        ...createKeynodeDto,
+        status,
+        createdById: userId,
+      },
       include: {
         parent: {
           select: { id: true, name: true, category: true },
         },
         children: {
           select: { id: true, name: true, category: true },
+        },
+        createdBy: {
+          select: { id: true, username: true },
         },
       },
     });
@@ -95,11 +121,13 @@ export class KeynodesService {
 
   /**
    * Get the full keynode hierarchy as markdown for visualization in a markmap.
+   * Only includes verified keynodes.
    * Optionally includes the sum of reference counts (node + all children).
    */
   async getHierarchy(showReferenceCounts: boolean = false): Promise<string> {
-    // Get all keynodes with their reference counts
+    // Get all verified keynodes with their reference counts
     const keynodes = await this.prisma.keynode.findMany({
+      where: { status: 'verified' },
       select: {
         id: true,
         name: true,
@@ -262,5 +290,255 @@ export class KeynodesService {
     });
 
     return categories.map((c) => c.category);
+  }
+
+  /**
+   * Get all unverified keynodes (for content management)
+   */
+  async findUnverified() {
+    return this.prisma.keynode.findMany({
+      where: { status: 'unverified' },
+      include: {
+        parent: {
+          select: { id: true, name: true, category: true },
+        },
+        createdBy: {
+          select: { id: true, username: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Approve an unverified keynode
+   */
+  async approve(id: string) {
+    const keynode = await this.prisma.keynode.findUnique({
+      where: { id },
+    });
+
+    if (!keynode) {
+      throw new NotFoundException('Keynode not found');
+    }
+
+    if (keynode.status !== 'unverified') {
+      throw new BadRequestException('Keynode is not pending approval');
+    }
+
+    return this.prisma.keynode.update({
+      where: { id },
+      data: { status: 'verified' },
+      include: {
+        parent: {
+          select: { id: true, name: true, category: true },
+        },
+        createdBy: {
+          select: { id: true, username: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Edit and approve an unverified keynode
+   */
+  async editAndApprove(
+    id: string,
+    data: { name?: string; category?: string; parentId?: string | null },
+  ) {
+    const keynode = await this.prisma.keynode.findUnique({
+      where: { id },
+    });
+
+    if (!keynode) {
+      throw new NotFoundException('Keynode not found');
+    }
+
+    if (keynode.status !== 'unverified') {
+      throw new BadRequestException('Keynode is not pending approval');
+    }
+
+    return this.prisma.keynode.update({
+      where: { id },
+      data: {
+        ...data,
+        status: 'verified',
+      },
+      include: {
+        parent: {
+          select: { id: true, name: true, category: true },
+        },
+        createdBy: {
+          select: { id: true, username: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Reject a keynode as duplicate (mark as alias)
+   */
+  async rejectAsDuplicate(id: string, existingKeynodeId: string) {
+    const keynode = await this.prisma.keynode.findUnique({
+      where: { id },
+    });
+
+    if (!keynode) {
+      throw new NotFoundException('Keynode not found');
+    }
+
+    const existingKeynode = await this.prisma.keynode.findUnique({
+      where: { id: existingKeynodeId },
+    });
+
+    if (!existingKeynode) {
+      throw new NotFoundException('Existing keynode not found');
+    }
+
+    // Mark as alias and redirect references
+    return this.prisma.keynode.update({
+      where: { id },
+      data: {
+        status: 'alias',
+        aliasOfId: existingKeynodeId,
+      },
+      include: {
+        aliasOf: {
+          select: { id: true, name: true, category: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Reject a keynode as irrelevant (delete it)
+   */
+  async rejectAsIrrelevant(id: string) {
+    const keynode = await this.prisma.keynode.findUnique({
+      where: { id },
+    });
+
+    if (!keynode) {
+      throw new NotFoundException('Keynode not found');
+    }
+
+    if (keynode.status !== 'unverified') {
+      throw new BadRequestException('Only unverified keynodes can be rejected');
+    }
+
+    return this.prisma.keynode.delete({
+      where: { id },
+    });
+  }
+
+  /**
+   * Update keynode (for admin hierarchy editing)
+   */
+  async update(
+    id: string,
+    data: { name?: string; category?: string; parentId?: string | null },
+  ) {
+    const keynode = await this.prisma.keynode.findUnique({
+      where: { id },
+    });
+
+    if (!keynode) {
+      throw new NotFoundException('Keynode not found');
+    }
+
+    return this.prisma.keynode.update({
+      where: { id },
+      data,
+      include: {
+        parent: {
+          select: { id: true, name: true, category: true },
+        },
+        children: {
+          select: { id: true, name: true, category: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Delete a keynode (admin only)
+   */
+  async delete(id: string) {
+    const keynode = await this.prisma.keynode.findUnique({
+      where: { id },
+    });
+
+    if (!keynode) {
+      throw new NotFoundException('Keynode not found');
+    }
+
+    return this.prisma.keynode.delete({
+      where: { id },
+    });
+  }
+
+  /**
+   * Get all verified keynodes as a tree structure for the admin tree editor.
+   * Returns nodes organized by category with parent-child relationships.
+   */
+  async getTree() {
+    const keynodes = await this.prisma.keynode.findMany({
+      where: { status: 'verified' },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        parentId: true,
+        _count: {
+          select: {
+            markmaps: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return keynodes.map((k) => ({
+      id: k.id,
+      name: k.name,
+      category: k.category,
+      parentId: k.parentId,
+      referenceCount: k._count.markmaps,
+    }));
+  }
+
+  /**
+   * Create a new verified keynode (admin only, for tree editor)
+   */
+  async createVerified(data: {
+    name: string;
+    category: string;
+    parentId?: string | null;
+  }) {
+    // Check for duplicate name
+    const existing = await this.prisma.keynode.findUnique({
+      where: { name: data.name },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        `A keynode with name "${data.name}" already exists`,
+      );
+    }
+
+    return this.prisma.keynode.create({
+      data: {
+        name: data.name,
+        category: data.category,
+        parentId: data.parentId || null,
+        status: 'verified',
+      },
+      include: {
+        parent: {
+          select: { id: true, name: true, category: true },
+        },
+      },
+    });
   }
 }

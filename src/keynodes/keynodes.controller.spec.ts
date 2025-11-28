@@ -46,19 +46,25 @@ describe('KeynodesController', () => {
       const expectedResult = {
         id: 'keynode-id',
         ...createDto,
+        status: 'unverified',
         childNodeCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
         parent: null,
         children: [],
+        createdBy: null,
       };
 
       mockKeynodesService.create.mockResolvedValue(expectedResult);
 
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, undefined);
 
       expect(result).toEqual(expectedResult);
-      expect(mockKeynodesService.create).toHaveBeenCalledWith(createDto);
+      expect(mockKeynodesService.create).toHaveBeenCalledWith(
+        createDto,
+        undefined,
+        undefined,
+      );
     });
   });
 

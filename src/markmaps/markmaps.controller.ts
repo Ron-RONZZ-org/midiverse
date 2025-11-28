@@ -25,6 +25,7 @@ import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { GetTagSuggestionsDto } from './dto/get-tag-suggestions.dto';
 import { GetTagStatisticsDto } from './dto/get-tag-statistics.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { ActiveUserGuard } from '../common/guards/active-user.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserFromToken } from '../common/interfaces/auth.interface';
 
@@ -37,7 +38,7 @@ export class MarkmapsController {
   constructor(private readonly markmapsService: MarkmapsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   create(
     @Body(ValidationPipe) createMarkmapDto: CreateMarkmapDto,
     @CurrentUser() user: UserFromToken,
@@ -67,7 +68,7 @@ export class MarkmapsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   update(
     @Param('id') id: string,
     @Body(ValidationPipe) updateMarkmapDto: UpdateMarkmapDto,
@@ -83,7 +84,7 @@ export class MarkmapsController {
   }
 
   @Post(':id/duplicate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   duplicate(@Param('id') id: string, @CurrentUser() user: UserFromToken) {
     return this.markmapsService.duplicate(id, user.id);
   }
@@ -112,7 +113,7 @@ export class MarkmapsController {
   }
 
   @Post('import')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveUserGuard)
   @UseInterceptors(FilesInterceptor('files'))
   async importMarkmaps(
     @UploadedFiles() files: Array<any>,

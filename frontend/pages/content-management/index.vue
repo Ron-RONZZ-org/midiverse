@@ -734,7 +734,6 @@ h2 {
   color: #6c757d;
   font-style: italic;
 }
-}
 
 .explanation {
   background: var(--bg-secondary);

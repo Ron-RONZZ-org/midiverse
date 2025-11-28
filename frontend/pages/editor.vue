@@ -23,7 +23,7 @@
     </div>
 
     <!-- Error state when markmap failed to load -->
-    <div v-else-if="editMode && error && !form.title" class="card error-card">
+    <div v-else-if="loadingError" class="card error-card">
       <p>{{ error }}</p>
       <NuxtLink :to="cancelUrl" class="btn btn-secondary">Go Back</NuxtLink>
     </div>
@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div v-if="isAuthenticated && !loadingMarkmap && !(editMode && error && !form.title)" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
+    <div v-if="shouldShowEditor" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
       <div class="editor-panel card">
         <h2>Editor</h2>
         
@@ -367,8 +367,14 @@ const editMode = ref(false)
 const markmapId = ref('')
 const loading = ref(false)
 const loadingMarkmap = ref(false)
+const loadingError = ref(false)
 const error = ref('')
 const success = ref('')
+
+// Computed property for whether to show the editor form
+const shouldShowEditor = computed(() => {
+  return isAuthenticated.value && !loadingMarkmap.value && !loadingError.value
+})
 
 // Retired markmap state (for complaint banner)
 const isRetiredMarkmap = ref(false)
@@ -474,8 +480,10 @@ const loadMarkmap = async (id: string) => {
     const response = await authFetch(`/markmaps/${id}`)
     if (response.ok) {
       const markmap = await response.json()
-      if (!markmap) {
+      // Validate that we received a valid markmap object with required properties
+      if (!markmap || typeof markmap !== 'object' || !('id' in markmap)) {
         error.value = 'Markmap data not found'
+        loadingError.value = true
         return
       }
       form.value = {
@@ -504,9 +512,11 @@ const loadMarkmap = async (id: string) => {
       }
     } else {
       error.value = 'Failed to load markmap'
+      loadingError.value = true
     }
   } catch (err) {
     error.value = 'Failed to load markmap'
+    loadingError.value = true
   } finally {
     loadingMarkmap.value = false
   }

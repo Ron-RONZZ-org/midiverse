@@ -166,11 +166,13 @@ export class MarkmapsService {
     const where = userId
       ? {
           OR: [
-            { isPublic: true, deletedAt: null },
+            // Public and not retired markmaps
+            { isPublic: true, deletedAt: null, isRetired: false },
+            // User's own markmaps (including retired ones)
             { authorId: userId, deletedAt: null },
           ],
         }
-      : { isPublic: true, deletedAt: null };
+      : { isPublic: true, deletedAt: null, isRetired: false };
 
     return this.prisma.markmap.findMany({
       where,
@@ -276,7 +278,12 @@ export class MarkmapsService {
       throw new NotFoundException('Markmap not found');
     }
 
-    if (!markmap.isPublic && (!userId || markmap.authorId !== userId)) {
+    // Retired markmaps can only be viewed by the author
+    if (markmap.isRetired) {
+      if (!userId || markmap.authorId !== userId) {
+        throw new ForbiddenException('This markmap has been retired');
+      }
+    } else if (!markmap.isPublic && (!userId || markmap.authorId !== userId)) {
       throw new ForbiddenException('Access denied');
     }
 
@@ -356,7 +363,12 @@ export class MarkmapsService {
       throw new NotFoundException('Markmap not found in this series');
     }
 
-    if (!markmap.isPublic && (!userId || markmap.authorId !== userId)) {
+    // Retired markmaps can only be viewed by the author
+    if (markmap.isRetired) {
+      if (!userId || markmap.authorId !== userId) {
+        throw new ForbiddenException('This markmap has been retired');
+      }
+    } else if (!markmap.isPublic && (!userId || markmap.authorId !== userId)) {
       throw new ForbiddenException('Access denied');
     }
 
@@ -786,6 +798,7 @@ ${markmapConfig}
     interface WhereCondition {
       deletedAt?: null;
       isPublic?: boolean;
+      isRetired?: boolean;
       language?: string;
       authorId?: string;
       tags?: {
@@ -809,12 +822,13 @@ ${markmapConfig}
         text?: { contains: string; mode: 'insensitive' };
         authorId?: string;
         isPublic?: boolean;
+        isRetired?: boolean;
         language?: string;
         deletedAt?: null;
       }>;
     }
 
-    const where: WhereCondition = { isPublic: true, deletedAt: null };
+    const where: WhereCondition = { isPublic: true, deletedAt: null, isRetired: false };
 
     if (searchDto.language) {
       where.language = searchDto.language;
@@ -865,10 +879,14 @@ ${markmapConfig}
       ];
     }
 
-    // If user is logged in, also include their private markmaps
+    // If user is logged in, also include their private markmaps (including retired ones)
     if (userId) {
-      where.OR = [{ ...where }, { authorId: userId, deletedAt: null }];
+      // Remove isRetired from base where since we're building OR conditions
+      const publicConditions = { ...where };
+      delete publicConditions.OR;
+      where.OR = [publicConditions, { authorId: userId, deletedAt: null }];
       delete where.isPublic;
+      delete where.isRetired;
     }
 
     // Determine ordering based on sortBy parameter

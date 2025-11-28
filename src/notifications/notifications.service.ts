@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
 
+const DEFAULT_NOTIFICATION_LIMIT = 50;
+
 @Injectable()
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
@@ -40,7 +42,7 @@ export class NotificationsService {
     return this.prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: DEFAULT_NOTIFICATION_LIMIT,
     });
   }
 
@@ -48,9 +50,10 @@ export class NotificationsService {
    * Get unread count for a user
    */
   async getUnreadCount(userId: string) {
-    return this.prisma.notification.count({
+    const count = await this.prisma.notification.count({
       where: { userId, isRead: false },
     });
+    return { count };
   }
 
   /**

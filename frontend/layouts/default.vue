@@ -103,7 +103,8 @@ const loadNotificationCount = async () => {
   try {
     const response = await authFetch('/notifications/unread-count')
     if (response.ok) {
-      unreadNotificationCount.value = await response.json()
+      const data = await response.json()
+      unreadNotificationCount.value = data.count
     }
   } catch (err) {
     console.error('Failed to load notification count', err)

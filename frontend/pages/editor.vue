@@ -415,7 +415,7 @@ const keynodeSuggestions = ref<any[]>([])
 const showKeynoteSuggestions = ref(false)
 const selectedKeynoteSuggestionIndex = ref(0)
 let keynodeDebounceTimer: NodeJS.Timeout | null = null
-let keynoteStartPos = 0
+let keynodeStartPos = 0
 
 // Keynode creation modal
 const showCreateKeynodeModal = ref(false)

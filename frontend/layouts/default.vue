@@ -79,7 +79,8 @@
     
     <footer class="footer">
       <div class="container">
-        <p>&copy; 2025 Midiverse. Built with Nuxt.js and NestJS.</p>
+        <p>&copy; 2025 The Ron Company. GNU Affero General Public License 3.0 .</p>
+        <p>Made for the world with love from 🇫🇷</p>
       </div>
     </footer>
   </div>

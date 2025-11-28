@@ -15,6 +15,10 @@
             <template v-if="isAuthenticated">
               <NuxtLink to="/editor">Create</NuxtLink>
               <button @click="showImportModal = true" class="btn btn-info">Import</button>
+              <NuxtLink to="/notifications" class="btn btn-notification">
+                🔔
+                <span v-if="unreadNotificationCount > 0" class="notification-badge">{{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}</span>
+              </NuxtLink>
               <NuxtLink v-if="isContentManager" to="/content-management" class="btn btn-purple">Content</NuxtLink>
               <NuxtLink v-if="isAdministrator" to="/admin" class="btn btn-admin">Admin</NuxtLink>
               <NuxtLink :to="dashboardUrl" class="btn">Dashboard</NuxtLink>
@@ -91,11 +95,26 @@ const { isAuthenticated, currentUser, isContentManager, isAdministrator, logout 
 const { authFetch } = useApi()
 const { initTheme, setTheme } = useTheme()
 
+// Notification count
+const unreadNotificationCount = ref(0)
+
+const loadNotificationCount = async () => {
+  if (!isAuthenticated.value) return
+  try {
+    const response = await authFetch('/notifications/unread-count')
+    if (response.ok) {
+      unreadNotificationCount.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to load notification count', err)
+  }
+}
+
 // Initialize theme on mount and load user preferences
 onMounted(async () => {
   initTheme()
   
-  // If user is authenticated, load their theme preference
+  // If user is authenticated, load their theme preference and notification count
   if (isAuthenticated.value) {
     try {
       const response = await authFetch('/users/preferences')
@@ -106,6 +125,18 @@ onMounted(async () => {
     } catch (err) {
       console.error('Failed to load preferences', err)
     }
+    
+    // Load notification count
+    loadNotificationCount()
+  }
+})
+
+// Reload notification count when auth changes
+watch(isAuthenticated, (val) => {
+  if (val) {
+    loadNotificationCount()
+  } else {
+    unreadNotificationCount.value = 0
   }
 })
 
@@ -305,6 +336,33 @@ watch(showImportModal, (newVal) => {
 
 .btn-info:hover {
   background: #138496;
+}
+
+.btn-notification {
+  position: relative;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 0.75rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.btn-notification:hover {
+  background: var(--bg-secondary);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #dc3545;
+  color: white;
+  font-size: 0.65rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  font-weight: bold;
 }
 
 .btn-purple {

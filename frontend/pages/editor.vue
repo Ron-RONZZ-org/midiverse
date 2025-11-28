@@ -17,7 +17,30 @@
       <NuxtLink to="/login" class="btn">Login</NuxtLink>
     </div>
 
-    <div v-else class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
+    <!-- Complaint Banner for Retired Markmaps -->
+    <div v-else-if="isRetiredMarkmap" class="complaint-banner" :class="{ expanded: complaintBannerExpanded }">
+      <div class="complaint-banner-header" @click="complaintBannerExpanded = !complaintBannerExpanded">
+        <div class="banner-title">
+          <span class="banner-icon">⚠️</span>
+          <span>This markmap requires editing due to a sustained complaint</span>
+        </div>
+        <button type="button" class="expand-btn">
+          {{ complaintBannerExpanded ? '▲ Collapse' : '▼ Expand' }}
+        </button>
+      </div>
+      <div v-if="complaintBannerExpanded" class="complaint-banner-content">
+        <div v-if="complaintInfo">
+          <p><strong>Complaint Reason:</strong> {{ formatComplaintReason(complaintInfo.reason) }}</p>
+          <p v-if="complaintInfo.explanation"><strong>Details:</strong> {{ complaintInfo.explanation }}</p>
+          <p v-if="complaintInfo.resolution"><strong>Resolution Notes:</strong> {{ complaintInfo.resolution }}</p>
+        </div>
+        <p class="banner-instruction">
+          Please edit your content to address the issue, then save. Your markmap will be submitted for content management review before being reinstated.
+        </p>
+      </div>
+    </div>
+
+    <div v-if="isAuthenticated" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
       <div class="editor-panel card">
         <h2>Editor</h2>
         
@@ -335,6 +358,22 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 
+// Retired markmap state (for complaint banner)
+const isRetiredMarkmap = ref(false)
+const complaintBannerExpanded = ref(true)
+const complaintInfo = ref<any>(null)
+
+const formatComplaintReason = (reason: string): string => {
+  const labels: Record<string, string> = {
+    harassment: 'Harassment',
+    false_information: 'False Information',
+    author_right_infringement: 'Copyright Infringement',
+    inciting_violence_hate: 'Inciting Violence/Hate',
+    discriminatory_abusive: 'Discriminatory/Abusive Content'
+  }
+  return labels[reason] || reason
+}
+
 const form = ref({
   title: '',
   text: '',
@@ -376,7 +415,7 @@ const keynodeSuggestions = ref<any[]>([])
 const showKeynoteSuggestions = ref(false)
 const selectedKeynoteSuggestionIndex = ref(0)
 let keynodeDebounceTimer: NodeJS.Timeout | null = null
-let keynodeStartPos = 0
+let keynoteStartPos = 0
 
 // Keynode creation modal
 const showCreateKeynodeModal = ref(false)
@@ -432,6 +471,18 @@ const loadMarkmap = async (id: string) => {
         colorFreezeLevel: markmap.colorFreezeLevel,
         initialExpandLevel: markmap.initialExpandLevel,
         isPublic: markmap.isPublic
+      }
+      
+      // Check if markmap is retired and needs editing
+      if (markmap.isRetired && markmap.reviewStatus === 'action_required') {
+        isRetiredMarkmap.value = true
+        // Load the complaint info
+        if (markmap.complaints && markmap.complaints.length > 0) {
+          const sustainedComplaint = markmap.complaints.find((c: any) => c.status === 'sustained')
+          if (sustainedComplaint) {
+            complaintInfo.value = sustainedComplaint
+          }
+        }
       }
     }
   } catch (err) {
@@ -1412,6 +1463,71 @@ h1 {
   font-size: 0.75rem;
   color: var(--text-secondary);
   margin-left: 0.5rem;
+}
+
+/* Complaint Banner Styles */
+.complaint-banner {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.complaint-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #ffc107;
+  cursor: pointer;
+  color: #212529;
+}
+
+.banner-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+}
+
+.banner-icon {
+  font-size: 1.25rem;
+}
+
+.expand-btn {
+  background: transparent;
+  border: none;
+  color: #212529;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.expand-btn:hover {
+  text-decoration: underline;
+}
+
+.complaint-banner-content {
+  padding: 1.5rem;
+  background: #fff3cd;
+  color: #212529;
+}
+
+.complaint-banner-content p {
+  margin: 0 0 0.75rem;
+}
+
+.complaint-banner-content p:last-child {
+  margin-bottom: 0;
+}
+
+.banner-instruction {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d4a106;
+  font-style: italic;
+  color: #6c757d;
 }
 
 </style>

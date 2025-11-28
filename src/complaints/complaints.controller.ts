@@ -61,6 +61,16 @@ export class ComplaintsController {
   }
 
   /**
+   * Get markmaps pending review (edited after retirement)
+   */
+  @Get('pending-review')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('content_manager', 'administrator')
+  findPendingReview() {
+    return this.complaintsService.findPendingReview();
+  }
+
+  /**
    * Get a specific complaint (content managers and admins)
    */
   @Get(':id')
@@ -82,6 +92,26 @@ export class ComplaintsController {
     @CurrentUser() user: UserFromToken,
   ) {
     return this.complaintsService.resolve(id, resolveComplaintDto, user.id);
+  }
+
+  /**
+   * Review an edited markmap (reinstate or send back for further edits)
+   */
+  @Patch('markmaps/:markmapId/review')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('content_manager', 'administrator')
+  reviewMarkmap(
+    @Param('markmapId') markmapId: string,
+    @Body(ValidationPipe)
+    body: { action: 'reinstate' | 'needs_edit'; resolution: string },
+    @CurrentUser() user: UserFromToken,
+  ) {
+    return this.complaintsService.reviewMarkmap(
+      markmapId,
+      body.action,
+      body.resolution,
+      user.id,
+    );
   }
 
   /**

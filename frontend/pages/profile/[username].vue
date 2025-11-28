@@ -65,10 +65,24 @@
             class="markmap-card-wrapper"
           >
             <NuxtLink 
-              :to="`/markmaps/${markmap.id}`"
+              :to="markmap.isRetired && markmap.reviewStatus === 'action_required' ? `/editor?id=${markmap.id}` : `/markmaps/${markmap.id}`"
               class="markmap-card"
             >
-              <h3>{{ markmap.title }}</h3>
+              <div class="card-header">
+                <h3>{{ markmap.title }}</h3>
+                <!-- Status tags for own profile -->
+                <div v-if="profile.isOwnProfile" class="status-tags">
+                  <span v-if="markmap.isRetired && markmap.reviewStatus === 'action_required'" class="status-tag status-action-required">
+                    Action Required
+                  </span>
+                  <span v-else-if="markmap.isRetired && markmap.reviewStatus === 'pending_review'" class="status-tag status-pending">
+                    Pending Review
+                  </span>
+                  <span v-else-if="markmap.isPublic && !markmap.isRetired" class="status-tag status-published">
+                    Published
+                  </span>
+                </div>
+              </div>
               <p class="meta">
                 {{ new Date(markmap.createdAt).toLocaleDateString() }}
                 {{ markmap.isPublic ? '• Public' : '• Private' }}
@@ -799,6 +813,52 @@ a.markmap-card:hover {
   border-radius: 20px;
   font-size: 0.85rem;
   transition: background-color 0.3s ease;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.card-header h3 {
+  margin: 0 0 0.5rem 0;
+  flex: 1;
+}
+
+.status-tags {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.status-published {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-action-required {
+  background-color: #dc3545;
+  color: white;
+}
+
+.status-pending {
+  background-color: #ffc107;
+  color: #212529;
 }
 
 .markmap-actions {

@@ -268,6 +268,13 @@ export class UsersService {
         authorId: userId,
         deletedAt: includeDeleted ? undefined : null,
       },
+      include: {
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -277,6 +284,13 @@ export class UsersService {
       where: {
         authorId: userId,
         deletedAt: { not: null },
+      },
+      include: {
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
       orderBy: { deletedAt: 'desc' },
     });

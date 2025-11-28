@@ -10,6 +10,7 @@ import { SeriesModule } from './series/series.module';
 import { KeynodesModule } from './keynodes/keynodes.module';
 import { ComplaintsModule } from './complaints/complaints.module';
 import { AdminModule } from './admin/admin.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AdminModule } from './admin/admin.module';
     KeynodesModule,
     ComplaintsModule,
     AdminModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

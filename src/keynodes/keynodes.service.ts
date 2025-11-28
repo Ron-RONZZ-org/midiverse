@@ -511,14 +511,20 @@ export class KeynodesService {
   /**
    * Create a new verified keynode (admin only, for tree editor)
    */
-  async createVerified(data: { name: string; category: string; parentId?: string | null }) {
+  async createVerified(data: {
+    name: string;
+    category: string;
+    parentId?: string | null;
+  }) {
     // Check for duplicate name
     const existing = await this.prisma.keynode.findUnique({
       where: { name: data.name },
     });
-    
+
     if (existing) {
-      throw new BadRequestException(`A keynode with name "${data.name}" already exists`);
+      throw new BadRequestException(
+        `A keynode with name "${data.name}" already exists`,
+      );
     }
 
     return this.prisma.keynode.create({

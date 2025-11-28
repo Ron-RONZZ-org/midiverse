@@ -2,9 +2,12 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateComplaintDto } from './dto/create-complaint.dto';
 import {
   ResolveComplaintDto,
@@ -16,6 +19,8 @@ export class ComplaintsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    @Inject(forwardRef(() => NotificationsService))
+    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -103,6 +108,32 @@ export class ComplaintsService {
   }
 
   /**
+   * Get markmaps pending review (edited after retirement)
+   */
+  async findPendingReview() {
+    return this.prisma.markmap.findMany({
+      where: { reviewStatus: 'pending_review' },
+      include: {
+        author: {
+          select: { id: true, username: true, email: true },
+        },
+        complaints: {
+          where: { status: 'sustained' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            reason: true,
+            explanation: true,
+            resolution: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'asc' },
+    });
+  }
+
+  /**
    * Get a specific complaint
    */
   async findOne(id: string) {
@@ -133,6 +164,20 @@ export class ComplaintsService {
     }
 
     return complaint;
+  }
+
+  /**
+   * Format complaint reason for display
+   */
+  private formatComplaintReason(reason: string): string {
+    const labels: Record<string, string> = {
+      harassment: 'Harassment',
+      false_information: 'False Information',
+      author_right_infringement: 'Copyright Infringement',
+      inciting_violence_hate: 'Inciting Violence/Hate',
+      discriminatory_abusive: 'Discriminatory/Abusive Content',
+    };
+    return labels[reason] || reason;
   }
 
   /**
@@ -185,27 +230,58 @@ export class ComplaintsService {
       },
     });
 
-    // If sustained, retire the markmap from public view
+    // If sustained, retire the markmap from public view and set review status
     if (resolveDto.action === ComplaintResolutionAction.SUSTAIN) {
       await this.prisma.markmap.update({
         where: { id: complaint.markmapId },
-        data: { isRetired: true },
+        data: {
+          isRetired: true,
+          reviewStatus: 'action_required',
+        },
       });
 
-      // Notify the markmap author
+      // Create in-app notification for the markmap author
+      if (complaint.markmap.author?.id) {
+        await this.notificationsService.create(
+          complaint.markmap.author.id,
+          'complaint_sustained',
+          'Markmap Retired - Action Required',
+          `Your markmap "${complaint.markmap.title}" has been retired from public view due to a sustained complaint.\n\nReason: ${this.formatComplaintReason(complaint.reason)}\nResolution: ${resolveDto.resolution || 'No additional details provided.'}\n\nPlease edit your markmap to address the issue and resubmit for review.`,
+          {
+            markmapId: complaint.markmapId,
+            complaintId: id,
+          },
+        );
+      }
+
+      // Notify the markmap author via email
       if (complaint.markmap.author?.email) {
         try {
           await this.emailService.sendEmail(
             complaint.markmap.author.email,
-            'Your markmap has been retired',
-            `Your markmap "${complaint.markmap.title}" has been retired from public view due to a sustained complaint.\n\nReason: ${complaint.reason}\nResolution: ${resolveDto.resolution || 'No additional details provided.'}`,
+            'Your markmap has been retired - Action Required',
+            `Your markmap "${complaint.markmap.title}" has been retired from public view due to a sustained complaint.\n\nReason: ${this.formatComplaintReason(complaint.reason)}\nResolution: ${resolveDto.resolution || 'No additional details provided.'}\n\nPlease log in to edit your markmap and address the issue, then resubmit for review.`,
           );
         } catch (error) {
           console.error('Failed to send notification email:', error);
         }
       }
     } else {
-      // Notify the complainer that their complaint was dismissed
+      // Create in-app notification for the complaint reporter
+      if (complaint.reporter?.id) {
+        await this.notificationsService.create(
+          complaint.reporter.id,
+          'complaint_dismissed',
+          'Complaint Dismissed',
+          `Your complaint about "${complaint.markmap.title}" has been reviewed and dismissed.\n\nResolution: ${resolveDto.resolution || 'No additional details provided.'}\n\nIf you believe this decision is incorrect, you can appeal to an administrator.`,
+          {
+            markmapId: complaint.markmapId,
+            complaintId: id,
+          },
+        );
+      }
+
+      // Notify the complainer via email that their complaint was dismissed
       if (complaint.reporter?.email) {
         try {
           await this.emailService.sendEmail(
@@ -220,6 +296,104 @@ export class ComplaintsService {
     }
 
     return updatedComplaint;
+  }
+
+  /**
+   * Review an edited markmap (reinstate or send back for further edits)
+   */
+  async reviewMarkmap(
+    markmapId: string,
+    action: 'reinstate' | 'needs_edit',
+    resolution: string,
+    _resolvedById: string, // eslint-disable-line @typescript-eslint/no-unused-vars
+  ) {
+    const markmap = await this.prisma.markmap.findUnique({
+      where: { id: markmapId },
+      include: {
+        author: {
+          select: { id: true, username: true, email: true },
+        },
+      },
+    });
+
+    if (!markmap) {
+      throw new NotFoundException('Markmap not found');
+    }
+
+    if (markmap.reviewStatus !== 'pending_review') {
+      throw new BadRequestException('Markmap is not pending review');
+    }
+
+    if (action === 'reinstate') {
+      // Reinstate the markmap
+      await this.prisma.markmap.update({
+        where: { id: markmapId },
+        data: {
+          isRetired: false,
+          reviewStatus: 'none',
+        },
+      });
+
+      // Create notification for the author
+      if (markmap.author?.id) {
+        await this.notificationsService.create(
+          markmap.author.id,
+          'markmap_reinstated',
+          'Markmap Reinstated',
+          `Your markmap "${markmap.title}" has been reviewed and reinstated to public view.\n\nNotes: ${resolution || 'No additional notes.'}`,
+          { markmapId },
+        );
+      }
+
+      // Send email notification
+      if (markmap.author?.email) {
+        try {
+          await this.emailService.sendEmail(
+            markmap.author.email,
+            'Your markmap has been reinstated',
+            `Your markmap "${markmap.title}" has been reviewed and reinstated to public view.\n\nNotes: ${resolution || 'No additional notes.'}`,
+          );
+        } catch (error) {
+          console.error('Failed to send notification email:', error);
+        }
+      }
+
+      return { success: true, action: 'reinstated' };
+    } else {
+      // Send back for further edits
+      await this.prisma.markmap.update({
+        where: { id: markmapId },
+        data: {
+          reviewStatus: 'action_required',
+        },
+      });
+
+      // Create notification for the author
+      if (markmap.author?.id) {
+        await this.notificationsService.create(
+          markmap.author.id,
+          'markmap_needs_edit',
+          'Markmap Needs Further Edits',
+          `Your markmap "${markmap.title}" has been reviewed and requires further edits before it can be reinstated.\n\nFeedback: ${resolution || 'Please review and update your content.'}`,
+          { markmapId },
+        );
+      }
+
+      // Send email notification
+      if (markmap.author?.email) {
+        try {
+          await this.emailService.sendEmail(
+            markmap.author.email,
+            'Your markmap needs further edits',
+            `Your markmap "${markmap.title}" has been reviewed and requires further edits before it can be reinstated.\n\nFeedback: ${resolution || 'Please review and update your content.'}`,
+          );
+        } catch (error) {
+          console.error('Failed to send notification email:', error);
+        }
+      }
+
+      return { success: true, action: 'needs_edit' };
+    }
   }
 
   /**

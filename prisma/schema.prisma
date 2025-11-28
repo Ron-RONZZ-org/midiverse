@@ -54,9 +54,17 @@ model User {
   createdKeynodes     Keynode[]        @relation("KeynodeCreator")
   complaints          Complaint[]      @relation("ComplaintReporter")
   resolvedComplaints  Complaint[]      @relation("ComplaintResolver")
+  notifications       Notification[]
 
   @@index([role])
   @@index([status])
+}
+
+// Markmap review status enum (for retired markmaps after editing)
+enum MarkmapReviewStatus {
+  none           // Normal published state
+  action_required // Retired due to sustained complaint, needs author edit
+  pending_review  // Edited by author, waiting for content manager review
 }
 
 model Markmap {
@@ -70,6 +78,7 @@ model Markmap {
   initialExpandLevel  Int       @default(-1)
   isPublic            Boolean   @default(true)
   isRetired           Boolean   @default(false)  // Retired from public view due to sustained complaint
+  reviewStatus        MarkmapReviewStatus @default(none)  // Review workflow status
   deletedAt           DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -89,6 +98,7 @@ model Markmap {
   @@index([seriesId])
   @@index([isPublic])
   @@index([isRetired])
+  @@index([reviewStatus])
   @@index([language])
   @@index([deletedAt])
   @@index([slug])
@@ -274,5 +284,37 @@ model Complaint {
   @@index([markmapId])
   @@index([reporterId])
   @@index([status])
+  @@index([createdAt])
+}
+
+// Notification type enum
+enum NotificationType {
+  complaint_sustained    // Your markmap was retired due to a sustained complaint
+  complaint_dismissed    // A complaint you filed was dismissed
+  complaint_appealed     // Notifying admin/reporter of appeal
+  markmap_reinstated     // Your markmap was reinstated after review
+  markmap_needs_edit     // Your edited markmap needs further changes
+  keynode_approved       // Your keynode was approved
+  keynode_rejected       // Your keynode was rejected
+}
+
+model Notification {
+  id            String           @id @default(uuid())
+  type          NotificationType
+  title         String
+  message       String
+  isRead        Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Optional references to related entities
+  markmapId     String?
+  complaintId   String?
+  keynodeId     String?
+  
+  @@index([userId])
+  @@index([isRead])
   @@index([createdAt])
 }

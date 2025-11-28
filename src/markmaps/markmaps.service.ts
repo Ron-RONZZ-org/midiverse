@@ -200,6 +200,19 @@ export class MarkmapsService {
             tag: true,
           },
         },
+        // Include complaints for the author to see complaint reason when editing retired markmaps
+        complaints: {
+          where: { status: 'sustained' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            reason: true,
+            explanation: true,
+            resolution: true,
+            status: true,
+          },
+        },
       },
     });
 
@@ -207,7 +220,12 @@ export class MarkmapsService {
       throw new NotFoundException('Markmap not found');
     }
 
-    if (!markmap.isPublic && (!userId || markmap.authorId !== userId)) {
+    // Retired markmaps can only be viewed by the author
+    if (markmap.isRetired) {
+      if (!userId || markmap.authorId !== userId) {
+        throw new ForbiddenException('This markmap has been retired');
+      }
+    } else if (!markmap.isPublic && (!userId || markmap.authorId !== userId)) {
       throw new ForbiddenException('Access denied');
     }
 
@@ -384,6 +402,14 @@ export class MarkmapsService {
         userId,
       );
       markmapData['slug'] = newSlug;
+    }
+
+    // If this markmap is retired with action_required status, update to pending_review
+    if (
+      markmap.isRetired &&
+      (markmap.reviewStatus as string) === 'action_required'
+    ) {
+      markmapData['reviewStatus'] = 'pending_review';
     }
 
     // If tags are provided, update them

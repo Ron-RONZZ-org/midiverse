@@ -22,6 +22,12 @@
         >
           Complaints ({{ pendingComplaints.length }})
         </button>
+        <button 
+          :class="['tab', { active: activeTab === 'review' }]" 
+          @click="activeTab = 'review'"
+        >
+          Pending Review ({{ pendingReviewMarkmaps.length }})
+        </button>
       </div>
       
       <!-- Keynodes Tab -->
@@ -87,6 +93,81 @@
                 Dismiss
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pending Review Tab -->
+      <div v-if="activeTab === 'review'" class="tab-content">
+        <h2>Markmaps Pending Review</h2>
+        <p class="description">Review edited markmaps that were previously retired due to complaints.</p>
+        
+        <div v-if="loadingReview" class="loading">Loading markmaps...</div>
+        <div v-else-if="pendingReviewMarkmaps.length === 0" class="empty-state">
+          No markmaps pending review.
+        </div>
+        <div v-else class="card-grid">
+          <div v-for="markmap in pendingReviewMarkmaps" :key="markmap.id" class="item-card">
+            <div class="item-header">
+              <h3>{{ markmap.title }}</h3>
+            </div>
+            <div class="item-meta">
+              <span v-if="markmap.author">By: {{ markmap.author.username }}</span>
+              <span>Updated: {{ new Date(markmap.updatedAt).toLocaleDateString() }}</span>
+            </div>
+            <div v-if="markmap.complaints && markmap.complaints.length > 0" class="complaint-info">
+              <strong>Original complaint:</strong> {{ formatReason(markmap.complaints[0].reason) }}
+              <p v-if="markmap.complaints[0].explanation" class="complaint-explanation">
+                {{ markmap.complaints[0].explanation }}
+              </p>
+            </div>
+            <div class="item-actions">
+              <NuxtLink :to="`/markmaps/${markmap.id}`" class="btn btn-info btn-sm" target="_blank">
+                View
+              </NuxtLink>
+              <button @click="openReviewModal(markmap, 'reinstate')" class="btn btn-success btn-sm">
+                Reinstate
+              </button>
+              <button @click="openReviewModal(markmap, 'needs_edit')" class="btn btn-warning btn-sm">
+                Needs Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Review Markmap Modal -->
+      <div v-if="showReviewModal" class="modal-overlay" @click.self="!reviewing && (showReviewModal = false)">
+        <div class="modal">
+          <h2>{{ reviewAction === 'reinstate' ? 'Reinstate Markmap' : 'Request Further Edits' }}</h2>
+          <p v-if="reviewAction === 'reinstate'">
+            This will reinstate the markmap to public view.
+          </p>
+          <p v-else>
+            This will notify the author that further edits are needed before reinstatement.
+          </p>
+          <div v-if="reviewSuccess" class="success">{{ reviewSuccess }}</div>
+          <div v-if="reviewError" class="error">{{ reviewError }}</div>
+          <div class="form-group">
+            <label for="review-resolution">{{ reviewAction === 'reinstate' ? 'Notes (optional)' : 'Feedback for author' }}</label>
+            <textarea 
+              id="review-resolution" 
+              v-model="reviewResolution" 
+              class="form-control"
+              rows="3"
+              :placeholder="reviewAction === 'reinstate' ? 'Any notes about the review...' : 'Explain what changes are still needed...'"
+              :disabled="reviewing"
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button @click="showReviewModal = false" class="btn btn-secondary" :disabled="reviewing">Cancel</button>
+            <button 
+              @click="submitReview" 
+              :class="['btn', reviewAction === 'reinstate' ? 'btn-success' : 'btn-warning']"
+              :disabled="reviewing"
+            >
+              {{ reviewing ? 'Processing...' : (reviewAction === 'reinstate' ? 'Reinstate' : 'Send for Edits') }}
+            </button>
           </div>
         </div>
       </div>
@@ -188,7 +269,7 @@
       </div>
       
       <!-- Resolve Complaint Modal -->
-      <div v-if="showResolveModal" class="modal-overlay" @click.self="showResolveModal = false">
+      <div v-if="showResolveModal" class="modal-overlay" @click.self="!resolving && (showResolveModal = false)">
         <div class="modal">
           <h2>{{ resolveAction === 'sustain' ? 'Sustain Complaint' : 'Dismiss Complaint' }}</h2>
           <p v-if="resolveAction === 'sustain'">
@@ -197,6 +278,8 @@
           <p v-else>
             This will dismiss the complaint. The reporter will be notified and may appeal to an administrator.
           </p>
+          <div v-if="resolveSuccess" class="success">{{ resolveSuccess }}</div>
+          <div v-if="resolveError" class="error">{{ resolveError }}</div>
           <div class="form-group">
             <label for="resolution">Resolution Notes (optional)</label>
             <textarea 
@@ -205,15 +288,17 @@
               class="form-control"
               rows="3"
               placeholder="Add any notes about your decision..."
+              :disabled="resolving"
             ></textarea>
           </div>
           <div class="modal-actions">
-            <button @click="showResolveModal = false" class="btn btn-secondary">Cancel</button>
+            <button @click="showResolveModal = false" class="btn btn-secondary" :disabled="resolving">Cancel</button>
             <button 
               @click="resolveComplaint" 
               :class="['btn', resolveAction === 'sustain' ? 'btn-danger' : 'btn-warning']"
+              :disabled="resolving"
             >
-              {{ resolveAction === 'sustain' ? 'Sustain & Retire' : 'Dismiss Complaint' }}
+              {{ resolving ? 'Processing...' : (resolveAction === 'sustain' ? 'Sustain & Retire' : 'Dismiss Complaint') }}
             </button>
           </div>
         </div>
@@ -229,8 +314,10 @@ const { currentUser } = useAuth()
 const activeTab = ref('keynodes')
 const unverifiedKeynodes = ref<any[]>([])
 const pendingComplaints = ref<any[]>([])
+const pendingReviewMarkmaps = ref<any[]>([])
 const loadingKeynodes = ref(true)
 const loadingComplaints = ref(true)
+const loadingReview = ref(true)
 
 // Edit Keynode Modal
 const showEditKeynodeModal = ref(false)
@@ -248,6 +335,18 @@ const showResolveModal = ref(false)
 const selectedComplaint = ref<any>(null)
 const resolveAction = ref<'sustain' | 'dismiss'>('dismiss')
 const resolutionNotes = ref('')
+const resolving = ref(false)
+const resolveSuccess = ref('')
+const resolveError = ref('')
+
+// Review Markmap Modal
+const showReviewModal = ref(false)
+const selectedMarkmap = ref<any>(null)
+const reviewAction = ref<'reinstate' | 'needs_edit'>('reinstate')
+const reviewResolution = ref('')
+const reviewing = ref(false)
+const reviewSuccess = ref('')
+const reviewError = ref('')
 
 const hasAccess = computed(() => {
   return currentUser.value && 
@@ -288,6 +387,62 @@ const loadComplaints = async () => {
     console.error('Failed to load complaints:', err)
   } finally {
     loadingComplaints.value = false
+  }
+}
+
+const loadPendingReview = async () => {
+  try {
+    const response = await authFetch('/complaints/pending-review')
+    if (response.ok) {
+      pendingReviewMarkmaps.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to load pending review:', err)
+  } finally {
+    loadingReview.value = false
+  }
+}
+
+const openReviewModal = (markmap: any, action: 'reinstate' | 'needs_edit') => {
+  selectedMarkmap.value = markmap
+  reviewAction.value = action
+  reviewResolution.value = ''
+  reviewSuccess.value = ''
+  reviewError.value = ''
+  showReviewModal.value = true
+}
+
+const submitReview = async () => {
+  reviewing.value = true
+  reviewError.value = ''
+  reviewSuccess.value = ''
+  
+  try {
+    const response = await authFetch(`/complaints/markmaps/${selectedMarkmap.value.id}/review`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        action: reviewAction.value,
+        resolution: reviewResolution.value || undefined
+      })
+    })
+    if (response.ok) {
+      reviewSuccess.value = reviewAction.value === 'reinstate' 
+        ? 'Markmap has been reinstated.' 
+        : 'Author has been notified to make further edits.'
+      pendingReviewMarkmaps.value = pendingReviewMarkmaps.value.filter(m => m.id !== selectedMarkmap.value.id)
+      // Auto-close after success
+      setTimeout(() => {
+        showReviewModal.value = false
+      }, 1500)
+    } else {
+      const errorData = await response.json()
+      reviewError.value = errorData.message || 'Failed to review markmap'
+    }
+  } catch (err) {
+    reviewError.value = 'Failed to review markmap'
+    console.error('Failed to review markmap:', err)
+  } finally {
+    reviewing.value = false
   }
 }
 
@@ -397,10 +552,16 @@ const openResolveModal = (complaint: any, action: 'sustain' | 'dismiss') => {
   selectedComplaint.value = complaint
   resolveAction.value = action
   resolutionNotes.value = ''
+  resolveSuccess.value = ''
+  resolveError.value = ''
   showResolveModal.value = true
 }
 
 const resolveComplaint = async () => {
+  resolving.value = true
+  resolveError.value = ''
+  resolveSuccess.value = ''
+  
   try {
     const response = await authFetch(`/complaints/${selectedComplaint.value.id}/resolve`, {
       method: 'PATCH',
@@ -410,11 +571,23 @@ const resolveComplaint = async () => {
       })
     })
     if (response.ok) {
+      resolveSuccess.value = resolveAction.value === 'sustain' 
+        ? 'Complaint sustained. Markmap has been retired.' 
+        : 'Complaint dismissed. Reporter will be notified.'
       pendingComplaints.value = pendingComplaints.value.filter(c => c.id !== selectedComplaint.value.id)
-      showResolveModal.value = false
+      // Auto-close after success
+      setTimeout(() => {
+        showResolveModal.value = false
+      }, 1500)
+    } else {
+      const errorData = await response.json()
+      resolveError.value = errorData.message || 'Failed to resolve complaint'
     }
   } catch (err) {
+    resolveError.value = 'Failed to resolve complaint'
     console.error('Failed to resolve complaint:', err)
+  } finally {
+    resolving.value = false
   }
 }
 
@@ -422,6 +595,7 @@ onMounted(() => {
   if (hasAccess.value) {
     loadKeynodes()
     loadComplaints()
+    loadPendingReview()
   }
 })
 
@@ -429,6 +603,7 @@ watch(hasAccess, (newVal) => {
   if (newVal) {
     loadKeynodes()
     loadComplaints()
+    loadPendingReview()
   }
 })
 </script>
@@ -543,6 +718,22 @@ h2 {
   color: var(--text-secondary);
   font-size: 0.875rem;
   margin-bottom: 1rem;
+}
+
+.complaint-info {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.complaint-explanation {
+  margin: 0.5rem 0 0;
+  color: #6c757d;
+  font-style: italic;
+}
 }
 
 .explanation {
@@ -703,5 +894,21 @@ h2 {
 .result-item.selected {
   background: #007bff;
   color: white;
+}
+
+.success {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
 }
 </style>

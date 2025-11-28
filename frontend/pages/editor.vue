@@ -499,6 +499,11 @@ const loadMarkmap = async (id: string) => {
         isPublic: markmap.isPublic ?? true
       }
       
+      // Also update languageInput for display
+      if (markmap.language) {
+        languageInput.value = markmap.language
+      }
+      
       // Check if markmap is retired and needs editing
       if (markmap.isRetired && markmap.reviewStatus === 'action_required') {
         isRetiredMarkmap.value = true

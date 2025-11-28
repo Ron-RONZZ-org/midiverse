@@ -234,7 +234,7 @@
       </div>
       
       <!-- Add/Edit Node Modal -->
-      <div v-if="showNodeModal" class="modal-overlay" @click.self="showNodeModal = false">
+      <div v-if="showNodeModal" class="modal-overlay" @click.self="closeNodeModal">
         <div class="modal">
           <h2>{{ editingNode ? 'Edit Keynode' : 'Add Keynode' }}</h2>
           <div class="form-group">
@@ -260,23 +260,51 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="node-parent">Parent Node (optional)</label>
-            <select id="node-parent" v-model="nodeForm.parentId" class="form-control">
-              <option :value="null">-- No Parent (Root Node) --</option>
-              <option 
-                v-for="node in availableParentNodes" 
-                :key="node.id" 
-                :value="node.id"
+            <label>Parent Node (optional)</label>
+            <div class="tree-selector-container">
+              <div 
+                class="tree-selector-selected" 
+                @click="showParentTreeSelector = !showParentTreeSelector"
               >
-                {{ node.name }} ({{ formatCategoryName(node.category) }})
-              </option>
-            </select>
+                <span v-if="nodeForm.parentId && parentNode">
+                  {{ parentNode.name }} ({{ formatCategoryName(parentNode.category) }})
+                </span>
+                <span v-else class="placeholder">-- No Parent (Root Node) --</span>
+                <span class="dropdown-arrow">{{ showParentTreeSelector ? '▲' : '▼' }}</span>
+              </div>
+              <div v-if="showParentTreeSelector" class="tree-selector-dropdown">
+                <div 
+                  class="tree-selector-option root-option"
+                  :class="{ selected: nodeForm.parentId === null }"
+                  @click="selectParentNode(null)"
+                >
+                  -- No Parent (Root Node) --
+                </div>
+                <div class="tree-selector-tree">
+                  <KeynodeTreeSelector
+                    v-for="node in rootNodesForSelector"
+                    :key="node.id"
+                    :node="node"
+                    :all-nodes="availableParentNodes"
+                    :selected-id="nodeForm.parentId"
+                    :depth="0"
+                    @select="selectParentNode"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
           <p v-if="nodeForm.parentId && parentNode" class="info-text">
             Will be added as a child of "{{ parentNode.name }}"
           </p>
+          <div v-if="!editingNode" class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="addMoreAfterSave" />
+              Add more after saving
+            </label>
+          </div>
           <div class="modal-actions">
-            <button @click="showNodeModal = false" class="btn btn-secondary">Cancel</button>
+            <button @click="closeNodeModal" class="btn btn-secondary">Cancel</button>
             <button @click="saveNode" class="btn btn-primary" :disabled="savingNode || !nodeForm.name.trim()">
               {{ savingNode ? 'Saving...' : (editingNode ? 'Update' : 'Create') }}
             </button>
@@ -290,17 +318,39 @@
           <h2>Move Keynode</h2>
           <p>Move "{{ movingNode?.name }}" to a new parent:</p>
           <div class="form-group">
-            <label for="move-parent">New Parent</label>
-            <select id="move-parent" v-model="moveToParentId" class="form-control">
-              <option :value="null">-- No Parent (Make Root) --</option>
-              <option 
-                v-for="node in availableMoveTargets" 
-                :key="node.id" 
-                :value="node.id"
+            <label>New Parent</label>
+            <div class="tree-selector-container">
+              <div 
+                class="tree-selector-selected" 
+                @click="showMoveTreeSelector = !showMoveTreeSelector"
               >
-                {{ node.name }} ({{ formatCategoryName(node.category) }})
-              </option>
-            </select>
+                <span v-if="moveToParentId && moveTargetNode">
+                  {{ moveTargetNode.name }} ({{ formatCategoryName(moveTargetNode.category) }})
+                </span>
+                <span v-else class="placeholder">-- No Parent (Make Root) --</span>
+                <span class="dropdown-arrow">{{ showMoveTreeSelector ? '▲' : '▼' }}</span>
+              </div>
+              <div v-if="showMoveTreeSelector" class="tree-selector-dropdown">
+                <div 
+                  class="tree-selector-option root-option"
+                  :class="{ selected: moveToParentId === null }"
+                  @click="selectMoveTarget(null)"
+                >
+                  -- No Parent (Make Root) --
+                </div>
+                <div class="tree-selector-tree">
+                  <KeynodeTreeSelector
+                    v-for="node in rootNodesForMoveSelector"
+                    :key="node.id"
+                    :node="node"
+                    :all-nodes="availableMoveTargets"
+                    :selected-id="moveToParentId"
+                    :depth="0"
+                    @select="selectMoveTarget"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
           <div class="modal-actions">
             <button @click="showMoveModal = false" class="btn btn-secondary">Cancel</button>
@@ -318,15 +368,17 @@
           <p>Change role for: <strong>{{ selectedUser?.username }}</strong></p>
           <div class="form-group">
             <label for="new-role">New Role</label>
-            <select id="new-role" v-model="newRole" class="form-control">
+            <select id="new-role" v-model="newRole" class="form-control" :disabled="roleLoading">
               <option value="user">User</option>
               <option value="content_manager">Content Manager</option>
               <option value="administrator">Administrator</option>
             </select>
           </div>
           <div class="modal-actions">
-            <button @click="showRoleModal = false" class="btn btn-secondary">Cancel</button>
-            <button @click="changeUserRole" class="btn btn-primary">Update Role</button>
+            <button @click="showRoleModal = false" class="btn btn-secondary" :disabled="roleLoading">Cancel</button>
+            <button @click="changeUserRole" class="btn btn-primary" :disabled="roleLoading">
+              {{ roleLoading ? 'Updating...' : 'Update Role' }}
+            </button>
           </div>
         </div>
       </div>
@@ -416,6 +468,7 @@ const totalPages = ref(1)
 const showRoleModal = ref(false)
 const selectedUser = ref<any>(null)
 const newRole = ref('user')
+const roleLoading = ref(false)
 
 // Suspend modal
 const showSuspendModal = ref(false)
@@ -439,11 +492,14 @@ const availableCategories = ref<string[]>([])
 const showNodeModal = ref(false)
 const editingNode = ref<any>(null)
 const nodeForm = ref({ name: '', category: 'others', parentId: null as string | null })
+const addMoreAfterSave = ref(false)
+const showParentTreeSelector = ref(false)
 
 // Move modal state
 const showMoveModal = ref(false)
 const movingNode = ref<any>(null)
 const moveToParentId = ref<string | null>(null)
+const showMoveTreeSelector = ref(false)
 
 // Appeals state
 const appealedComplaints = ref<any[]>([])
@@ -529,6 +585,19 @@ const availableMoveTargets = computed(() => {
 const parentNode = computed(() => {
   if (!nodeForm.value.parentId) return null
   return keynodeTree.value.find(n => n.id === nodeForm.value.parentId)
+})
+
+const moveTargetNode = computed(() => {
+  if (!moveToParentId.value) return null
+  return keynodeTree.value.find(n => n.id === moveToParentId.value)
+})
+
+const rootNodesForSelector = computed(() => {
+  return availableParentNodes.value.filter(n => !n.parentId)
+})
+
+const rootNodesForMoveSelector = computed(() => {
+  return availableMoveTargets.value.filter(n => !n.parentId)
 })
 
 const getDescendantIds = (nodeId: string): string[] => {
@@ -619,6 +688,7 @@ const openAddNodeModal = (parentId: string | null) => {
     category: parentId ? (keynodeTree.value.find(n => n.id === parentId)?.category || 'others') : 'others',
     parentId 
   }
+  showParentTreeSelector.value = false
   showNodeModal.value = true
 }
 
@@ -629,13 +699,31 @@ const openEditNodeModal = (node: any) => {
     category: node.category,
     parentId: node.parentId
   }
+  showParentTreeSelector.value = false
   showNodeModal.value = true
 }
 
 const openMoveNodeModal = (node: any) => {
   movingNode.value = node
   moveToParentId.value = node.parentId
+  showMoveTreeSelector.value = false
   showMoveModal.value = true
+}
+
+const closeNodeModal = () => {
+  showNodeModal.value = false
+  showParentTreeSelector.value = false
+  addMoreAfterSave.value = false
+}
+
+const selectParentNode = (id: string | null) => {
+  nodeForm.value.parentId = id
+  showParentTreeSelector.value = false
+}
+
+const selectMoveTarget = (id: string | null) => {
+  moveToParentId.value = id
+  showMoveTreeSelector.value = false
 }
 
 const saveNode = async () => {
@@ -678,8 +766,20 @@ const saveNode = async () => {
       
       if (response.ok) {
         treeSuccess.value = `Keynode "${nodeForm.value.name}" created successfully`
-        showNodeModal.value = false
         await loadKeynodeTree()
+        
+        // If "add more" is checked, reset the form but keep modal open
+        if (addMoreAfterSave.value) {
+          const currentParentId = nodeForm.value.parentId
+          const currentCategory = nodeForm.value.category
+          nodeForm.value = { 
+            name: '', 
+            category: currentCategory, 
+            parentId: currentParentId 
+          }
+        } else {
+          showNodeModal.value = false
+        }
       } else {
         const data = await response.json()
         treeError.value = data.message || 'Failed to create keynode'
@@ -781,10 +881,16 @@ const loadAppeals = async () => {
 const openRoleModal = (user: any) => {
   selectedUser.value = user
   newRole.value = user.role
+  roleLoading.value = false
   showRoleModal.value = true
 }
 
 const changeUserRole = async () => {
+  const username = selectedUser.value.username
+  roleLoading.value = true
+  actionSuccess.value = ''
+  actionError.value = ''
+  
   try {
     const response = await authFetch(`/admin/users/${selectedUser.value.id}/role`, {
       method: 'PATCH',
@@ -797,9 +903,18 @@ const changeUserRole = async () => {
         users.value[index] = { ...users.value[index], ...updatedUser }
       }
       showRoleModal.value = false
+      actionSuccess.value = `User "${username}" role updated to ${formatRole(newRole.value)}.`
+      clearActionMessages()
+    } else {
+      actionError.value = 'Failed to change user role. Please try again.'
+      clearActionMessages()
     }
   } catch (err) {
     console.error('Failed to change role:', err)
+    actionError.value = 'Failed to change user role. Please try again.'
+    clearActionMessages()
+  } finally {
+    roleLoading.value = false
   }
 }
 
@@ -1359,5 +1474,87 @@ h2 {
   gap: 1rem;
   justify-content: flex-end;
   margin-top: 1.5rem;
+}
+
+.tree-selector-container {
+  position: relative;
+}
+
+.tree-selector-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--input-bg);
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.tree-selector-selected:hover {
+  border-color: #007bff;
+}
+
+.tree-selector-selected .placeholder {
+  color: var(--text-secondary);
+}
+
+.dropdown-arrow {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.tree-selector-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg, white);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-top: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px var(--shadow, rgba(0, 0, 0, 0.15));
+}
+
+.tree-selector-option {
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.tree-selector-option:hover {
+  background: var(--bg-hover, rgba(0, 123, 255, 0.1));
+}
+
+.tree-selector-option.selected {
+  background: var(--selected-bg, rgba(0, 123, 255, 0.15));
+  color: #007bff;
+}
+
+.root-option {
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 500;
+}
+
+.tree-selector-tree {
+  padding: 0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
 }
 </style>

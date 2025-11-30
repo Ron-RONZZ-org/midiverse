@@ -319,6 +319,7 @@ export class UsersService {
       profilePageVisible?: boolean;
       profilePictureVisible?: boolean;
       emailVisible?: boolean;
+      emailComplaintsNotifications?: boolean;
     },
   ) {
     // Use upsert to handle both create and update atomically

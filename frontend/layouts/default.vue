@@ -17,7 +17,7 @@
               <button @click="showImportModal = true" class="btn btn-info">Import</button>
               <NuxtLink to="/notifications" class="btn btn-notification">
                 🔔
-                <span v-if="unreadNotificationCount > 0" class="notification-badge">{{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}</span>
+                <span v-if="notificationCount > 0" class="notification-badge">{{ notificationCount > 9 ? '9+' : notificationCount }}</span>
               </NuxtLink>
               <NuxtLink v-if="isContentManager" to="/content-management" class="btn btn-purple">Content</NuxtLink>
               <NuxtLink v-if="isAdministrator" to="/admin" class="btn btn-admin">Admin</NuxtLink>
@@ -92,19 +92,19 @@
 
 <script setup lang="ts">
 const { isAuthenticated, currentUser, isContentManager, isAdministrator, logout } = useAuth()
-const { authFetch } = useApi()
+const { authFetch, notificationCount } = useApi()
 const { initTheme, setTheme } = useTheme()
 
-// Notification count
-const unreadNotificationCount = ref(0)
-
 const loadNotificationCount = async () => {
-  if (!isAuthenticated.value) return
+  if (!isAuthenticated.value) {
+    notificationCount.value = 0
+    return
+  }
   try {
     const response = await authFetch('/notifications/unread-count')
     if (response.ok) {
       const data = await response.json()
-      unreadNotificationCount.value = data.count
+      notificationCount.value = data.count
     }
   } catch (err) {
     console.error('Failed to load notification count', err)
@@ -137,7 +137,7 @@ watch(isAuthenticated, (val) => {
   if (val) {
     loadNotificationCount()
   } else {
-    unreadNotificationCount.value = 0
+    notificationCount.value = 0
   }
 })
 

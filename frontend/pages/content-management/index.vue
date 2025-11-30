@@ -721,17 +721,18 @@ h2 {
 }
 
 .complaint-info {
-  background: #fff3cd;
-  border: 1px solid #ffc107;
+  background: var(--complaint-info-bg, #fff3cd);
+  border: 1px solid var(--complaint-info-border, #ffc107);
   border-radius: 4px;
   padding: 0.75rem;
   margin-bottom: 1rem;
   font-size: 0.875rem;
+  color: var(--complaint-info-text, #856404);
 }
 
 .complaint-explanation {
   margin: 0.5rem 0 0;
-  color: #6c757d;
+  color: var(--text-secondary);
   font-style: italic;
 }
 

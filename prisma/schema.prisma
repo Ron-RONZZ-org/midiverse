@@ -184,6 +184,7 @@ model UserPreferences {
   profilePageVisible    Boolean  @default(true)
   profilePictureVisible Boolean  @default(true)
   emailVisible          Boolean  @default(true)
+  emailComplaintsNotifications Boolean @default(true)  // Email notifications for complaints
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

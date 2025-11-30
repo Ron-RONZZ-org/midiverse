@@ -25,6 +25,7 @@ import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { GetTagSuggestionsDto } from './dto/get-tag-suggestions.dto';
 import { GetTagStatisticsDto } from './dto/get-tag-statistics.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { ActiveUserGuard } from '../common/guards/active-user.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserFromToken } from '../common/interfaces/auth.interface';
@@ -47,12 +48,14 @@ export class MarkmapsController {
   }
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   findAll(@Req() req: RequestWithUser) {
     const userId = req.user?.id;
     return this.markmapsService.findAll(userId);
   }
 
   @Get('search')
+  @UseGuards(OptionalJwtAuthGuard)
   search(
     @Query(ValidationPipe) searchDto: SearchMarkmapDto,
     @Req() req: RequestWithUser,
@@ -62,6 +65,7 @@ export class MarkmapsController {
   }
 
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   findOne(@Param('id') id: string, @Req() req: RequestWithUser) {
     const userId = req.user?.id;
     return this.markmapsService.findOne(id, userId);
@@ -96,6 +100,7 @@ export class MarkmapsController {
   }
 
   @Get(':id/download')
+  @UseGuards(OptionalJwtAuthGuard)
   async download(
     @Param('id') id: string,
     @Req() req: RequestWithUser,
@@ -219,6 +224,7 @@ export class MarkmapsController {
 
   // Human-friendly URL endpoints for series - must come before generic username/slug routes
   @Get(':username/series/:seriesSlug/:markmapSlug/fullscreen')
+  @UseGuards(OptionalJwtAuthGuard)
   findBySeriesSlugFullscreen(
     @Param('username') username: string,
     @Param('seriesSlug') seriesSlug: string,
@@ -235,6 +241,7 @@ export class MarkmapsController {
   }
 
   @Get(':username/series/:seriesSlug/:markmapSlug')
+  @UseGuards(OptionalJwtAuthGuard)
   findBySeriesSlug(
     @Param('username') username: string,
     @Param('seriesSlug') seriesSlug: string,
@@ -252,6 +259,7 @@ export class MarkmapsController {
 
   // Human-friendly URL endpoints - must be last to avoid conflicts
   @Get(':username/:slug/fullscreen')
+  @UseGuards(OptionalJwtAuthGuard)
   findBySlugFullscreen(
     @Param('username') username: string,
     @Param('slug') slug: string,
@@ -262,6 +270,7 @@ export class MarkmapsController {
   }
 
   @Get(':username/:slug')
+  @UseGuards(OptionalJwtAuthGuard)
   findBySlug(
     @Param('username') username: string,
     @Param('slug') slug: string,

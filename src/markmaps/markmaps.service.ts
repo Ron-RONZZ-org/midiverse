@@ -828,7 +828,11 @@ ${markmapConfig}
       }>;
     }
 
-    const where: WhereCondition = { isPublic: true, deletedAt: null, isRetired: false };
+    const where: WhereCondition = {
+      isPublic: true,
+      deletedAt: null,
+      isRetired: false,
+    };
 
     if (searchDto.language) {
       where.language = searchDto.language;

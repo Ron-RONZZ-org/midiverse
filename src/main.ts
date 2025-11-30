@@ -22,8 +22,9 @@ async function bootstrap() {
 
   // Get PORT from .env or default to 3000
   const configService = app.get(ConfigService);
-  const port = configService.get('PORT') || 3000
+  const port = configService.get('PORT') || 3000;
   await app.listen(port);
-  console.log(`Application is running on: ${await app.getUrl()}`);}
+  console.log(`Application is running on: ${await app.getUrl()}`);
+}
 
 void bootstrap();

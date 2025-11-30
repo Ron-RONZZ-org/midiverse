@@ -17,6 +17,17 @@
       <NuxtLink to="/login" class="btn">Login</NuxtLink>
     </div>
 
+    <!-- Loading state when fetching markmap for editing -->
+    <div v-else-if="editMode && loadingMarkmap" class="card loading-card">
+      <p>Loading markmap...</p>
+    </div>
+
+    <!-- Error state when markmap failed to load -->
+    <div v-else-if="loadingError" class="card error-card">
+      <p>{{ error }}</p>
+      <NuxtLink :to="cancelUrl" class="btn btn-secondary">Go Back</NuxtLink>
+    </div>
+
     <!-- Complaint Banner for Retired Markmaps -->
     <div v-else-if="isRetiredMarkmap" class="complaint-banner" :class="{ expanded: complaintBannerExpanded }">
       <div class="complaint-banner-header" @click="complaintBannerExpanded = !complaintBannerExpanded">
@@ -40,7 +51,7 @@
       </div>
     </div>
 
-    <div v-if="isAuthenticated" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
+    <div v-if="shouldShowEditor" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
       <div class="editor-panel card">
         <h2>Editor</h2>
         
@@ -355,8 +366,15 @@ const { isAuthenticated, currentUser } = useAuth()
 const editMode = ref(false)
 const markmapId = ref('')
 const loading = ref(false)
+const loadingMarkmap = ref(false)
+const loadingError = ref(false)
 const error = ref('')
 const success = ref('')
+
+// Computed property for whether to show the editor form
+const shouldShowEditor = computed(() => {
+  return isAuthenticated.value && !loadingMarkmap.value && !loadingError.value
+})
 
 // Retired markmap state (for complaint banner)
 const isRetiredMarkmap = ref(false)
@@ -456,21 +474,34 @@ const togglePreview = () => {
 }
 
 const loadMarkmap = async (id: string) => {
+  loadingMarkmap.value = true
+  error.value = ''
   try {
     const response = await authFetch(`/markmaps/${id}`)
     if (response.ok) {
       const markmap = await response.json()
+      // Validate that we received a valid markmap object with required properties
+      if (!markmap || typeof markmap !== 'object' || !('id' in markmap)) {
+        error.value = 'Markmap data not found'
+        loadingError.value = true
+        return
+      }
       form.value = {
-        title: markmap.title,
-        text: markmap.text,
+        title: markmap.title || '',
+        text: markmap.text || '',
         language: markmap.language || '',
         seriesId: markmap.seriesId || '',
         tags: markmap.tags?.map((t: any) => t.tag.name) || [],
         keynodes: markmap.keynodes?.map((k: any) => k.keynode.name) || [],
-        maxWidth: markmap.maxWidth,
-        colorFreezeLevel: markmap.colorFreezeLevel,
-        initialExpandLevel: markmap.initialExpandLevel,
-        isPublic: markmap.isPublic
+        maxWidth: markmap.maxWidth ?? 0,
+        colorFreezeLevel: markmap.colorFreezeLevel ?? 0,
+        initialExpandLevel: markmap.initialExpandLevel ?? -1,
+        isPublic: markmap.isPublic ?? true
+      }
+      
+      // Also update languageInput for display
+      if (markmap.language) {
+        languageInput.value = markmap.language
       }
       
       // Check if markmap is retired and needs editing
@@ -484,9 +515,15 @@ const loadMarkmap = async (id: string) => {
           }
         }
       }
+    } else {
+      error.value = 'Failed to load markmap'
+      loadingError.value = true
     }
   } catch (err) {
     error.value = 'Failed to load markmap'
+    loadingError.value = true
+  } finally {
+    loadingMarkmap.value = false
   }
 }
 
@@ -1085,6 +1122,22 @@ watch(() => form.value.text, () => {
 </script>
 
 <style scoped>
+.loading-card {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.error-card {
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-card p {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
 .editor-header {
   display: flex;
   justify-content: space-between;

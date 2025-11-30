@@ -4,6 +4,10 @@
 /build
 /tmp
 
+# Nodejs
+
+package-lock.json
+
 # Logs
 logs
 *.log

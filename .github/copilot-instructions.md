@@ -349,3 +349,67 @@ Required environment variables (see `.env.example`):
 - Start production: `npm run start:prod`
 - Build output is in `dist/` directory
 - Ensure all migrations are applied in production before starting the app
+
+## Email Notifications
+
+### Email Preferences
+
+Users can manage their email notification preferences through the User Preferences modal. The following email notification categories exist:
+
+1. **Essential Account Notifications** (always enabled)
+   - Password resets
+   - Security alerts
+   - Account verification emails
+   - These cannot be disabled by users
+
+2. **Complaints Related Notifications** (default: enabled)
+   - Notifications when a complaint is filed against user's markmap
+   - Notifications when a complaint is sustained/dismissed
+   - Notifications when markmap is reinstated
+   - Controlled by `emailComplaintsNotifications` preference
+
+### Adding New Email Functions
+
+When creating new email notification functions in `src/email/email.service.ts`:
+
+1. **Determine the category**: Decide if the email is essential (always sent) or optional (user can disable)
+
+2. **For optional email notifications**:
+   - Add a new boolean field to `UserPreferences` model in `prisma/schema.prisma` (e.g., `emailNewFeatureNotifications`)
+   - Update the `updateUserPreferences` method in `src/users/users.service.ts` to handle the new field
+   - Add the toggle to the Email Notifications section in `frontend/pages/profile/[username].vue`
+   - Check the user's preference before sending the email
+
+3. **Example implementation**:
+   ```typescript
+   // In email.service.ts
+   async sendOptionalNotification(userId: string, email: string, subject: string, content: string) {
+     // Get user preferences
+     const prefs = await this.prisma.userPreferences.findUnique({
+       where: { userId }
+     });
+     
+     // Check if notification is enabled (default to true if not set)
+     if (prefs?.emailFeatureNotifications === false) {
+       return; // User has opted out
+     }
+     
+     await this.sendEmail(email, subject, content);
+   }
+   ```
+
+4. **Frontend toggle**:
+   ```vue
+   <div class="form-group">
+     <label class="checkbox-label">
+       <input type="checkbox" v-model="preferencesForm.emailFeatureNotifications" />
+       Feature Notifications
+     </label>
+     <small class="form-text">Description of what notifications this controls</small>
+   </div>
+   ```
+
+5. **Testing**: Ensure that:
+   - The default value is appropriate (usually `true` for opt-out model)
+   - The preference is properly saved and loaded
+   - Emails are only sent when the preference allows

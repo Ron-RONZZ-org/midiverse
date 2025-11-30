@@ -86,11 +86,19 @@
               <NuxtLink :to="`/markmaps/${complaint.markmapId}`" class="btn btn-secondary btn-sm" target="_blank">
                 View Markmap
               </NuxtLink>
-              <button @click="openResolveModal(complaint, 'sustain')" class="btn btn-danger btn-sm">
-                Sustain
+              <button 
+                @click="openResolveModal(complaint, 'sustain')" 
+                class="btn btn-danger btn-sm"
+                :disabled="resolving && selectedComplaint?.id === complaint.id"
+              >
+                {{ resolving && selectedComplaint?.id === complaint.id ? 'submitting...' : 'Sustain' }}
               </button>
-              <button @click="openResolveModal(complaint, 'dismiss')" class="btn btn-warning btn-sm">
-                Dismiss
+              <button 
+                @click="openResolveModal(complaint, 'dismiss')" 
+                class="btn btn-warning btn-sm"
+                :disabled="resolving && selectedComplaint?.id === complaint.id"
+              >
+                {{ resolving && selectedComplaint?.id === complaint.id ? 'submitting...' : 'Dismiss' }}
               </button>
             </div>
           </div>

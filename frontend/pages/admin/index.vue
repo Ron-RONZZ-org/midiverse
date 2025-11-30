@@ -98,7 +98,13 @@
                 </td>
                 <td>{{ user._count?.markmaps || 0 }}</td>
                 <td class="actions-cell">
-                  <button @click="openRoleModal(user)" class="btn btn-info btn-sm">Change Role</button>
+                  <button 
+                    @click="openRoleModal(user)" 
+                    class="btn btn-info btn-sm"
+                    :disabled="roleLoading && selectedUser?.id === user.id"
+                  >
+                    {{ roleLoading && selectedUser?.id === user.id ? 'updating...' : 'Change Role' }}
+                  </button>
                   <button 
                     v-if="user.status === 'active'" 
                     @click="openSuspendModal(user)" 

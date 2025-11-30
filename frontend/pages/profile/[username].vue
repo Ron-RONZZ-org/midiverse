@@ -16,6 +16,7 @@
               <h1>{{ profile.displayName || profile.username }}</h1>
               <span v-if="profile.role === 'administrator'" class="role-badge role-admin">Administrator</span>
               <span v-else-if="profile.role === 'content_manager'" class="role-badge role-content-manager">Content Manager</span>
+              <span v-else-if="profile.role === 'user'" class="role-badge role-user">User</span>
             </div>
             <p class="username">@{{ profile.username }}</p>
             <p v-if="profile.description" class="description">{{ profile.description }}</p>
@@ -289,6 +290,34 @@
             <small class="form-text">When disabled, your email is hidden from other users</small>
           </div>
 
+          <div class="form-group">
+            <h3>Email Notifications</h3>
+            <div class="email-pref-item">
+              <label for="emailEssentialNotifications" class="checkbox-label checkbox-disabled">
+                <input 
+                  id="emailEssentialNotifications"
+                  type="checkbox" 
+                  checked
+                  disabled
+                />
+                Essential Account Notifications
+              </label>
+              <small class="form-text">Password resets, security alerts, etc. (always enabled)</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="emailComplaintsNotifications" class="checkbox-label">
+              <input 
+                id="emailComplaintsNotifications"
+                type="checkbox" 
+                v-model="preferencesForm.emailComplaintsNotifications"
+              />
+              Complaints Related Notifications
+            </label>
+            <small class="form-text">Notifications about complaints on your markmaps</small>
+          </div>
+
           <div class="modal-actions">
             <button type="button" @click="showPreferencesModal = false" class="btn btn-secondary">Cancel</button>
             <button type="submit" class="btn" :disabled="preferencesLoading">
@@ -332,7 +361,8 @@ const preferencesForm = ref({
   language: 'en',
   profilePageVisible: true,
   profilePictureVisible: true,
-  emailVisible: true
+  emailVisible: true,
+  emailComplaintsNotifications: true
 })
 const preferencesError = ref('')
 const preferencesLoading = ref(false)
@@ -556,7 +586,8 @@ const loadPreferences = async () => {
         language: prefs.language,
         profilePageVisible: prefs.profilePageVisible,
         profilePictureVisible: prefs.profilePictureVisible,
-        emailVisible: prefs.emailVisible
+        emailVisible: prefs.emailVisible,
+        emailComplaintsNotifications: prefs.emailComplaintsNotifications ?? true
       }
       // Apply the theme immediately
       setTheme(prefs.darkTheme)
@@ -770,7 +801,7 @@ h2 {
 
 .markmap-card-wrapper.deleted .markmap-card {
   opacity: 0.7;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
 }
 
 .markmap-card {
@@ -987,8 +1018,8 @@ textarea.form-control {
 .form-group h3 {
   font-size: 1.1rem;
   margin-bottom: 1rem;
-  color: #495057;
-  border-bottom: 1px solid #dee2e6;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.5rem;
 }
 
@@ -1023,5 +1054,23 @@ textarea.form-control {
 .role-content-manager {
   background-color: #6f42c1;
   color: white;
+}
+
+.role-user {
+  background-color: #3c3c3c;
+  color: white;
+}
+
+.email-pref-item {
+  margin-bottom: 0.75rem;
+}
+
+.checkbox-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.checkbox-disabled input[type="checkbox"] {
+  cursor: not-allowed;
 }
 </style>

@@ -20,4 +20,8 @@ export class UpdateUserPreferencesDto {
   @IsOptional()
   @IsBoolean()
   emailVisible?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  emailComplaintsNotifications?: boolean;
 }

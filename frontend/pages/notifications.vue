@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-const { authFetch } = useApi()
+const { authFetch, notificationCount } = useApi()
 const { isAuthenticated } = useAuth()
 
 const notifications = ref<any[]>([])
@@ -130,8 +130,10 @@ const markAsRead = async (id: string) => {
     const response = await authFetch(`/notifications/${id}/read`, { method: 'PATCH' })
     if (response.ok) {
       const notification = notifications.value.find(n => n.id === id)
-      if (notification) {
+      if (notification && !notification.isRead) {
         notification.isRead = true
+        // Update global notification count
+        notificationCount.value = Math.max(0, notificationCount.value - 1)
       }
     }
   } catch (err) {
@@ -145,6 +147,8 @@ const markAllAsRead = async () => {
     const response = await authFetch('/notifications/mark-all-read', { method: 'POST' })
     if (response.ok) {
       notifications.value.forEach(n => n.isRead = true)
+      // Update global notification count
+      notificationCount.value = 0
     }
   } catch (err) {
     console.error('Failed to mark all as read:', err)
@@ -155,9 +159,15 @@ const markAllAsRead = async () => {
 
 const deleteNotification = async (id: string) => {
   try {
+    const notification = notifications.value.find(n => n.id === id)
+    const wasUnread = notification && !notification.isRead
     const response = await authFetch(`/notifications/${id}`, { method: 'DELETE' })
     if (response.ok) {
       notifications.value = notifications.value.filter(n => n.id !== id)
+      // Update global notification count if the deleted notification was unread
+      if (wasUnread) {
+        notificationCount.value = Math.max(0, notificationCount.value - 1)
+      }
     }
   } catch (err) {
     console.error('Failed to delete notification:', err)
@@ -172,6 +182,8 @@ const clearAll = async () => {
     const response = await authFetch('/notifications', { method: 'DELETE' })
     if (response.ok) {
       notifications.value = []
+      // Update global notification count
+      notificationCount.value = 0
     }
   } catch (err) {
     console.error('Failed to clear notifications:', err)

@@ -7,6 +7,9 @@ const authState = ref<{
   user: null
 })
 
+// Create reactive state for notification count
+const notificationCount = ref(0)
+
 // Initialize auth state from localStorage on client side
 if (process.client) {
   authState.value = {
@@ -101,5 +104,6 @@ export const useApi = () => {
     setUser,
     removeUser,
     authFetch,
+    notificationCount,
   }
 }

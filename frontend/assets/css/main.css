@@ -17,6 +17,9 @@
   --input-bg: #ffffff;
   --input-border: #ddd;
   --link-color: #007bff;
+  --complaint-info-bg: #fff3cd;
+  --complaint-info-border: #ffc107;
+  --complaint-info-text: #856404;
 }
 
 .dark-theme {
@@ -32,6 +35,9 @@
   --input-bg: #1a1a1a;
   --input-border: #404040;
   --link-color: #4da6ff;
+  --complaint-info-bg: #3d3520;
+  --complaint-info-border: #665a20;
+  --complaint-info-text: #e0d090;
 }
 
 body {

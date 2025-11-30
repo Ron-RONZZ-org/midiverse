@@ -292,8 +292,9 @@
           <div class="form-group">
             <h3>Email Notifications</h3>
             <div class="email-pref-item">
-              <label class="checkbox-label checkbox-disabled">
+              <label for="emailEssentialNotifications" class="checkbox-label checkbox-disabled">
                 <input 
+                  id="emailEssentialNotifications"
                   type="checkbox" 
                   checked
                   disabled
@@ -305,8 +306,9 @@
           </div>
 
           <div class="form-group">
-            <label class="checkbox-label">
+            <label for="emailComplaintsNotifications" class="checkbox-label">
               <input 
+                id="emailComplaintsNotifications"
                 type="checkbox" 
                 v-model="preferencesForm.emailComplaintsNotifications"
               />

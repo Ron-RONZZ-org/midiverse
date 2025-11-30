@@ -16,6 +16,7 @@
               <h1>{{ profile.displayName || profile.username }}</h1>
               <span v-if="profile.role === 'administrator'" class="role-badge role-admin">Administrator</span>
               <span v-else-if="profile.role === 'content_manager'" class="role-badge role-content-manager">Content Manager</span>
+              <span v-else-if="profile.role === 'user'" class="role-badge role-user">User</span>
             </div>
             <p class="username">@{{ profile.username }}</p>
             <p v-if="profile.description" class="description">{{ profile.description }}</p>
@@ -1052,6 +1053,11 @@ textarea.form-control {
 
 .role-content-manager {
   background-color: #6f42c1;
+  color: white;
+}
+
+.role-user {
+  background-color: #3c3c3c;
   color: white;
 }
 

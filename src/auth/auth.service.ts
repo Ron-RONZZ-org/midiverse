@@ -5,6 +5,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,6 +23,8 @@ import { CheckUsernameDto } from './dto/check-username.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -110,7 +113,7 @@ export class AuthService {
       );
     } catch (error) {
       // Log error but don't fail signup
-      console.error('Failed to send verification email:', error);
+      this.logger.error('Failed to send verification email', error);
     }
 
     // Don't issue JWT token until email is verified
@@ -332,7 +335,7 @@ export class AuthService {
         resetToken,
       );
     } catch (error) {
-      console.error('Failed to send password reset email:', error);
+      this.logger.error('Failed to send password reset email', error);
     }
 
     return {

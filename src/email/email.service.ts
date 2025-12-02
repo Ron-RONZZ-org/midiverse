@@ -11,6 +11,9 @@ export class EmailService {
     const host = this.configService.get<string>('EMAIL_HOST');
     const port = this.configService.get<number>('EMAIL_PORT') || 587;
     const secure = this.configService.get<string>('EMAIL_SECURE') === 'true';
+    // Allow disabling TLS verification for development/testing only
+    const rejectUnauthorized =
+      this.configService.get<string>('EMAIL_REJECT_UNAUTHORIZED') !== 'false';
 
     this.transporter = nodemailer.createTransport({
       host,
@@ -27,7 +30,7 @@ export class EmailService {
       // TLS configuration for STARTTLS (port 587)
       requireTLS: !secure && port === 587, // Require STARTTLS for port 587
       tls: {
-        rejectUnauthorized: false, // Allow self-signed certs for better compatibility
+        rejectUnauthorized, // Verify TLS certificates by default
         minVersion: 'TLSv1.2',
       },
       debug: false,

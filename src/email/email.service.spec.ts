@@ -72,7 +72,7 @@ describe('EmailService', () => {
         socketTimeout: 60000,
         requireTLS: true,
         tls: {
-          rejectUnauthorized: false,
+          rejectUnauthorized: true,
           minVersion: 'TLSv1.2',
         },
         debug: false,

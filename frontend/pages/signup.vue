@@ -75,7 +75,7 @@
           </div>
 
           <div v-if="error" class="error">{{ error }}</div>
-          <button type="submit" class="btn" :disabled="loading || usernameStatus === 'taken'">
+          <button type="submit" class="btn" :disabled="loading || usernameStatus === 'taken' || usernameChecking">
             {{ loading ? 'Creating account...' : 'Sign Up' }}
           </button>
         </form>

@@ -7,7 +7,6 @@ import { TurnstileService } from '../turnstile/turnstile.service';
 import {
   UnauthorizedException,
   BadRequestException,
-  ConflictException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -377,9 +376,7 @@ describe('AuthService', () => {
         email: 'test@example.com',
       });
 
-      expect(result.message).toContain(
-        'If an account with that email exists',
-      );
+      expect(result.message).toContain('If an account with that email exists');
       expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalled();
     });
 
@@ -390,9 +387,7 @@ describe('AuthService', () => {
         email: 'nonexistent@example.com',
       });
 
-      expect(result.message).toContain(
-        'If an account with that email exists',
-      );
+      expect(result.message).toContain('If an account with that email exists');
       expect(mockEmailService.sendPasswordResetEmail).not.toHaveBeenCalled();
     });
   });

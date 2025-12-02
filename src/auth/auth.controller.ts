@@ -35,17 +35,23 @@ export class AuthController {
   }
 
   @Post('check-username')
-  async checkUsername(@Body(ValidationPipe) checkUsernameDto: CheckUsernameDto) {
+  async checkUsername(
+    @Body(ValidationPipe) checkUsernameDto: CheckUsernameDto,
+  ) {
     return this.authService.checkUsernameAvailability(checkUsernameDto);
   }
 
   @Post('forgot-password')
-  async forgotPassword(@Body(ValidationPipe) forgotPasswordDto: ForgotPasswordDto) {
+  async forgotPassword(
+    @Body(ValidationPipe) forgotPasswordDto: ForgotPasswordDto,
+  ) {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('reset-password')
-  async resetPassword(@Body(ValidationPipe) resetPasswordDto: ResetPasswordDto) {
+  async resetPassword(
+    @Body(ValidationPipe) resetPasswordDto: ResetPasswordDto,
+  ) {
     return this.authService.resetPassword(resetPasswordDto);
   }
 }

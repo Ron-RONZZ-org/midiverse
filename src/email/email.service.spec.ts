@@ -170,7 +170,9 @@ describe('EmailService', () => {
       ];
       const mailOptions = sendMailCall[0];
       expect(mailOptions.html).toContain('reset-token-123');
-      expect(mailOptions.html).toContain('http://localhost:3001/reset-password');
+      expect(mailOptions.html).toContain(
+        'http://localhost:3001/reset-password',
+      );
     });
 
     it('should throw error with message when password reset email fails', async () => {

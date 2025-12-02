@@ -369,7 +369,8 @@ export class AuthService {
     });
 
     return {
-      message: 'Password reset successfully. You can now login with your new password.',
+      message:
+        'Password reset successfully. You can now login with your new password.',
     };
   }
 }

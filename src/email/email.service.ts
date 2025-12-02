@@ -8,13 +8,25 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
   constructor(private configService: ConfigService) {
+    const host = this.configService.get<string>('EMAIL_HOST');
+    const port = this.configService.get<number>('EMAIL_PORT') || 587;
+    const secure = this.configService.get<string>('EMAIL_SECURE') === 'true';
+
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('EMAIL_HOST'),
-      port: this.configService.get<number>('EMAIL_PORT'),
-      secure: this.configService.get<string>('EMAIL_SECURE') === 'true',
+      host,
+      port,
+      secure,
       auth: {
         user: this.configService.get<string>('EMAIL_USER'),
         pass: this.configService.get<string>('EMAIL_PASSWORD'),
+      },
+      // Connection timeouts to prevent "Greeting never received" errors
+      connectionTimeout: 10000, // 10 seconds to establish connection
+      greetingTimeout: 10000, // 10 seconds to receive greeting
+      socketTimeout: 30000, // 30 seconds for socket inactivity
+      // TLS configuration for STARTTLS (port 587)
+      tls: {
+        rejectUnauthorized: true,
       },
     });
   }
@@ -42,8 +54,13 @@ export class EmailService {
       await this.transporter.sendMail(mailOptions);
       this.logger.log(`Email sent to ${to}: ${subject}`);
     } catch (error) {
-      this.logger.error(`Failed to send email to ${to}`, error);
-      throw new Error('Failed to send email');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to send email to ${to}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new Error(`Failed to send email: ${errorMessage}`);
     }
   }
 
@@ -84,8 +101,13 @@ export class EmailService {
       await this.transporter.sendMail(mailOptions);
       this.logger.log(`Verification email sent to ${email}`);
     } catch (error) {
-      this.logger.error(`Failed to send verification email to ${email}`, error);
-      throw new Error('Failed to send verification email');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to send verification email to ${email}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new Error(`Failed to send verification email: ${errorMessage}`);
     }
   }
 }

@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
+  console.log('DB URL:', process.env.DATABASE_URL);
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({

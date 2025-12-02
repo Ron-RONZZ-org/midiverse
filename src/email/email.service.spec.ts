@@ -67,12 +67,16 @@ describe('EmailService', () => {
           user: 'test@example.com',
           pass: 'test-password',
         },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 30000,
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+        requireTLS: true,
         tls: {
-          rejectUnauthorized: true,
+          rejectUnauthorized: false,
+          minVersion: 'TLSv1.2',
         },
+        debug: false,
+        logger: false,
       });
     });
   });
@@ -139,6 +143,44 @@ describe('EmailService', () => {
         service.sendVerificationEmail('user@example.com', 'testuser', 'token'),
       ).rejects.toThrow(
         'Failed to send verification email: Connection timeout',
+      );
+    });
+  });
+
+  describe('sendPasswordResetEmail', () => {
+    it('should send password reset email with correct content', async () => {
+      mockTransporter.sendMail.mockResolvedValue({ messageId: 'test-id' });
+
+      await service.sendPasswordResetEmail(
+        'user@example.com',
+        'testuser',
+        'reset-token-123',
+      );
+
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+        from: 'noreply@midiverse.com',
+        to: 'user@example.com',
+        subject: 'Reset Your Password - Midiverse',
+        html: expect.stringContaining('testuser'),
+      });
+
+      // Verify the HTML contains the reset token and URL
+      const sendMailCall = mockTransporter.sendMail.mock.calls[0] as [
+        { html: string },
+      ];
+      const mailOptions = sendMailCall[0];
+      expect(mailOptions.html).toContain('reset-token-123');
+      expect(mailOptions.html).toContain('http://localhost:3001/reset-password');
+    });
+
+    it('should throw error with message when password reset email fails', async () => {
+      const error = new Error('Connection timeout');
+      mockTransporter.sendMail.mockRejectedValue(error);
+
+      await expect(
+        service.sendPasswordResetEmail('user@example.com', 'testuser', 'token'),
+      ).rejects.toThrow(
+        'Failed to send password reset email: Connection timeout',
       );
     });
   });

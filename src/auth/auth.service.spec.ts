@@ -4,7 +4,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '../email/email.service';
 import { TurnstileService } from '../turnstile/turnstile.service';
-import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
@@ -27,6 +31,7 @@ describe('AuthService', () => {
 
   const mockEmailService = {
     sendVerificationEmail: jest.fn(),
+    sendPasswordResetEmail: jest.fn(),
   };
 
   const mockTurnstileService = {
@@ -85,6 +90,8 @@ describe('AuthService', () => {
         emailVerificationTokenExpiry: new Date(),
       };
 
+      // No existing email or username
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
       mockPrismaService.user.create.mockResolvedValue(mockUser);
       mockEmailService.sendVerificationEmail.mockResolvedValue(undefined);
@@ -106,6 +113,43 @@ describe('AuthService', () => {
       expect(mockEmailService.sendVerificationEmail).toHaveBeenCalled();
     });
 
+    it('should throw ConflictException if email already exists', async () => {
+      const signUpDto = {
+        email: 'existing@example.com',
+        username: 'newuser',
+        password: 'password123',
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'existing-id',
+        email: 'existing@example.com',
+      });
+
+      await expect(service.signUp(signUpDto)).rejects.toThrow(
+        'Email already registered. Please login instead.',
+      );
+    });
+
+    it('should throw ConflictException if username already exists', async () => {
+      const signUpDto = {
+        email: 'new@example.com',
+        username: 'existinguser',
+        password: 'password123',
+      };
+
+      // Email check returns null (doesn't exist)
+      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
+      // Username check returns existing user
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'existing-id',
+        username: 'existinguser',
+      });
+
+      await expect(service.signUp(signUpDto)).rejects.toThrow(
+        'Username already taken. Please choose a different username.',
+      );
+    });
+
     it('should verify turnstile token if provided', async () => {
       const signUpDto = {
         email: 'test@example.com',
@@ -124,6 +168,7 @@ describe('AuthService', () => {
         emailVerificationTokenExpiry: new Date(),
       };
 
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
       mockTurnstileService.verifyToken.mockResolvedValue(true);
       mockPrismaService.user.create.mockResolvedValue(mockUser);
@@ -282,6 +327,112 @@ describe('AuthService', () => {
           suspendedUntil: true,
         },
       });
+    });
+  });
+
+  describe('checkUsernameAvailability', () => {
+    it('should return available: true if username does not exist', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      const result = await service.checkUsernameAvailability({
+        username: 'newuser',
+      });
+
+      expect(result).toEqual({
+        available: true,
+        username: 'newuser',
+      });
+    });
+
+    it('should return available: false if username exists', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'existing-id',
+        username: 'existinguser',
+      });
+
+      const result = await service.checkUsernameAvailability({
+        username: 'existinguser',
+      });
+
+      expect(result).toEqual({
+        available: false,
+        username: 'existinguser',
+      });
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should send password reset email for existing user', async () => {
+      const mockUser = {
+        id: 'user-id',
+        email: 'test@example.com',
+        username: 'testuser',
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.user.update.mockResolvedValue(mockUser);
+      mockEmailService.sendPasswordResetEmail.mockResolvedValue(undefined);
+
+      const result = await service.forgotPassword({
+        email: 'test@example.com',
+      });
+
+      expect(result.message).toContain(
+        'If an account with that email exists',
+      );
+      expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalled();
+    });
+
+    it('should return same message for non-existing user (to prevent enumeration)', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      const result = await service.forgotPassword({
+        email: 'nonexistent@example.com',
+      });
+
+      expect(result.message).toContain(
+        'If an account with that email exists',
+      );
+      expect(mockEmailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should reset password with valid token', async () => {
+      const mockUser = {
+        id: 'user-id',
+        email: 'test@example.com',
+        username: 'testuser',
+        passwordResetToken: 'valid-token',
+        passwordResetTokenExpiry: new Date(Date.now() + 3600000),
+      };
+
+      mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new_hashed_password');
+      mockPrismaService.user.update.mockResolvedValue({
+        ...mockUser,
+        password: 'new_hashed_password',
+      });
+
+      const result = await service.resetPassword({
+        token: 'valid-token',
+        password: 'newpassword123',
+      });
+
+      expect(result.message).toContain('Password reset successfully');
+      expect(bcrypt.hash).toHaveBeenCalledWith('newpassword123', 10);
+      expect(mockPrismaService.user.update).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException for invalid or expired token', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.resetPassword({
+          token: 'invalid-token',
+          password: 'newpassword123',
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

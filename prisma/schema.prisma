@@ -34,6 +34,8 @@ model User {
   emailVerified       Boolean     @default(false)
   emailVerificationToken String?
   emailVerificationTokenExpiry DateTime?
+  passwordResetToken  String?     // Token for password reset
+  passwordResetTokenExpiry DateTime?
   displayName         String?     // Display name for profile
   description         String?     // Profile description
   profilePictureUrl   String?     // Profile picture URL

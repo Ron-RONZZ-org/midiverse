@@ -893,14 +893,19 @@ const openRoleModal = (user: any) => {
 
 const changeUserRole = async () => {
   const username = selectedUser.value.username
+  const userId = selectedUser.value.id
+  const role = newRole.value
+  
+  // Close modal immediately and set button loading state
+  showRoleModal.value = false
   roleLoading.value = true
   actionSuccess.value = ''
   actionError.value = ''
   
   try {
-    const response = await authFetch(`/admin/users/${selectedUser.value.id}/role`, {
+    const response = await authFetch(`/admin/users/${userId}/role`, {
       method: 'PATCH',
-      body: JSON.stringify({ role: newRole.value })
+      body: JSON.stringify({ role: role })
     })
     if (response.ok) {
       const updatedUser = await response.json()
@@ -908,8 +913,7 @@ const changeUserRole = async () => {
       if (index !== -1) {
         users.value[index] = { ...users.value[index], ...updatedUser }
       }
-      showRoleModal.value = false
-      actionSuccess.value = `User "${username}" role updated to ${formatRole(newRole.value)}.`
+      actionSuccess.value = `User "${username}" role updated to ${formatRole(role)}.`
       clearActionMessages()
     } else {
       actionError.value = 'Failed to change user role. Please try again.'

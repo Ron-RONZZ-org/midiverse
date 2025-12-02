@@ -566,27 +566,26 @@ const openResolveModal = (complaint: any, action: 'sustain' | 'dismiss') => {
 }
 
 const resolveComplaint = async () => {
+  const complaintId = selectedComplaint.value.id
+  const action = resolveAction.value
+  const notes = resolutionNotes.value
+  
+  // Close modal immediately and set button loading state
+  showResolveModal.value = false
   resolving.value = true
-  resolveError.value = ''
-  resolveSuccess.value = ''
   
   try {
-    const response = await authFetch(`/complaints/${selectedComplaint.value.id}/resolve`, {
+    const response = await authFetch(`/complaints/${complaintId}/resolve`, {
       method: 'PATCH',
       body: JSON.stringify({
-        action: resolveAction.value,
-        resolution: resolutionNotes.value || undefined
+        action: action,
+        resolution: notes || undefined
       })
     })
     if (response.ok) {
-      pendingComplaints.value = pendingComplaints.value.filter(c => c.id !== selectedComplaint.value.id)
-      showResolveModal.value = false
-    } else {
-      const errorData = await response.json()
-      resolveError.value = errorData.message || 'Failed to resolve complaint'
+      pendingComplaints.value = pendingComplaints.value.filter(c => c.id !== complaintId)
     }
   } catch (err) {
-    resolveError.value = 'Failed to resolve complaint'
     console.error('Failed to resolve complaint:', err)
   } finally {
     resolving.value = false

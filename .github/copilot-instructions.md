@@ -327,6 +327,67 @@ const setToken = (token: string) => {
 
 This ensures UI components that use `getToken()` or `getUser()` automatically update when auth state changes.
 
+### Modal and Background Operations UX
+
+#### Modal Submit Button States
+
+When implementing modals with form submissions or operations that may take time:
+
+**Problem**: Users may click multiple times or be confused about operation status when buttons don't indicate processing state.
+
+**Solution Pattern**:
+1. **Track loading state**: Use a reactive ref to track when an operation is in progress
+2. **Disable trigger buttons**: The button that opens the modal should show loading state while the operation is in progress
+3. **Close modal on success**: Modal should auto-close after successful operation
+4. **Show feedback**: Display success/error messages briefly before closing
+
+**Example Implementation** (Admin Panel Role Change):
+
+```typescript
+// State
+const roleLoading = ref(false)
+const selectedUser = ref<any>(null)
+const showRoleModal = ref(false)
+
+// Trigger button shows loading state for the specific item
+<button 
+  @click="openRoleModal(user)" 
+  class="btn btn-info btn-sm"
+  :disabled="roleLoading && selectedUser?.id === user.id"
+>
+  {{ roleLoading && selectedUser?.id === user.id ? 'updating...' : 'Change Role' }}
+</button>
+
+// Submit function with proper loading management
+const changeUserRole = async () => {
+  roleLoading.value = true
+  try {
+    const response = await authFetch(`/admin/users/${selectedUser.value.id}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role: newRole.value })
+    })
+    if (response.ok) {
+      showRoleModal.value = false  // Close on success
+      // Update local data...
+    }
+  } finally {
+    roleLoading.value = false
+  }
+}
+```
+
+**Key Points**:
+- ✅ Trigger button disabled and shows "updating..." / "submitting..." during operation
+- ✅ Modal closes automatically on successful submission
+- ✅ Loading state is tracked to prevent multiple submissions
+- ✅ Operation continues in background while UI provides feedback
+
+**Anti-patterns to Avoid**:
+- ❌ Buttons that don't indicate loading state
+- ❌ Modals that stay open after successful operations
+- ❌ Not disabling buttons during async operations (allows double-clicks)
+- ❌ Using generic loading text instead of context-specific text
+
 ## Environment Variables
 
 Required environment variables (see `.env.example`):

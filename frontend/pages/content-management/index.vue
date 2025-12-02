@@ -579,14 +579,8 @@ const resolveComplaint = async () => {
       })
     })
     if (response.ok) {
-      resolveSuccess.value = resolveAction.value === 'sustain' 
-        ? 'Complaint sustained. Markmap has been retired.' 
-        : 'Complaint dismissed. Reporter will be notified.'
       pendingComplaints.value = pendingComplaints.value.filter(c => c.id !== selectedComplaint.value.id)
-      // Auto-close after success
-      setTimeout(() => {
-        showResolveModal.value = false
-      }, 1500)
+      showResolveModal.value = false
     } else {
       const errorData = await response.json()
       resolveError.value = errorData.message || 'Failed to resolve complaint'

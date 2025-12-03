@@ -177,4 +177,58 @@ export class EmailService {
       throw new Error(`Failed to send password reset email: ${errorMessage}`);
     }
   }
+
+  async sendEmailChangeVerificationEmail(
+    newEmail: string,
+    username: string,
+    token: string,
+  ): Promise<void> {
+    const appUrl = this.configService.get<string>('APP_URL');
+    const verificationUrl = `${appUrl}/verify-email-change?token=${token}`;
+
+    const mailOptions = {
+      from: this.configService.get<string>('EMAIL_FROM'),
+      to: newEmail,
+      subject: 'Verify Your New Email Address - Midiverse',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #007bff !important;">Email Change Verification</h2>
+          <p>Hi ${username},</p>
+          <p>You have requested to change your email address on Midiverse to this address. Please verify this email by clicking the button below:</p>
+          <p style="margin: 30px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+              <tr>
+                <td bgcolor="#007bff" style="background-color:#007bff; border-radius:4px;">
+                  <a href="${verificationUrl}" style="display:inline-block; padding:12px 24px; color:#ffffff !important; text-decoration:none; border-radius:4px;">Verify Email Address</a>
+                </td>
+              </tr>
+            </table>
+          </p>
+          <p style="color: #666; font-size: 14px;">
+            Or copy and paste this link into your browser:<br>
+            <a href="${verificationUrl}">${verificationUrl}</a>
+          </p>
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            This link will expire in 24 hours. If you didn't request this email change, you can safely ignore this email and your email address will remain unchanged.
+          </p>
+        </div>
+      `,
+      text: `Hi ${username},\n\nYou have requested to change your email address on Midiverse to this address. Verify it using this link:\n${verificationUrl}\n\nThis link will expire in 24 hours. If you didn't request this, ignore this email.`,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Email change verification email sent to ${newEmail}`);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to send email change verification email to ${newEmail}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new Error(
+        `Failed to send email change verification email: ${errorMessage}`,
+      );
+    }
+  }
 }

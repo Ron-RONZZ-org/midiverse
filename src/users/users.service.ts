@@ -3,16 +3,25 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarkmapsService } from '../markmaps/markmaps.service';
+import { EmailService } from '../email/email.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private prisma: PrismaService,
     private markmapsService: MarkmapsService,
+    private emailService: EmailService,
   ) {}
 
   async getProfile(userId: string) {
@@ -31,6 +40,7 @@ export class UsersService {
         createdAt: true,
         lastEmailChange: true,
         lastUsernameChange: true,
+        pendingEmail: true,
         _count: {
           select: {
             markmaps: true,
@@ -94,6 +104,7 @@ export class UsersService {
           createdAt: true,
           lastEmailChange: true,
           lastUsernameChange: true,
+          pendingEmail: true,
           _count: {
             select: {
               markmaps: true,
@@ -159,7 +170,12 @@ export class UsersService {
   async updateProfile(userId: string, updateUserDto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { lastEmailChange: true, lastUsernameChange: true },
+      select: {
+        email: true,
+        username: true,
+        lastEmailChange: true,
+        lastUsernameChange: true,
+      },
     });
 
     if (!user) {
@@ -172,6 +188,7 @@ export class UsersService {
     // Check if email can be changed
     if (
       updateUserDto.email &&
+      updateUserDto.email !== user.email &&
       user.lastEmailChange &&
       user.lastEmailChange > fifteenDaysAgo
     ) {
@@ -187,6 +204,7 @@ export class UsersService {
     // Check if username can be changed
     if (
       updateUserDto.username &&
+      updateUserDto.username !== user.username &&
       user.lastUsernameChange &&
       user.lastUsernameChange > fifteenDaysAgo
     ) {
@@ -201,8 +219,9 @@ export class UsersService {
 
     // Prepare update data
     const updateData: {
-      email?: string;
-      lastEmailChange?: Date;
+      pendingEmail?: string;
+      pendingEmailToken?: string;
+      pendingEmailTokenExpiry?: Date;
       username?: string;
       lastUsernameChange?: Date;
       displayName?: string;
@@ -210,11 +229,30 @@ export class UsersService {
       profilePictureUrl?: string;
       profileBackgroundColor?: string;
     } = {};
-    if (updateUserDto.email) {
-      updateData.email = updateUserDto.email;
-      updateData.lastEmailChange = now;
+
+    // If email is being changed, require verification
+    let emailChangeRequested = false;
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      // Check if new email is already taken
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: updateUserDto.email },
+      });
+      if (existingUser) {
+        throw new ConflictException('Email already taken');
+      }
+
+      // Generate email verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const tokenExpiry = new Date();
+      tokenExpiry.setHours(tokenExpiry.getHours() + 24); // Token expires in 24 hours
+
+      updateData.pendingEmail = updateUserDto.email;
+      updateData.pendingEmailToken = verificationToken;
+      updateData.pendingEmailTokenExpiry = tokenExpiry;
+      emailChangeRequested = true;
     }
-    if (updateUserDto.username) {
+
+    if (updateUserDto.username && updateUserDto.username !== user.username) {
       updateData.username = updateUserDto.username;
       updateData.lastUsernameChange = now;
     }
@@ -232,7 +270,7 @@ export class UsersService {
     }
 
     try {
-      return await this.prisma.user.update({
+      const updatedUser = await this.prisma.user.update({
         where: { id: userId },
         data: updateData,
         select: {
@@ -246,8 +284,36 @@ export class UsersService {
           createdAt: true,
           lastEmailChange: true,
           lastUsernameChange: true,
+          pendingEmail: true,
         },
       });
+
+      // Send email change verification email
+      if (
+        emailChangeRequested &&
+        updateData.pendingEmailToken &&
+        updateData.pendingEmail
+      ) {
+        try {
+          await this.emailService.sendEmailChangeVerificationEmail(
+            updateData.pendingEmail,
+            user.username,
+            updateData.pendingEmailToken,
+          );
+        } catch (error) {
+          // Log error but don't fail the update - user will see pending status
+          // and can request again if needed
+          this.logger.error(
+            'Failed to send email change verification email',
+            error,
+          );
+        }
+      }
+
+      return {
+        ...updatedUser,
+        emailChangeRequested,
+      };
     } catch (error) {
       if (
         error &&
@@ -260,6 +326,121 @@ export class UsersService {
       }
       throw error;
     }
+  }
+
+  async verifyEmailChange(token: string) {
+    // Use constant-time comparison to prevent timing attacks
+    const users = await this.prisma.user.findMany({
+      where: {
+        pendingEmailToken: { not: null },
+        pendingEmailTokenExpiry: {
+          gte: new Date(),
+        },
+      },
+    });
+
+    // Find user with matching token using constant-time comparison
+    const user = users.find((u) => {
+      if (!u.pendingEmailToken) return false;
+      // Ensure buffer lengths match to prevent timing attacks
+      if (u.pendingEmailToken.length !== token.length) return false;
+      try {
+        return crypto.timingSafeEqual(
+          Buffer.from(u.pendingEmailToken),
+          Buffer.from(token),
+        );
+      } catch {
+        return false;
+      }
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    if (!user.pendingEmail) {
+      throw new BadRequestException('No pending email change');
+    }
+
+    // Update user with new email
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        email: user.pendingEmail,
+        pendingEmail: null,
+        pendingEmailToken: null,
+        pendingEmailTokenExpiry: null,
+        lastEmailChange: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+      },
+    });
+
+    return {
+      message: 'Email changed successfully',
+      user: updatedUser,
+    };
+  }
+
+  async cancelPendingEmailChange(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { pendingEmail: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.pendingEmail) {
+      throw new BadRequestException('No pending email change to cancel');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        pendingEmail: null,
+        pendingEmailToken: null,
+        pendingEmailTokenExpiry: null,
+      },
+    });
+
+    return { message: 'Pending email change cancelled' };
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+
+    // Update password
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { message: 'Password changed successfully' };
   }
 
   async getUserMarkmaps(userId: string, includeDeleted = false) {

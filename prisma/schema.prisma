@@ -36,6 +36,9 @@ model User {
   emailVerificationTokenExpiry DateTime?
   passwordResetToken  String?     // Token for password reset
   passwordResetTokenExpiry DateTime?
+  pendingEmail        String?     // New email address pending verification
+  pendingEmailToken   String?     // Token to verify pending email change
+  pendingEmailTokenExpiry DateTime? // Expiry for pending email verification token
   displayName         String?     // Display name for profile
   description         String?     // Profile description
   profilePictureUrl   String?     // Profile picture URL

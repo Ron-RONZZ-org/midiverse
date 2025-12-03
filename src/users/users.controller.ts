@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Param,
   Body,
@@ -13,6 +14,7 @@ import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import type { UserFromToken } from '../common/interfaces/auth.interface';
 
 @Controller('users')
@@ -32,6 +34,26 @@ export class UsersController {
     @Body(ValidationPipe) updateUserDto: UpdateUserDto,
   ) {
     return this.usersService.updateProfile(user.id, updateUserDto);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(
+    @CurrentUser() user: UserFromToken,
+    @Body(ValidationPipe) changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(user.id, changePasswordDto);
+  }
+
+  @Post('verify-email-change')
+  verifyEmailChange(@Body('token') token: string) {
+    return this.usersService.verifyEmailChange(token);
+  }
+
+  @Post('cancel-pending-email')
+  @UseGuards(JwtAuthGuard)
+  cancelPendingEmailChange(@CurrentUser() user: UserFromToken) {
+    return this.usersService.cancelPendingEmailChange(user.id);
   }
 
   @Get('profile/:username')

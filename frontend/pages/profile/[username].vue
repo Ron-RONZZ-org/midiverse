@@ -307,9 +307,10 @@
         <div v-if="showSettingsModal" class="modal-overlay" @click.self="showSettingsModal = false">
       <div class="modal">
         <h2>Account settings</h2>
-                <div v-if="settingsError" class="error">{{ settingsError }}</div>
+        <div v-if="settingsError" class="error">{{ settingsError }}</div>
+        <div v-if="settingsSuccess" class="success-message">{{ settingsSuccess }}</div>
         <form @submit.prevent="updateSettings">
-                 <div class="form-group">
+          <div class="form-group">
             <label for="email">Email</label>
             <input 
               id="email" 
@@ -318,7 +319,11 @@
               class="form-control"
               :placeholder="profile.email"
             />
-            <small v-if="profile.lastEmailChange" class="form-text">
+            <small v-if="profile.pendingEmail" class="form-text pending-email">
+              ⏳ Pending verification: {{ profile.pendingEmail }}
+              <button type="button" @click="cancelPendingEmail" class="btn-link">Cancel</button>
+            </small>
+            <small v-else-if="profile.lastEmailChange" class="form-text">
               Last changed: {{ new Date(profile.lastEmailChange).toLocaleDateString() }}
             </small>
           </div>
@@ -340,6 +345,55 @@
             <button type="button" @click="showSettingsModal = false" class="btn btn-secondary">Cancel</button>
             <button type="submit" class="btn" :disabled="settingsLoading">
               {{ settingsLoading ? 'Saving...' : 'Save settings' }}
+            </button>
+          </div>
+        </form>
+
+        <hr class="settings-divider" />
+
+        <h3>Change Password</h3>
+        <div v-if="passwordError" class="error">{{ passwordError }}</div>
+        <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
+        <form @submit.prevent="changePassword">
+          <div class="form-group">
+            <label for="currentPassword">Current Password</label>
+            <input 
+              id="currentPassword" 
+              v-model="passwordForm.currentPassword" 
+              type="password" 
+              class="form-control"
+              placeholder="Enter current password"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="newPassword">New Password</label>
+            <input 
+              id="newPassword" 
+              v-model="passwordForm.newPassword" 
+              type="password" 
+              class="form-control"
+              placeholder="Enter new password (min 6 characters)"
+              minlength="6"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Confirm New Password</label>
+            <input 
+              id="confirmPassword" 
+              v-model="passwordForm.confirmPassword" 
+              type="password" 
+              class="form-control"
+              placeholder="Confirm new password"
+              minlength="6"
+              required
+            />
+          </div>
+
+          <div class="modal-actions">
+            <button type="submit" class="btn" :disabled="passwordLoading">
+              {{ passwordLoading ? 'Changing...' : 'Change Password' }}
             </button>
           </div>
         </form>
@@ -390,7 +444,17 @@ const settingsForm = ref({
   username: '',
 })
 const settingsError = ref('')
+const settingsSuccess = ref('')
 const settingsLoading = ref(false)
+
+const passwordForm = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+const passwordError = ref('')
+const passwordSuccess = ref('')
+const passwordLoading = ref(false)
 
 const loadProfile = async () => {
   loading.value = true
@@ -503,6 +567,7 @@ const updateProfile = async () => {
 const updateSettings = async () => {
   settingsLoading.value = true
   settingsError.value = ''
+  settingsSuccess.value = ''
   
   try {
     const updateData: any = {}
@@ -531,6 +596,15 @@ const updateSettings = async () => {
 
     const updatedSettings = await response.json()
 
+    // Show success message if email change was requested
+    if (updatedSettings.emailChangeRequested) {
+      settingsSuccess.value = 'A verification email has been sent to your new email address. Please check your inbox to complete the change.'
+      // Reload profile to show pending email
+      await loadProfile()
+      settingsForm.value.email = ''
+      return
+    }
+
     // Update the stored user data if this is the current user's settings
     if (currentUser.value && currentUser.value.id === profile.value.id) {
       setUser({
@@ -557,6 +631,71 @@ const updateSettings = async () => {
     settingsError.value = err.message || '[Unknown error] Failed to update account settings'
   } finally {
     settingsLoading.value = false
+  }
+}
+
+const cancelPendingEmail = async () => {
+  try {
+    const response = await authFetch('/users/cancel-pending-email', {
+      method: 'POST',
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      settingsError.value = errorData.message || 'Failed to cancel pending email change'
+      return
+    }
+
+    settingsSuccess.value = 'Pending email change cancelled'
+    await loadProfile()
+  } catch (err: any) {
+    settingsError.value = err.message || 'Failed to cancel pending email change'
+  }
+}
+
+const changePassword = async () => {
+  passwordLoading.value = true
+  passwordError.value = ''
+  passwordSuccess.value = ''
+
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    passwordError.value = 'New passwords do not match'
+    passwordLoading.value = false
+    return
+  }
+
+  if (passwordForm.value.newPassword.length < 6) {
+    passwordError.value = 'New password must be at least 6 characters'
+    passwordLoading.value = false
+    return
+  }
+
+  try {
+    const response = await authFetch('/users/change-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        currentPassword: passwordForm.value.currentPassword,
+        newPassword: passwordForm.value.newPassword,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      passwordError.value = errorData.message || 'Failed to change password'
+      return
+    }
+
+    const data = await response.json()
+    passwordSuccess.value = data.message || 'Password changed successfully'
+    passwordForm.value = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+  } catch (err: any) {
+    passwordError.value = err.message || 'Failed to change password'
+  } finally {
+    passwordLoading.value = false
   }
 }
 
@@ -717,13 +856,22 @@ watch(showPreferencesModal, (newVal) => {
   }
 })
 
-// Populate settings form when modal is opened
+// Populate settings form when modal is opened and reset when closed
 watch(showSettingsModal, (newVal) => {
   if (newVal && profile.value?.isOwnProfile) {
     settingsForm.value = {
       email: profile.value.email || '',
       username: profile.value.username || '',
     }
+    settingsError.value = ''
+    settingsSuccess.value = ''
+    passwordForm.value = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+    passwordError.value = ''
+    passwordSuccess.value = ''
   }
 })
 
@@ -1152,5 +1300,51 @@ textarea.form-control {
 
 .checkbox-disabled input[type="checkbox"] {
   cursor: not-allowed;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #c3e6cb;
+}
+
+.settings-divider {
+  margin: 1.5rem 0;
+  border: none;
+  border-top: 1px solid var(--border-color, #dee2e6);
+}
+
+.modal h3 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.pending-email {
+  color: #856404;
+  background-color: #fff3cd;
+  padding: 0.5rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.875rem;
+  padding: 0;
+}
+
+.btn-link:hover {
+  color: #a71d2a;
 }
 </style>

@@ -46,7 +46,8 @@ export class EmailService {
     const timestamp = Date.now();
     const data = `${userId}:${timestamp}`;
     const secret =
-      this.configService.get<string>('JWT_SECRET') || 'default-secret';
+      this.configService.get<string>('JWT_SECRET') ||
+      'your-secret-key-change-this-in-production';
     const hmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
     return Buffer.from(`${data}:${hmac}`).toString('base64url');
   }
@@ -71,7 +72,8 @@ export class EmailService {
       // Verify HMAC
       const data = `${userId}:${timestampStr}`;
       const secret =
-        this.configService.get<string>('JWT_SECRET') || 'default-secret';
+        this.configService.get<string>('JWT_SECRET') ||
+        'your-secret-key-change-this-in-production';
       const expectedHmac = crypto
         .createHmac('sha256', secret)
         .update(data)

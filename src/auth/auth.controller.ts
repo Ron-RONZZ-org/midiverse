@@ -4,6 +4,9 @@ import { SignUpDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { CheckUsernameDto } from './dto/check-username.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -29,5 +32,26 @@ export class AuthController {
     @Body(ValidationPipe) resendDto: ResendVerificationDto,
   ) {
     return this.authService.resendVerificationEmail(resendDto);
+  }
+
+  @Post('check-username')
+  async checkUsername(
+    @Body(ValidationPipe) checkUsernameDto: CheckUsernameDto,
+  ) {
+    return this.authService.checkUsernameAvailability(checkUsernameDto);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(
+    @Body(ValidationPipe) forgotPasswordDto: ForgotPasswordDto,
+  ) {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body(ValidationPipe) resetPasswordDto: ResetPasswordDto,
+  ) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

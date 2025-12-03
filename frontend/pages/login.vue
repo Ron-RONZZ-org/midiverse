@@ -3,7 +3,25 @@
     <div class="auth-form">
       <div class="card">
         <h1>Login</h1>
-        <form @submit.prevent="handleLogin">
+        
+        <!-- Email verification prompt -->
+        <div v-if="showVerificationPrompt" class="verification-prompt">
+          <h3>Email Verification Required</h3>
+          <p>Your email address has not been verified. Please check your inbox for the verification email.</p>
+          <button 
+            @click="handleResendVerification" 
+            class="btn-secondary"
+            :disabled="resending"
+          >
+            {{ resending ? 'Sending...' : 'Resend Verification Email' }}
+          </button>
+          <p v-if="resendMessage" class="resend-message">{{ resendMessage }}</p>
+          <button @click="showVerificationPrompt = false" class="btn-link">
+            ← Back to login
+          </button>
+        </div>
+
+        <form v-else @submit.prevent="handleLogin">
           <div class="form-group">
             <label for="username">Username</label>
             <input 
@@ -40,17 +58,22 @@
             {{ loading ? 'Logging in...' : 'Login' }}
           </button>
         </form>
-        <p class="auth-switch">
-          Don't have an account? 
-          <NuxtLink to="/signup">Sign up here</NuxtLink>
-        </p>
+        <div v-if="!showVerificationPrompt" class="auth-links">
+          <p class="auth-switch">
+            Don't have an account? 
+            <NuxtLink to="/signup">Sign up here</NuxtLink>
+          </p>
+          <p class="forgot-password">
+            <NuxtLink to="/forgot-password">Forgot your password?</NuxtLink>
+          </p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const { login } = useAuth()
+const { login, resendVerification } = useAuth()
 const { renderTurnstile, resetTurnstile, removeTurnstile, isConfigured } = useTurnstile()
 
 const username = ref('')
@@ -60,6 +83,10 @@ const loading = ref(false)
 const turnstileToken = ref('')
 const turnstileWidgetId = ref<string>()
 const showTurnstileWarning = ref(false)
+const showVerificationPrompt = ref(false)
+const unverifiedEmail = ref('')
+const resending = ref(false)
+const resendMessage = ref('')
 
 onMounted(() => {
   // Show warning if Turnstile is not configured
@@ -92,13 +119,20 @@ onUnmounted(() => {
 const handleLogin = async () => {
   error.value = ''
   loading.value = true
+  resendMessage.value = ''
 
   try {
     const data = await login(username.value, password.value, turnstileToken.value)
     // Redirect directly to user's profile page
     navigateTo(`/profile/${data.user.username}`)
   } catch (err: any) {
-    error.value = err.message || 'Login failed. Please try again.'
+    // Check if this is an email verification error
+    if (err.code === 'EMAIL_NOT_VERIFIED' && err.email) {
+      unverifiedEmail.value = err.email
+      showVerificationPrompt.value = true
+    } else {
+      error.value = err.message || 'Login failed. Please try again.'
+    }
     // Reset Turnstile on error
     if (turnstileWidgetId.value) {
       resetTurnstile(turnstileWidgetId.value)
@@ -106,6 +140,22 @@ const handleLogin = async () => {
     }
   } finally {
     loading.value = false
+  }
+}
+
+const handleResendVerification = async () => {
+  if (!unverifiedEmail.value) return
+  
+  resending.value = true
+  resendMessage.value = ''
+  
+  try {
+    const data = await resendVerification(unverifiedEmail.value)
+    resendMessage.value = data.message || 'Verification email sent successfully!'
+  } catch (err: any) {
+    resendMessage.value = err.message || 'Failed to resend verification email'
+  } finally {
+    resending.value = false
   }
 }
 </script>
@@ -127,18 +177,29 @@ const handleLogin = async () => {
   margin-top: 1rem;
 }
 
-.auth-switch {
-  text-align: center;
+.auth-links {
   margin-top: 1.5rem;
 }
 
-.auth-switch a {
+.auth-switch {
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.auth-switch a,
+.forgot-password a {
   color: #007bff;
   text-decoration: none;
 }
 
-.auth-switch a:hover {
+.auth-switch a:hover,
+.forgot-password a:hover {
   text-decoration: underline;
+}
+
+.forgot-password {
+  text-align: center;
+  font-size: 14px;
 }
 
 #turnstile-container {
@@ -156,5 +217,58 @@ const handleLogin = async () => {
   margin: 1rem 0;
   text-align: center;
   font-size: 14px;
+}
+
+.verification-prompt {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.verification-prompt h3 {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+.verification-prompt p {
+  margin-bottom: 1rem;
+  color: #666;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 1rem;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.resend-message {
+  color: #28a745;
+  font-size: 14px;
+  margin-top: 0.5rem;
 }
 </style>

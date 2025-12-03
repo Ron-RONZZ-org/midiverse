@@ -45,6 +45,7 @@
         <div v-if="profile.isOwnProfile" class="actions">
           <button @click="showEditModal = true" class="btn btn-secondary">Edit Profile</button>
           <button @click="showPreferencesModal = true" class="btn btn-secondary">User Preferences</button>
+          <button @click="showSettingsModal = true" class="btn btn-secondary">Account Settings</button>
         </div>
       </div>
 
@@ -195,32 +196,6 @@
             </div>
             <small class="form-text">Enter a hex color code (e.g., #FF5733) or use the color picker</small>
           </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input 
-              id="email" 
-              v-model="editForm.email" 
-              type="email" 
-              class="form-control"
-              :placeholder="profile.email"
-            />
-            <small v-if="profile.lastEmailChange" class="form-text">
-              Last changed: {{ new Date(profile.lastEmailChange).toLocaleDateString() }}
-            </small>
-          </div>
-          <div class="form-group">
-            <label for="username">Username</label>
-            <input 
-              id="username" 
-              v-model="editForm.username" 
-              type="text" 
-              class="form-control"
-              :placeholder="profile.username"
-            />
-            <small v-if="profile.lastUsernameChange" class="form-text">
-              Last changed: {{ new Date(profile.lastUsernameChange).toLocaleDateString() }}
-            </small>
-          </div>
           <div class="modal-actions">
             <button type="button" @click="showEditModal = false" class="btn btn-secondary">Cancel</button>
             <button type="submit" class="btn" :disabled="editLoading">
@@ -326,6 +301,50 @@
           </div>
         </form>
       </div>
+      </div>
+
+   <!-- account settings modal-->
+        <div v-if="showSettingsModal" class="modal-overlay" @click.self="showSettingsModal = false">
+      <div class="modal">
+        <h2>Account settings</h2>
+                <div v-if="settingsError" class="error">{{ settingsError }}</div>
+        <form @submit.prevent="updateSettings">
+                 <div class="form-group">
+            <label for="email">Email</label>
+            <input 
+              id="email" 
+              v-model="settingsForm.email" 
+              type="email" 
+              class="form-control"
+              :placeholder="profile.email"
+            />
+            <small v-if="profile.lastEmailChange" class="form-text">
+              Last changed: {{ new Date(profile.lastEmailChange).toLocaleDateString() }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input 
+              id="username" 
+              v-model="settingsForm.username" 
+              type="text" 
+              class="form-control"
+              :placeholder="profile.username"
+            />
+            <small v-if="profile.lastUsernameChange" class="form-text">
+              Last changed: {{ new Date(profile.lastUsernameChange).toLocaleDateString() }}
+            </small>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="showSettingsModal = false" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn" :disabled="settingsLoading">
+              {{ settingsLoading ? 'Saving...' : 'Save settings' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
     </div>
   </div>
 </template>
@@ -345,8 +364,6 @@ const error = ref('')
 
 const showEditModal = ref(false)
 const editForm = ref({ 
-  email: '', 
-  username: '',
   displayName: '',
   description: '',
   profilePictureUrl: '',
@@ -366,6 +383,14 @@ const preferencesForm = ref({
 })
 const preferencesError = ref('')
 const preferencesLoading = ref(false)
+
+const showSettingsModal = ref(false)
+const settingsForm = ref({
+  email: '', 
+  username: '',
+})
+const settingsError = ref('')
+const settingsLoading = ref(false)
 
 const loadProfile = async () => {
   loading.value = true
@@ -427,12 +452,6 @@ const updateProfile = async () => {
     if (editForm.value.profileBackgroundColor !== undefined && editForm.value.profileBackgroundColor !== profile.value.profileBackgroundColor) {
       updateData.profileBackgroundColor = editForm.value.profileBackgroundColor || null
     }
-    if (editForm.value.email && editForm.value.email !== profile.value.email) {
-      updateData.email = editForm.value.email
-    }
-    if (editForm.value.username && editForm.value.username !== profile.value.username) {
-      updateData.username = editForm.value.username
-    }
 
     if (Object.keys(updateData).length === 0) {
       showEditModal.value = false
@@ -446,7 +465,7 @@ const updateProfile = async () => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      editError.value = errorData.message || 'Failed to update profile'
+      editError.value = errorData.message || '[Unknown error] Failed to update profile'
       return
     }
 
@@ -456,35 +475,88 @@ const updateProfile = async () => {
     if (currentUser.value && currentUser.value.id === profile.value.id) {
       setUser({
         ...currentUser.value,
-        username: updatedProfile.username,
-        email: updatedProfile.email,
         displayName: updatedProfile.displayName,
         description: updatedProfile.description,
         profilePictureUrl: updatedProfile.profilePictureUrl,
         profileBackgroundColor: updatedProfile.profileBackgroundColor,
       })
-    }
+    }    
+  
+      // Reload profile
+      await loadProfile()
     
+    
+    showEditModal.value = false
+    editForm.value = { 
+      displayName: '',
+      description: '',
+      profilePictureUrl: '',
+      profileBackgroundColor: ''
+    }
+  } catch (err: any) {
+    editError.value = err.message || '[Unknown error] Failed to update profile'
+  } finally {
+    editLoading.value = false
+  }
+}
+
+const updateSettings = async () => {
+  settingsLoading.value = true
+  settingsError.value = ''
+  
+  try {
+    const updateData: any = {}
+    if (settingsForm.value.email && settingsForm.value.email !== profile.value.email) {
+      updateData.email = settingsForm.value.email
+    }
+    if (settingsForm.value.username && settingsForm.value.username !== profile.value.username) {
+      updateData.username = settingsForm.value.username
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      showSettingsModal.value = false
+      return
+    }
+
+    const response = await authFetch('/users/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(updateData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      settingsError.value = errorData.message || '[Unknown error] Failed to update account settings'
+      return
+    }
+
+    const updatedSettings = await response.json()
+
+    // Update the stored user data if this is the current user's settings
+    if (currentUser.value && currentUser.value.id === profile.value.id) {
+      setUser({
+        ...currentUser.value,
+        username: updatedSettings.username ?? currentUser.value.username,
+        email: updatedSettings.email ?? currentUser.value.email,
+      })
+    }
+
     // If username changed, redirect to new profile URL
     if (updateData.username) {
-      navigateTo(`/profile/${updatedProfile.username}`)
+      navigateTo(`/profile/${updatedSettings.username}`)
     } else {
       // Reload profile
       await loadProfile()
     }
-    
-    showEditModal.value = false
-    editForm.value = { 
-      email: '', 
+
+    showSettingsModal.value = false
+    settingsForm.value = {
+      email: '',
       username: '',
-      displayName: '',
-      description: '',
-      profilePictureUrl: ''
     }
   } catch (err: any) {
-    editError.value = err.message || 'Failed to update profile'
+    settingsError.value = err.message || '[Unknown error] Failed to update account settings'
   } finally {
-    editLoading.value = false
+    settingsLoading.value = false
   }
 }
 
@@ -626,6 +698,18 @@ const updatePreferences = async () => {
   }
 }
 
+// Populate edit form when modal is opened
+watch(showEditModal, (newVal) => {
+  if (newVal && profile.value?.isOwnProfile) {
+    editForm.value = {
+      displayName: profile.value.displayName || '',
+      description: profile.value.description || '',
+      profilePictureUrl: profile.value.profilePictureUrl || '',
+      profileBackgroundColor: profile.value.profileBackgroundColor || ''
+    }
+  }
+})
+
 // Open preferences modal and load preferences
 watch(showPreferencesModal, (newVal) => {
   if (newVal && profile.value?.isOwnProfile) {
@@ -633,16 +717,12 @@ watch(showPreferencesModal, (newVal) => {
   }
 })
 
-// Populate edit form when modal is opened
-watch(showEditModal, (newVal) => {
-  if (newVal && profile.value) {
-    editForm.value = {
+// Populate settings form when modal is opened
+watch(showSettingsModal, (newVal) => {
+  if (newVal && profile.value?.isOwnProfile) {
+    settingsForm.value = {
       email: profile.value.email || '',
       username: profile.value.username || '',
-      displayName: profile.value.displayName || '',
-      description: profile.value.description || '',
-      profilePictureUrl: profile.value.profilePictureUrl || '',
-      profileBackgroundColor: profile.value.profileBackgroundColor || ''
     }
   }
 })

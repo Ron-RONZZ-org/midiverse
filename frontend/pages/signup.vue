@@ -38,8 +38,19 @@
               v-model="username" 
               type="text" 
               required 
+              minlength="3"
               placeholder="Choose a username"
+              @input="debouncedCheckUsername"
             />
+            <div v-if="usernameChecking" class="field-status checking">
+              Checking availability...
+            </div>
+            <div v-else-if="usernameStatus === 'available'" class="field-status available">
+              ✓ Username is available
+            </div>
+            <div v-else-if="usernameStatus === 'taken'" class="field-status taken">
+              ✗ Username is already taken
+            </div>
           </div>
           <div class="form-group">
             <label for="password">Password</label>
@@ -64,7 +75,7 @@
           </div>
 
           <div v-if="error" class="error">{{ error }}</div>
-          <button type="submit" class="btn" :disabled="loading">
+          <button type="submit" class="btn" :disabled="loading || usernameStatus === 'taken' || usernameChecking">
             {{ loading ? 'Creating account...' : 'Sign Up' }}
           </button>
         </form>
@@ -78,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-const { signup, resendVerification } = useAuth()
+const { signup, resendVerification, checkUsername } = useAuth()
 const { renderTurnstile, resetTurnstile, removeTurnstile, isConfigured } = useTurnstile()
 
 const email = ref('')
@@ -92,6 +103,37 @@ const verificationPending = ref(false)
 const successMessage = ref('')
 const resending = ref(false)
 const showTurnstileWarning = ref(false)
+const usernameChecking = ref(false)
+const usernameStatus = ref<'available' | 'taken' | null>(null)
+
+let checkUsernameTimeout: ReturnType<typeof setTimeout> | null = null
+
+const debouncedCheckUsername = () => {
+  // Clear previous timeout
+  if (checkUsernameTimeout) {
+    clearTimeout(checkUsernameTimeout)
+  }
+  
+  // Reset status if username is too short
+  if (username.value.length < 3) {
+    usernameStatus.value = null
+    usernameChecking.value = false
+    return
+  }
+  
+  // Set a new timeout
+  usernameChecking.value = true
+  checkUsernameTimeout = setTimeout(async () => {
+    try {
+      const result = await checkUsername(username.value)
+      usernameStatus.value = result.available ? 'available' : 'taken'
+    } catch {
+      usernameStatus.value = null
+    } finally {
+      usernameChecking.value = false
+    }
+  }, 500)
+}
 
 onMounted(() => {
   // Show warning if Turnstile is not configured
@@ -118,6 +160,9 @@ onMounted(() => {
 onUnmounted(() => {
   if (turnstileWidgetId.value) {
     removeTurnstile(turnstileWidgetId.value)
+  }
+  if (checkUsernameTimeout) {
+    clearTimeout(checkUsernameTimeout)
   }
 })
 
@@ -252,5 +297,22 @@ const handleResendVerification = async () => {
   margin: 1rem 0;
   text-align: center;
   font-size: 14px;
+}
+
+.field-status {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.field-status.checking {
+  color: #6c757d;
+}
+
+.field-status.available {
+  color: #28a745;
+}
+
+.field-status.taken {
+  color: #dc3545;
 }
 </style>

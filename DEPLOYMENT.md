@@ -30,18 +30,6 @@ sudo apt install postgresql postgresql-contrib -y
 sudo npm install -g pm2
 ```
 
-### Configure PostgreSQL
-
-```bash
-# Switch to postgres user
-sudo -u postgres psql
-
-# Create database and user
-CREATE DATABASE midiverse;
-CREATE USER midiverseuser WITH PASSWORD 'your-secure-password';
-GRANT ALL PRIVILEGES ON DATABASE midiverse TO midiverseuser;
-\q
-```
 
 ## 2. Application Setup
 
@@ -341,19 +329,8 @@ cd frontend && npm run build && cd ..
 pm2 restart all
 ```
 
-### Backup Database
-
-```bash
-# Create backup
-pg_dump -U midiverseuser midiverse > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Restore from backup
-psql -U midiverseuser midiverse < backup_file.sql
-```
-
 ## Security Checklist
 
-- [ ] Use strong, unique passwords for database and JWT_SECRET
 - [ ] Enable firewall (UFW)
 - [ ] Install SSL certificate
 - [ ] Keep system and dependencies updated

@@ -33,6 +33,7 @@ describe('UsersService', () => {
             user: {
               findUnique: jest.fn(),
               findFirst: jest.fn(),
+              findMany: jest.fn(),
               update: jest.fn(),
             },
             markmap: {
@@ -304,8 +305,8 @@ describe('UsersService', () => {
       };
 
       jest
-        .spyOn(prismaService.user, 'findFirst')
-        .mockResolvedValue(mockUser as any);
+        .spyOn(prismaService.user, 'findMany')
+        .mockResolvedValue([mockUser] as any);
       jest
         .spyOn(prismaService.user, 'update')
         .mockResolvedValue(updatedUser as any);
@@ -317,7 +318,7 @@ describe('UsersService', () => {
     });
 
     it('should throw BadRequestException for invalid or expired token', async () => {
-      jest.spyOn(prismaService.user, 'findFirst').mockResolvedValue(null);
+      jest.spyOn(prismaService.user, 'findMany').mockResolvedValue([]);
 
       await expect(service.verifyEmailChange('invalid-token')).rejects.toThrow(
         BadRequestException,

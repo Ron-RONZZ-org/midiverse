@@ -289,15 +289,20 @@ export class UsersService {
       });
 
       // Send email change verification email
-      if (emailChangeRequested && updateData.pendingEmailToken) {
+      if (
+        emailChangeRequested &&
+        updateData.pendingEmailToken &&
+        updateData.pendingEmail
+      ) {
         try {
           await this.emailService.sendEmailChangeVerificationEmail(
-            updateUserDto.email!,
+            updateData.pendingEmail,
             user.username,
             updateData.pendingEmailToken,
           );
         } catch (error) {
-          // Log error but don't fail the update
+          // Log error but don't fail the update - user will see pending status
+          // and can request again if needed
           this.logger.error(
             'Failed to send email change verification email',
             error,
@@ -324,13 +329,29 @@ export class UsersService {
   }
 
   async verifyEmailChange(token: string) {
-    const user = await this.prisma.user.findFirst({
+    // Use constant-time comparison to prevent timing attacks
+    const users = await this.prisma.user.findMany({
       where: {
-        pendingEmailToken: token,
+        pendingEmailToken: { not: null },
         pendingEmailTokenExpiry: {
           gte: new Date(),
         },
       },
+    });
+
+    // Find user with matching token using constant-time comparison
+    const user = users.find((u) => {
+      if (!u.pendingEmailToken) return false;
+      // Ensure buffer lengths match to prevent timing attacks
+      if (u.pendingEmailToken.length !== token.length) return false;
+      try {
+        return crypto.timingSafeEqual(
+          Buffer.from(u.pendingEmailToken),
+          Buffer.from(token),
+        );
+      } catch {
+        return false;
+      }
     });
 
     if (!user) {

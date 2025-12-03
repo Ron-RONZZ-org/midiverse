@@ -15,6 +15,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { VerifyEmailChangeDto } from './dto/verify-email-change.dto';
 import type { UserFromToken } from '../common/interfaces/auth.interface';
 
 @Controller('users')
@@ -46,8 +47,10 @@ export class UsersController {
   }
 
   @Post('verify-email-change')
-  verifyEmailChange(@Body('token') token: string) {
-    return this.usersService.verifyEmailChange(token);
+  verifyEmailChange(
+    @Body(ValidationPipe) verifyEmailChangeDto: VerifyEmailChangeDto,
+  ) {
+    return this.usersService.verifyEmailChange(verifyEmailChangeDto.token);
   }
 
   @Post('cancel-pending-email')

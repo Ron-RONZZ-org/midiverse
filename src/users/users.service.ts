@@ -513,4 +513,81 @@ export class UsersService {
       },
     });
   }
+
+  /**
+   * Get email preferences using a token (for unsubscribe links)
+   */
+  async getEmailPreferencesByToken(token: string) {
+    const userId = this.emailService.verifyPreferencesToken(token);
+    if (!userId) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        preferences: {
+          select: {
+            emailComplaintsNotifications: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      username: user.username,
+      email: user.email,
+      emailComplaintsNotifications:
+        user.preferences?.emailComplaintsNotifications ?? true,
+    };
+  }
+
+  /**
+   * Update email preferences using a token (for unsubscribe links)
+   */
+  async updateEmailPreferencesByToken(
+    token: string,
+    updatePreferencesDto: {
+      emailComplaintsNotifications?: boolean;
+    },
+  ) {
+    const userId = this.emailService.verifyPreferencesToken(token);
+    if (!userId) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Use upsert to handle both create and update atomically
+    const preferences = await this.prisma.userPreferences.upsert({
+      where: { userId },
+      update: {
+        emailComplaintsNotifications:
+          updatePreferencesDto.emailComplaintsNotifications,
+      },
+      create: {
+        userId,
+        emailComplaintsNotifications:
+          updatePreferencesDto.emailComplaintsNotifications ?? true,
+      },
+    });
+
+    return {
+      message: 'Email preferences updated successfully',
+      emailComplaintsNotifications: preferences.emailComplaintsNotifications,
+    };
+  }
 }

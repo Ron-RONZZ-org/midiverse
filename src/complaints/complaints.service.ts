@@ -21,6 +21,18 @@ export class ComplaintsService {
   ) {}
 
   /**
+   * Check if a user has complaints email notifications enabled
+   */
+  private async hasComplaintsEmailEnabled(userId: string): Promise<boolean> {
+    const preferences = await this.prisma.userPreferences.findUnique({
+      where: { userId },
+      select: { emailComplaintsNotifications: true },
+    });
+    // Default to true if no preferences exist
+    return preferences?.emailComplaintsNotifications ?? true;
+  }
+
+  /**
    * Create a new complaint for a markmap
    */
   async create(
@@ -251,16 +263,22 @@ export class ComplaintsService {
         );
       }
 
-      // Notify the markmap author via email
-      if (complaint.markmap.author?.email) {
-        try {
-          await this.emailService.sendEmail(
-            complaint.markmap.author.email,
-            'Your markmap has been retired - Action Required',
-            `Your markmap "${complaint.markmap.title}" has been retired from public view due to a sustained complaint.\n\nReason: ${this.formatComplaintReason(complaint.reason)}\nResolution: ${resolveDto.resolution || 'No additional details provided.'}\n\nPlease log in to edit your markmap and address the issue, then resubmit for review.`,
-          );
-        } catch (error) {
-          console.error('Failed to send notification email:', error);
+      // Notify the markmap author via email (only if they have complaints notifications enabled)
+      if (complaint.markmap.author?.id && complaint.markmap.author?.email) {
+        const hasEmailEnabled = await this.hasComplaintsEmailEnabled(
+          complaint.markmap.author.id,
+        );
+        if (hasEmailEnabled) {
+          try {
+            await this.emailService.sendEmail(
+              complaint.markmap.author.email,
+              'Your markmap has been retired - Action Required',
+              `Your markmap "${complaint.markmap.title}" has been retired from public view due to a sustained complaint.\n\nReason: ${this.formatComplaintReason(complaint.reason)}\nResolution: ${resolveDto.resolution || 'No additional details provided.'}\n\nPlease log in to edit your markmap and address the issue, then resubmit for review.`,
+              complaint.markmap.author.id,
+            );
+          } catch (error) {
+            console.error('Failed to send notification email:', error);
+          }
         }
       }
     } else {
@@ -278,16 +296,22 @@ export class ComplaintsService {
         );
       }
 
-      // Notify the complainer via email that their complaint was dismissed
-      if (complaint.reporter?.email) {
-        try {
-          await this.emailService.sendEmail(
-            complaint.reporter.email,
-            'Your complaint has been dismissed',
-            `Your complaint about "${complaint.markmap.title}" has been reviewed and dismissed.\n\nResolution: ${resolveDto.resolution || 'No additional details provided.'}\n\nIf you believe this decision is incorrect, you can appeal to an administrator.`,
-          );
-        } catch (error) {
-          console.error('Failed to send notification email:', error);
+      // Notify the complainer via email that their complaint was dismissed (only if they have complaints notifications enabled)
+      if (complaint.reporter?.id && complaint.reporter?.email) {
+        const hasEmailEnabled = await this.hasComplaintsEmailEnabled(
+          complaint.reporter.id,
+        );
+        if (hasEmailEnabled) {
+          try {
+            await this.emailService.sendEmail(
+              complaint.reporter.email,
+              'Your complaint has been dismissed',
+              `Your complaint about "${complaint.markmap.title}" has been reviewed and dismissed.\n\nResolution: ${resolveDto.resolution || 'No additional details provided.'}\n\nIf you believe this decision is incorrect, you can appeal to an administrator.`,
+              complaint.reporter.id,
+            );
+          } catch (error) {
+            console.error('Failed to send notification email:', error);
+          }
         }
       }
     }
@@ -342,16 +366,22 @@ export class ComplaintsService {
         );
       }
 
-      // Send email notification
-      if (markmap.author?.email) {
-        try {
-          await this.emailService.sendEmail(
-            markmap.author.email,
-            'Your markmap has been reinstated',
-            `Your markmap "${markmap.title}" has been reviewed and reinstated to public view.\n\nNotes: ${resolution || 'No additional notes.'}`,
-          );
-        } catch (error) {
-          console.error('Failed to send notification email:', error);
+      // Send email notification (only if they have complaints notifications enabled)
+      if (markmap.author?.id && markmap.author?.email) {
+        const hasEmailEnabled = await this.hasComplaintsEmailEnabled(
+          markmap.author.id,
+        );
+        if (hasEmailEnabled) {
+          try {
+            await this.emailService.sendEmail(
+              markmap.author.email,
+              'Your markmap has been reinstated',
+              `Your markmap "${markmap.title}" has been reviewed and reinstated to public view.\n\nNotes: ${resolution || 'No additional notes.'}`,
+              markmap.author.id,
+            );
+          } catch (error) {
+            console.error('Failed to send notification email:', error);
+          }
         }
       }
 
@@ -376,16 +406,22 @@ export class ComplaintsService {
         );
       }
 
-      // Send email notification
-      if (markmap.author?.email) {
-        try {
-          await this.emailService.sendEmail(
-            markmap.author.email,
-            'Your markmap needs further edits',
-            `Your markmap "${markmap.title}" has been reviewed and requires further edits before it can be reinstated.\n\nFeedback: ${resolution || 'Please review and update your content.'}`,
-          );
-        } catch (error) {
-          console.error('Failed to send notification email:', error);
+      // Send email notification (only if they have complaints notifications enabled)
+      if (markmap.author?.id && markmap.author?.email) {
+        const hasEmailEnabled = await this.hasComplaintsEmailEnabled(
+          markmap.author.id,
+        );
+        if (hasEmailEnabled) {
+          try {
+            await this.emailService.sendEmail(
+              markmap.author.email,
+              'Your markmap needs further edits',
+              `Your markmap "${markmap.title}" has been reviewed and requires further edits before it can be reinstated.\n\nFeedback: ${resolution || 'Please review and update your content.'}`,
+              markmap.author.id,
+            );
+          } catch (error) {
+            console.error('Failed to send notification email:', error);
+          }
         }
       }
 

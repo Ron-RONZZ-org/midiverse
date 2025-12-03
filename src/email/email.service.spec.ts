@@ -192,4 +192,78 @@ describe('EmailService', () => {
       );
     });
   });
+
+  describe('generatePreferencesToken', () => {
+    it('should generate a valid token', () => {
+      const userId = 'test-user-id-123';
+      const token = service.generatePreferencesToken(userId);
+
+      expect(token).toBeDefined();
+      expect(typeof token).toBe('string');
+      expect(token.length).toBeGreaterThan(0);
+    });
+
+    it('should generate different tokens for different users', () => {
+      const token1 = service.generatePreferencesToken('user-1');
+      const token2 = service.generatePreferencesToken('user-2');
+
+      expect(token1).not.toBe(token2);
+    });
+  });
+
+  describe('verifyPreferencesToken', () => {
+    it('should verify a valid token and return userId', () => {
+      const userId = 'test-user-id-123';
+      const token = service.generatePreferencesToken(userId);
+      const verifiedUserId = service.verifyPreferencesToken(token);
+
+      expect(verifiedUserId).toBe(userId);
+    });
+
+    it('should return null for invalid token', () => {
+      const result = service.verifyPreferencesToken('invalid-token');
+      expect(result).toBeNull();
+    });
+
+    it('should return null for malformed token', () => {
+      const result = service.verifyPreferencesToken(
+        Buffer.from('only:two:parts:here').toString('base64url'),
+      );
+      expect(result).toBeNull();
+    });
+
+    it('should return null for tampered token', () => {
+      const userId = 'test-user-id-123';
+      const token = service.generatePreferencesToken(userId);
+
+      // Decode, modify, and re-encode the token
+      const decoded = Buffer.from(token, 'base64url').toString('utf-8');
+      const parts = decoded.split(':');
+      parts[0] = 'different-user-id'; // Tamper with userId
+      const tamperedToken = Buffer.from(parts.join(':')).toString('base64url');
+
+      const result = service.verifyPreferencesToken(tamperedToken);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('sendEmail with userId', () => {
+    it('should include preferences link when userId is provided', async () => {
+      mockTransporter.sendMail.mockResolvedValue({ messageId: 'test-id' });
+
+      await service.sendEmail(
+        'recipient@example.com',
+        'Test Subject',
+        'Test content',
+        'user-123',
+      );
+
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          html: expect.stringContaining('email-preferences'),
+          html: expect.stringContaining('manage your communication preferences'),
+        }),
+      );
+    });
+  });
 });

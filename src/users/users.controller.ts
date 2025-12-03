@@ -5,6 +5,7 @@ import {
   Patch,
   Param,
   Body,
+  Query,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { VerifyEmailChangeDto } from './dto/verify-email-change.dto';
+import { UpdateEmailPreferencesDto } from './dto/update-email-preferences.dto';
 import type { UserFromToken } from '../common/interfaces/auth.interface';
 
 @Controller('users')
@@ -101,6 +103,32 @@ export class UsersController {
     return this.usersService.updateUserPreferences(
       user.id,
       updatePreferencesDto,
+    );
+  }
+
+  /**
+   * Get email preferences using a token (for unsubscribe/manage preferences links in emails)
+   * No authentication required - token-based access
+   */
+  @Get('email-preferences')
+  getEmailPreferences(@Query('token') token: string) {
+    return this.usersService.getEmailPreferencesByToken(token);
+  }
+
+  /**
+   * Update email preferences using a token (for unsubscribe/manage preferences links in emails)
+   * No authentication required - token-based access
+   */
+  @Patch('email-preferences')
+  updateEmailPreferences(
+    @Body(ValidationPipe) updateEmailPreferencesDto: UpdateEmailPreferencesDto,
+  ) {
+    return this.usersService.updateEmailPreferencesByToken(
+      updateEmailPreferencesDto.token,
+      {
+        emailComplaintsNotifications:
+          updateEmailPreferencesDto.emailComplaintsNotifications,
+      },
     );
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class EmailService {
@@ -39,9 +40,94 @@ export class EmailService {
   }
 
   /**
-   * Send a generic email
+   * Generate a preferences token for a user (used for email unsubscribe links)
    */
-  async sendEmail(to: string, subject: string, text: string): Promise<void> {
+  generatePreferencesToken(userId: string): string {
+    const timestamp = Date.now();
+    const data = `${userId}:${timestamp}`;
+    const secret =
+      this.configService.get<string>('JWT_SECRET') || 'default-secret';
+    const hmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
+    return Buffer.from(`${data}:${hmac}`).toString('base64url');
+  }
+
+  /**
+   * Verify a preferences token and return the userId if valid
+   * Token is valid for 30 days
+   */
+  verifyPreferencesToken(token: string): string | null {
+    try {
+      const decoded = Buffer.from(token, 'base64url').toString('utf-8');
+      const parts = decoded.split(':');
+      if (parts.length !== 3) return null;
+
+      const [userId, timestampStr, providedHmac] = parts;
+      const timestamp = parseInt(timestampStr, 10);
+
+      // Check if token is expired (30 days)
+      const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+      if (Date.now() - timestamp > thirtyDaysMs) return null;
+
+      // Verify HMAC
+      const data = `${userId}:${timestampStr}`;
+      const secret =
+        this.configService.get<string>('JWT_SECRET') || 'default-secret';
+      const expectedHmac = crypto
+        .createHmac('sha256', secret)
+        .update(data)
+        .digest('hex');
+
+      // Constant-time comparison to prevent timing attacks
+      if (providedHmac.length !== expectedHmac.length) return null;
+      try {
+        if (
+          !crypto.timingSafeEqual(
+            Buffer.from(providedHmac),
+            Buffer.from(expectedHmac),
+          )
+        ) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+
+      return userId;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Send a generic email with optional preferences management footer
+   */
+  async sendEmail(
+    to: string,
+    subject: string,
+    text: string,
+    userId?: string,
+  ): Promise<void> {
+    const appUrl = this.configService.get<string>('APP_URL');
+    let footerHtml = `
+      <p style="color: #666; font-size: 14px; margin-top: 30px;">
+        This is an automated email from <a href="${appUrl}" style="color: #007bff;">Midiverse</a>.
+      </p>
+    `;
+    let footerText = `\n\nThis is an automated email from Midiverse (${appUrl}).`;
+
+    // Add preferences link if userId is provided
+    if (userId) {
+      const token = this.generatePreferencesToken(userId);
+      const preferencesUrl = `${appUrl}/email-preferences?token=${token}`;
+      footerHtml = `
+        <p style="color: #666; font-size: 14px; margin-top: 30px; border-top: 1px solid #e9ecef; padding-top: 15px;">
+          This is an automated email from <a href="${appUrl}" style="color: #007bff;">Midiverse</a>. 
+          <a href="${preferencesUrl}" style="color: #007bff;">Click here to unsubscribe or manage your communication preferences</a>.
+        </p>
+      `;
+      footerText = `\n\nThis is an automated email from Midiverse (${appUrl}). To unsubscribe or manage your communication preferences, visit: ${preferencesUrl}`;
+    }
+
     const mailOptions = {
       from: this.configService.get<string>('EMAIL_FROM'),
       to,
@@ -50,13 +136,11 @@ export class EmailService {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #007bff;">${subject}</h2>
           <div style="white-space: pre-wrap;">${text}</div>
-          <p style="color: #666; font-size: 14px; margin-top: 30px;">
-            This is an automated message from Midiverse.
-          </p>
+          ${footerHtml}
         </div>
       `,
       // Provide a plain-text fallback to ensure multipart/alternative is sent
-      text: `${subject}\n\n${text}\n\nThis is an automated message from Midiverse.`,
+      text: `${subject}\n\n${text}${footerText}`,
     };
 
     try {

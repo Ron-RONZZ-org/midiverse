@@ -55,6 +55,8 @@ export class EmailService {
           </p>
         </div>
       `,
+      // Provide a plain-text fallback to ensure multipart/alternative is sent
+      text: `${subject}\n\n${text}\n\nThis is an automated message from Midiverse.`,
     };
 
     try {
@@ -85,13 +87,17 @@ export class EmailService {
       subject: 'Verify Your Email - Midiverse',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #007bff;">Welcome to Midiverse, ${username}!</h2>
+          <h2 style="color: #007bff !important;">Welcome to Midiverse, ${username}!</h2>
           <p>Thank you for signing up. Please verify your email address to complete your registration.</p>
           <p style="margin: 30px 0;">
-            <a href="${verificationUrl}" 
-               style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-              Verify Email Address
-            </a>
+            <!-- Button: table/bgcolor gives better compatibility across mail clients -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+              <tr>
+                <td bgcolor="#007bff" style="background-color:#007bff; border-radius:4px;">
+                  <a href="${verificationUrl}" style="display:inline-block; padding:12px 24px; color:#ffffff !important; text-decoration:none; border-radius:4px;">Verify Email Address</a>
+                </td>
+              </tr>
+            </table>
           </p>
           <p style="color: #666; font-size: 14px;">
             Or copy and paste this link into your browser:<br>
@@ -102,6 +108,8 @@ export class EmailService {
           </p>
         </div>
       `,
+      // Plain-text fallback to ensure clients that prefer text show useful info
+      text: `Welcome to Midiverse, ${username}!\n\nPlease verify your email address:\n${verificationUrl}\n\nThis link will expire in 24 hours.`,
     };
 
     try {
@@ -132,14 +140,17 @@ export class EmailService {
       subject: 'Reset Your Password - Midiverse',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #007bff;">Password Reset Request</h2>
+          <h2 style="color: #007bff !important;">Password Reset Request</h2>
           <p>Hi ${username},</p>
           <p>We received a request to reset your password. Click the button below to create a new password:</p>
           <p style="margin: 30px 0;">
-            <a href="${resetUrl}" 
-               style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-              Reset Password
-            </a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+              <tr>
+                <td bgcolor="#007bff" style="background-color:#007bff; border-radius:4px;">
+                  <a href="${resetUrl}" style="display:inline-block; padding:12px 24px; color:#ffffff !important; text-decoration:none; border-radius:4px;">Reset Password</a>
+                </td>
+              </tr>
+            </table>
           </p>
           <p style="color: #666; font-size: 14px;">
             Or copy and paste this link into your browser:<br>
@@ -150,6 +161,7 @@ export class EmailService {
           </p>
         </div>
       `,
+      text: `Hi ${username},\n\nWe received a request to reset your password. Use the link below to reset it:\n${resetUrl}\n\nThis link will expire in 1 hour. If you didn't request this, ignore this message.`,
     };
 
     try {

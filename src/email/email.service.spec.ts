@@ -91,12 +91,14 @@ describe('EmailService', () => {
         'Test content',
       );
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
-        from: 'noreply@midiverse.com',
-        to: 'recipient@example.com',
-        subject: 'Test Subject - Midiverse',
-        html: expect.stringContaining('Test Subject'),
-      });
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'noreply@midiverse.com',
+          to: 'recipient@example.com',
+          subject: 'Test Subject - Midiverse',
+          html: expect.stringContaining('Test Subject'),
+        }),
+      );
     });
 
     it('should throw error with message when send fails', async () => {
@@ -119,12 +121,14 @@ describe('EmailService', () => {
         'verification-token-123',
       );
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
-        from: 'noreply@midiverse.com',
-        to: 'user@example.com',
-        subject: 'Verify Your Email - Midiverse',
-        html: expect.stringContaining('testuser'),
-      });
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'noreply@midiverse.com',
+          to: 'user@example.com',
+          subject: 'Verify Your Email - Midiverse',
+          html: expect.stringContaining('testuser'),
+        }),
+      );
 
       // Verify the HTML contains the verification token and URL
       const sendMailCall = mockTransporter.sendMail.mock.calls[0] as [
@@ -157,12 +161,14 @@ describe('EmailService', () => {
         'reset-token-123',
       );
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
-        from: 'noreply@midiverse.com',
-        to: 'user@example.com',
-        subject: 'Reset Your Password - Midiverse',
-        html: expect.stringContaining('testuser'),
-      });
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'noreply@midiverse.com',
+          to: 'user@example.com',
+          subject: 'Reset Your Password - Midiverse',
+          html: expect.stringContaining('testuser'),
+        }),
+      );
 
       // Verify the HTML contains the reset token and URL
       const sendMailCall = mockTransporter.sendMail.mock.calls[0] as [

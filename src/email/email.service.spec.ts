@@ -24,7 +24,7 @@ describe('EmailService', () => {
         EMAIL_USER: 'test@example.com',
         EMAIL_PASSWORD: 'test-password',
         EMAIL_FROM: 'noreply@midiverse.com',
-        APP_URL: 'http://localhost:3001',
+        EMAIL_LINK_BASEURL: 'http://localhost:3001',
       };
       return config[key];
     }),

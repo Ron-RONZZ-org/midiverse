@@ -109,7 +109,7 @@ export class EmailService {
     text: string,
     userId?: string,
   ): Promise<void> {
-    const appUrl = this.configService.get<string>('APP_URL');
+    const appUrl = this.configService.get<string>('EMAIL_LINK_BASEURL');
     let footerHtml = `
       <p style="color: #666; font-size: 14px; margin-top: 30px;">
         This is an automated email from <a href="${appUrl}" style="color: #007bff;">Midiverse</a>.
@@ -164,7 +164,7 @@ export class EmailService {
     username: string,
     token: string,
   ): Promise<void> {
-    const appUrl = this.configService.get<string>('APP_URL');
+    const appUrl = this.configService.get<string>('EMAIL_LINK_BASEURL');
     const verificationUrl = `${appUrl}/verify-email?token=${token}`;
 
     const mailOptions = {
@@ -217,7 +217,7 @@ export class EmailService {
     username: string,
     token: string,
   ): Promise<void> {
-    const appUrl = this.configService.get<string>('APP_URL');
+    const appUrl = this.configService.get<string>('EMAIL_LINK_BASEURL');
     const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
     const mailOptions = {
@@ -269,7 +269,7 @@ export class EmailService {
     username: string,
     token: string,
   ): Promise<void> {
-    const appUrl = this.configService.get<string>('APP_URL');
+    const appUrl = this.configService.get<string>('EMAIL_LINK_BASEURL');
     const verificationUrl = `${appUrl}/verify-email-change?token=${token}`;
 
     const mailOptions = {

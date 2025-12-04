@@ -78,7 +78,7 @@ EMAIL_PASSWORD="your-app-specific-password"
 EMAIL_FROM="noreply@yourdomain.com"
 
 # Application URL (used in email verification links)
-APP_URL="https://yourdomain.com"
+EMAIL_LINK_BASEURL="https://yourdomain.com"
 ```
 
 #### Frontend Configuration (frontend/.env)

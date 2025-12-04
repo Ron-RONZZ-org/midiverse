@@ -118,7 +118,7 @@ EMAIL_PASSWORD="your-app-password"
 EMAIL_FROM="noreply@midiverse.com"
 
 # Application URL (used in email verification links)
-APP_URL="http://localhost:3001"
+EMAIL_LINK_BASEURL="http://localhost:3001"
 ```
 
 **Note**: 

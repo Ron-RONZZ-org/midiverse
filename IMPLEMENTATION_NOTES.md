@@ -55,7 +55,7 @@ EMAIL_SECURE=false
 EMAIL_USER="your-email@gmail.com"
 EMAIL_PASSWORD="your-app-password"
 EMAIL_FROM="noreply@midiverse.com"
-APP_URL="http://localhost:3001"
+EMAIL_LINK_BASEURL="http://localhost:3001"
 ```
 
 ### 3. Production Deployment

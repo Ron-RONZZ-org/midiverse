@@ -451,4 +451,4 @@ See the comprehensive [DEPLOYMENT.md](./DEPLOYMENT.md) guide.
 
 ## License
 
-[MIT](LICENSE)
+[AGPL 3](LICENSE)

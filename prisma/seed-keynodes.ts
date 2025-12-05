@@ -631,9 +631,6 @@ async function createKeynodeWithChildren(
 async function main() {
   console.log('Starting keynode hierarchy seed...\n');
 
-  let createdCount = 0;
-  let skippedCount = 0;
-
   for (const rootNode of keynodeHierarchy) {
     console.log(`\nProcessing root: ${rootNode.name}`);
     await createKeynodeWithChildren(rootNode);

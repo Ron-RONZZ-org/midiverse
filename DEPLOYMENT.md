@@ -240,7 +240,7 @@ server {
 
     # Backend routes (auth, markmaps, complaints, etc.)
     # Ensure top-level paths that should be handled by the API are proxied to the backend.
-    location ~ ^/(auth|markmaps|users|series|tags|complaints) {
+    location ~ ^/(auth|markmaps|users|series|tags|complaints|admin|keynodes) {
         proxy_pass http://localhost:3010;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;

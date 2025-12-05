@@ -5,6 +5,6 @@
   - user allowed to proceed before cloudflare Turnstile finishes its checks/after Turnstile failure
 - `/content-management`
   - implement coalascing
-    - if multiple reports concerning the same markmap appears, coalasce them into one entry in Complaints tab
-  - add `escalate` option in addition
-    - 
+    - if multiple reports concerning the same markmap appears, coalasce them into one entry 
+  - add `Escalate` option in `Pending Complaints`
+    - button to the right of `Dismiss`

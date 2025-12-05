@@ -261,7 +261,9 @@ describe('EmailService', () => {
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining('email-preferences'),
-          html: expect.stringContaining('manage your communication preferences'),
+          html: expect.stringContaining(
+            'manage your communication preferences',
+          ),
         }),
       );
     });

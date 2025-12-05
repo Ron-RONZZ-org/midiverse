@@ -149,7 +149,7 @@
       <!-- Appeals Tab -->
       <div v-if="activeTab === 'appeals'" class="tab-content">
         <h2>Appealed Complaints</h2>
-        <p class="description">Review complaints that were dismissed by content managers and appealed by users.</p>
+        <p class="description">Review complaints that were escalated by content-managers to you.</p>
         
         <div v-if="loadingAppeals" class="loading">Loading appeals...</div>
         <div v-else-if="appealedComplaints.length === 0" class="empty-state">

@@ -304,7 +304,7 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
               v-model="newKeynode.name" 
               type="text" 
               required
-              placeholder="volcano"
+              :placeholder="keynodeInput"
             />
           </div>
           <div class="form-group">

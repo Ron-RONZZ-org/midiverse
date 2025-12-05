@@ -225,8 +225,13 @@ export class ComplaintsService {
       throw new BadRequestException('Complaint has already been resolved');
     }
 
-    // Handle escalation differently
+    // Handle escalation differently - only pending complaints can be escalated
     if (resolveDto.action === ComplaintResolutionAction.ESCALATE) {
+      if (complaint.status !== 'pending') {
+        throw new BadRequestException(
+          'Only pending complaints can be escalated',
+        );
+      }
       const updatedComplaint = await this.prisma.complaint.update({
         where: { id },
         data: {

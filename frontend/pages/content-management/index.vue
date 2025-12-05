@@ -63,6 +63,10 @@
         <h2>Pending Complaints</h2>
         <p class="description">Review user-submitted complaints about markmaps. Multiple reports for the same markmap are grouped together.</p>
         
+        <!-- Global error/success messages for complaint resolution -->
+        <div v-if="complaintActionError" class="error">{{ complaintActionError }}</div>
+        <div v-if="complaintActionSuccess" class="success">{{ complaintActionSuccess }}</div>
+        
         <div v-if="loadingComplaints" class="loading">Loading complaints...</div>
         <div v-else-if="coalescedComplaints.length === 0" class="empty-state">
           No pending complaints to review.
@@ -365,6 +369,10 @@ const loadingKeynodes = ref(true)
 const loadingComplaints = ref(true)
 const loadingReview = ref(true)
 
+// Global complaint action feedback
+const complaintActionError = ref('')
+const complaintActionSuccess = ref('')
+
 // Edit Keynode Modal
 const showEditKeynodeModal = ref(false)
 const editKeynodeForm = ref({ id: '', name: '', category: '', parentId: '' })
@@ -650,6 +658,7 @@ const openResolveModal = (complaint: any, action: 'sustain' | 'dismiss' | 'escal
 
 const resolveComplaint = async () => {
   const markmapId = selectedComplaint.value.markmapId
+  const markmapTitle = selectedComplaint.value.markmap?.title || 'Unknown Markmap'
   const action = resolveAction.value
   const notes = resolutionNotes.value
   
@@ -659,8 +668,12 @@ const resolveComplaint = async () => {
   // Close modal immediately and set button loading state
   showResolveModal.value = false
   resolving.value = true
+  complaintActionError.value = ''
+  complaintActionSuccess.value = ''
   
   try {
+    let failedCount = 0
+    
     // Resolve all complaints for this markmap
     for (const complaint of complaintsToResolve) {
       const response = await authFetch(`/complaints/${complaint.id}/resolve`, {
@@ -671,14 +684,28 @@ const resolveComplaint = async () => {
         })
       })
       if (!response.ok) {
+        failedCount++
         console.error('Failed to resolve complaint:', complaint.id)
       }
     }
     
     // Remove all resolved complaints from the list
     pendingComplaints.value = pendingComplaints.value.filter(c => c.markmapId !== markmapId)
+    
+    // Show appropriate feedback message
+    if (failedCount > 0) {
+      complaintActionError.value = `Some complaints (${failedCount} of ${complaintsToResolve.length}) for "${markmapTitle}" could not be resolved. Please try again.`
+    } else {
+      const actionLabel = action === 'sustain' ? 'sustained' : (action === 'escalate' ? 'escalated' : 'dismissed')
+      complaintActionSuccess.value = `All complaints for "${markmapTitle}" have been ${actionLabel}.`
+      // Auto-clear success message after 5 seconds
+      setTimeout(() => {
+        complaintActionSuccess.value = ''
+      }, 5000)
+    }
   } catch (err) {
     console.error('Failed to resolve complaints:', err)
+    complaintActionError.value = `Failed to process complaints for "${markmapTitle}". Please try again.`
   } finally {
     resolving.value = false
   }

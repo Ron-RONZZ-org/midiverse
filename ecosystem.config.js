@@ -3,9 +3,10 @@ module.exports = {
     {
       name: 'midiverse-backend',
       script: './dist/main.js',
-      cwd: __dirname,
+      cwd: '/var/www/midiverse-deployment/midiverse',
       env: {
         NODE_ENV: 'production',
+        PORT: 3010,
         FRONTEND_URL: 'https://www.midiverse.org',
       },
       instances: 2,

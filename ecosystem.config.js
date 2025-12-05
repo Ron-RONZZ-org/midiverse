@@ -7,7 +7,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3010,
-        FRONTEND_URL: 'https://www.midiverse.org',
+        FRONTEND_URL: "https://midiverse.org",
       },
       instances: 2,
       exec_mode: 'cluster',
@@ -24,6 +24,7 @@ module.exports = {
         NODE_ENV: 'production',
         HOST: '0.0.0.0',
         PORT: 3001,
+        FRONTEND_URL: "https://midiverse.org",
       },
       instances: 1,
       autorestart: true,

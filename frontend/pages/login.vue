@@ -54,8 +54,8 @@
           </div>
 
           <div v-if="error" class="error">{{ error }}</div>
-          <button type="submit" class="btn" :disabled="loading">
-            {{ loading ? 'Logging in...' : 'Login' }}
+          <button type="submit" class="btn" :disabled="loading || !canSubmit">
+            {{ loading ? 'Logging in...' : (!canSubmit ? 'Waiting for verification...' : 'Login') }}
           </button>
         </form>
         <div v-if="!showVerificationPrompt" class="auth-links">
@@ -83,30 +83,41 @@ const loading = ref(false)
 const turnstileToken = ref('')
 const turnstileWidgetId = ref<string>()
 const showTurnstileWarning = ref(false)
+const turnstileReady = ref(false)
 const showVerificationPrompt = ref(false)
 const unverifiedEmail = ref('')
 const resending = ref(false)
 const resendMessage = ref('')
 
+// Computed property to check if form can be submitted
+const canSubmit = computed(() => {
+  // If Turnstile is not configured (dev mode), allow submission
+  if (!isConfigured) {
+    return true
+  }
+  // Otherwise, require a valid token
+  return !!turnstileToken.value && turnstileToken.value !== 'dev-bypass-token'
+})
+
 onMounted(() => {
   // Show warning if Turnstile is not configured
   if (!isConfigured) {
     showTurnstileWarning.value = true
-    // Set a dummy token to allow form submission in development
+    turnstileReady.value = true
+    // Set a dummy token for development only when not configured
     turnstileToken.value = 'dev-bypass-token'
+    return
   }
 
   // Render Turnstile widget
   renderTurnstile('turnstile-container', (token: string) => {
     turnstileToken.value = token
+    turnstileReady.value = true
   }).then((widgetId) => {
     turnstileWidgetId.value = widgetId
   }).catch((err) => {
     console.error('Failed to load Turnstile:', err)
-    // Set a dummy token to allow form submission if Turnstile fails
-    if (!turnstileToken.value) {
-      turnstileToken.value = 'dev-bypass-token'
-    }
+    error.value = 'Failed to load security verification. Please refresh the page.'
   })
 })
 
@@ -133,10 +144,11 @@ const handleLogin = async () => {
     } else {
       error.value = err.message || 'Login failed. Please try again.'
     }
-    // Reset Turnstile on error
+    // Reset Turnstile on error - user needs to complete verification again
     if (turnstileWidgetId.value) {
       resetTurnstile(turnstileWidgetId.value)
       turnstileToken.value = ''
+      turnstileReady.value = false
     }
   } finally {
     loading.value = false

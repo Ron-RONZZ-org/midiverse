@@ -61,44 +61,79 @@
       <!-- Complaints Tab -->
       <div v-if="activeTab === 'complaints'" class="tab-content">
         <h2>Pending Complaints</h2>
-        <p class="description">Review user-submitted complaints about markmaps.</p>
+        <p class="description">Review user-submitted complaints about markmaps. Multiple reports for the same markmap are grouped together.</p>
         
         <div v-if="loadingComplaints" class="loading">Loading complaints...</div>
-        <div v-else-if="pendingComplaints.length === 0" class="empty-state">
+        <div v-else-if="coalescedComplaints.length === 0" class="empty-state">
           No pending complaints to review.
         </div>
         <div v-else class="card-grid">
-          <div v-for="complaint in pendingComplaints" :key="complaint.id" class="item-card">
+          <div v-for="group in coalescedComplaints" :key="group.markmapId" class="item-card">
             <div class="item-header">
-              <h3>{{ complaint.markmap?.title || 'Unknown Markmap' }}</h3>
-              <span :class="['badge', `reason-${complaint.reason}`]">
-                {{ formatReason(complaint.reason) }}
-              </span>
+              <h3>{{ group.markmapTitle }}</h3>
+              <div class="badge-group">
+                <span v-if="group.complaints.length > 1" class="badge badge-count">
+                  {{ group.complaints.length }} reports
+                </span>
+                <span v-for="reason in Array.from(group.reasons)" :key="reason" :class="['badge', `reason-${reason}`]">
+                  {{ formatReason(reason) }}
+                </span>
+              </div>
             </div>
             <div class="item-meta">
-              <span>Reported by: {{ complaint.reporter?.username || 'Anonymous' }}</span>
-              <span>Date: {{ new Date(complaint.createdAt).toLocaleDateString() }}</span>
+              <span v-if="group.complaints.length === 1">
+                Reported by: {{ group.complaints[0].reporter?.username || 'Anonymous' }}
+              </span>
+              <span v-else>
+                Reported by {{ group.complaints.length }} users
+              </span>
+              <span v-if="group.complaints.length === 1">
+                Date: {{ new Date(group.firstCreatedAt).toLocaleDateString() }}
+              </span>
+              <span v-else>
+                {{ new Date(group.firstCreatedAt).toLocaleDateString() }} - {{ new Date(group.latestCreatedAt).toLocaleDateString() }}
+              </span>
             </div>
-            <div class="explanation">
-              <strong>Explanation:</strong> {{ complaint.explanation }}
+            
+            <!-- Show all complaints in the group -->
+            <div class="complaints-list">
+              <div v-for="complaint in group.complaints" :key="complaint.id" class="complaint-item">
+                <div class="complaint-header">
+                  <span class="reporter">{{ complaint.reporter?.username || 'Anonymous' }}</span>
+                  <span :class="['badge badge-sm', `reason-${complaint.reason}`]">
+                    {{ formatReason(complaint.reason) }}
+                  </span>
+                </div>
+                <div class="explanation">
+                  {{ complaint.explanation }}
+                </div>
+              </div>
             </div>
+            
             <div class="item-actions">
-              <NuxtLink :to="`/markmaps/${complaint.markmapId}`" class="btn btn-secondary btn-sm" target="_blank">
+              <NuxtLink :to="`/markmaps/${group.markmapId}`" class="btn btn-secondary btn-sm" target="_blank">
                 View Markmap
               </NuxtLink>
               <button 
-                @click="openResolveModal(complaint, 'sustain')" 
+                @click="openResolveModal(group.complaints[0], 'sustain')" 
                 class="btn btn-danger btn-sm"
-                :disabled="resolving && selectedComplaint?.id === complaint.id"
+                :disabled="resolving && selectedComplaint?.markmapId === group.markmapId"
               >
-                {{ resolving && selectedComplaint?.id === complaint.id ? 'submitting...' : 'Sustain' }}
+                {{ resolving && selectedComplaint?.markmapId === group.markmapId ? 'submitting...' : 'Sustain' }}
               </button>
               <button 
-                @click="openResolveModal(complaint, 'dismiss')" 
+                @click="openResolveModal(group.complaints[0], 'dismiss')" 
                 class="btn btn-warning btn-sm"
-                :disabled="resolving && selectedComplaint?.id === complaint.id"
+                :disabled="resolving && selectedComplaint?.markmapId === group.markmapId"
               >
-                {{ resolving && selectedComplaint?.id === complaint.id ? 'submitting...' : 'Dismiss' }}
+                {{ resolving && selectedComplaint?.markmapId === group.markmapId ? 'submitting...' : 'Dismiss' }}
+              </button>
+              <button 
+                @click="openResolveModal(group.complaints[0], 'escalate')" 
+                class="btn btn-info btn-sm"
+                :disabled="resolving && selectedComplaint?.markmapId === group.markmapId"
+              >
+                {{ resolving && selectedComplaint?.markmapId === group.markmapId ? 'submitting...' : 'Escalate' }}
               </button>
             </div>
           </div>
@@ -279,9 +314,12 @@
       <!-- Resolve Complaint Modal -->
       <div v-if="showResolveModal" class="modal-overlay" @click.self="!resolving && (showResolveModal = false)">
         <div class="modal">
-          <h2>{{ resolveAction === 'sustain' ? 'Sustain Complaint' : 'Dismiss Complaint' }}</h2>
+          <h2>{{ resolveAction === 'sustain' ? 'Sustain Complaint' : (resolveAction === 'escalate' ? 'Escalate to Administrator' : 'Dismiss Complaint') }}</h2>
           <p v-if="resolveAction === 'sustain'">
             This will retire the markmap from public view and notify the author.
+          </p>
+          <p v-else-if="resolveAction === 'escalate'">
+            This will escalate the complaint to an administrator for a final decision.
           </p>
           <p v-else>
             This will dismiss the complaint. The reporter will be notified and may appeal to an administrator.
@@ -289,13 +327,13 @@
           <div v-if="resolveSuccess" class="success">{{ resolveSuccess }}</div>
           <div v-if="resolveError" class="error">{{ resolveError }}</div>
           <div class="form-group">
-            <label for="resolution">Resolution Notes (optional)</label>
+            <label for="resolution">{{ resolveAction === 'escalate' ? 'Reason for Escalation' : 'Resolution Notes (optional)' }}</label>
             <textarea 
               id="resolution" 
               v-model="resolutionNotes" 
               class="form-control"
               rows="3"
-              placeholder="Add any notes about your decision..."
+              :placeholder="resolveAction === 'escalate' ? 'Why are you escalating this complaint?' : 'Add any notes about your decision...'"
               :disabled="resolving"
             ></textarea>
           </div>
@@ -303,10 +341,10 @@
             <button @click="showResolveModal = false" class="btn btn-secondary" :disabled="resolving">Cancel</button>
             <button 
               @click="resolveComplaint" 
-              :class="['btn', resolveAction === 'sustain' ? 'btn-danger' : 'btn-warning']"
+              :class="['btn', resolveAction === 'sustain' ? 'btn-danger' : (resolveAction === 'escalate' ? 'btn-info' : 'btn-warning')]"
               :disabled="resolving"
             >
-              {{ resolving ? 'Processing...' : (resolveAction === 'sustain' ? 'Sustain & Retire' : 'Dismiss Complaint') }}
+              {{ resolving ? 'Processing...' : (resolveAction === 'sustain' ? 'Sustain & Retire' : (resolveAction === 'escalate' ? 'Escalate' : 'Dismiss Complaint')) }}
             </button>
           </div>
         </div>
@@ -341,11 +379,56 @@ const selectedDuplicate = ref<any>(null)
 // Resolve Complaint Modal
 const showResolveModal = ref(false)
 const selectedComplaint = ref<any>(null)
-const resolveAction = ref<'sustain' | 'dismiss'>('dismiss')
+const resolveAction = ref<'sustain' | 'dismiss' | 'escalate'>('dismiss')
 const resolutionNotes = ref('')
 const resolving = ref(false)
 const resolveSuccess = ref('')
 const resolveError = ref('')
+
+// Coalesced complaints - grouped by markmapId
+interface CoalescedComplaint {
+  markmapId: string
+  markmapTitle: string
+  complaints: any[]
+  reasons: Set<string>
+  firstCreatedAt: Date
+  latestCreatedAt: Date
+}
+
+const coalescedComplaints = computed<CoalescedComplaint[]>(() => {
+  const grouped = new Map<string, CoalescedComplaint>()
+  
+  for (const complaint of pendingComplaints.value) {
+    const markmapId = complaint.markmapId
+    
+    if (!grouped.has(markmapId)) {
+      grouped.set(markmapId, {
+        markmapId,
+        markmapTitle: complaint.markmap?.title || 'Unknown Markmap',
+        complaints: [],
+        reasons: new Set(),
+        firstCreatedAt: new Date(complaint.createdAt),
+        latestCreatedAt: new Date(complaint.createdAt)
+      })
+    }
+    
+    const group = grouped.get(markmapId)!
+    group.complaints.push(complaint)
+    group.reasons.add(complaint.reason)
+    
+    const createdAt = new Date(complaint.createdAt)
+    if (createdAt < group.firstCreatedAt) {
+      group.firstCreatedAt = createdAt
+    }
+    if (createdAt > group.latestCreatedAt) {
+      group.latestCreatedAt = createdAt
+    }
+  }
+  
+  return Array.from(grouped.values()).sort((a, b) => 
+    b.latestCreatedAt.getTime() - a.latestCreatedAt.getTime()
+  )
+})
 
 // Review Markmap Modal
 const showReviewModal = ref(false)
@@ -556,7 +639,7 @@ const rejectAsIrrelevant = async () => {
   }
 }
 
-const openResolveModal = (complaint: any, action: 'sustain' | 'dismiss') => {
+const openResolveModal = (complaint: any, action: 'sustain' | 'dismiss' | 'escalate') => {
   selectedComplaint.value = complaint
   resolveAction.value = action
   resolutionNotes.value = ''
@@ -566,27 +649,36 @@ const openResolveModal = (complaint: any, action: 'sustain' | 'dismiss') => {
 }
 
 const resolveComplaint = async () => {
-  const complaintId = selectedComplaint.value.id
+  const markmapId = selectedComplaint.value.markmapId
   const action = resolveAction.value
   const notes = resolutionNotes.value
+  
+  // Get all complaints for this markmap
+  const complaintsToResolve = pendingComplaints.value.filter(c => c.markmapId === markmapId)
   
   // Close modal immediately and set button loading state
   showResolveModal.value = false
   resolving.value = true
   
   try {
-    const response = await authFetch(`/complaints/${complaintId}/resolve`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        action: action,
-        resolution: notes || undefined
+    // Resolve all complaints for this markmap
+    for (const complaint of complaintsToResolve) {
+      const response = await authFetch(`/complaints/${complaint.id}/resolve`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          action: action,
+          resolution: notes || undefined
+        })
       })
-    })
-    if (response.ok) {
-      pendingComplaints.value = pendingComplaints.value.filter(c => c.id !== complaintId)
+      if (!response.ok) {
+        console.error('Failed to resolve complaint:', complaint.id)
+      }
     }
+    
+    // Remove all resolved complaints from the list
+    pendingComplaints.value = pendingComplaints.value.filter(c => c.markmapId !== markmapId)
   } catch (err) {
-    console.error('Failed to resolve complaint:', err)
+    console.error('Failed to resolve complaints:', err)
   } finally {
     resolving.value = false
   }
@@ -911,5 +1003,61 @@ h2 {
   padding: 0.75rem;
   border-radius: 4px;
   margin-bottom: 1rem;
+}
+
+/* Coalesced complaints styles */
+.badge-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.badge-count {
+  background: #17a2b8;
+  color: white;
+}
+
+.badge-sm {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.complaints-list {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.complaint-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.complaint-item:last-child {
+  border-bottom: none;
+}
+
+.complaint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.complaint-header .reporter {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.complaint-item .explanation {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 0;
+  background: none;
 }
 </style>

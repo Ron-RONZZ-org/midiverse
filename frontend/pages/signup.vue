@@ -75,8 +75,8 @@
           </div>
 
           <div v-if="error" class="error">{{ error }}</div>
-          <button type="submit" class="btn" :disabled="loading || usernameStatus === 'taken' || usernameChecking">
-            {{ loading ? 'Creating account...' : 'Sign Up' }}
+          <button type="submit" class="btn" :disabled="loading || usernameStatus === 'taken' || usernameChecking || !canSubmit">
+            {{ loading ? 'Creating account...' : (!canSubmit ? 'Waiting for verification...' : 'Sign Up') }}
           </button>
         </form>
         <p class="auth-switch">
@@ -103,8 +103,19 @@ const verificationPending = ref(false)
 const successMessage = ref('')
 const resending = ref(false)
 const showTurnstileWarning = ref(false)
+const turnstileReady = ref(false)
 const usernameChecking = ref(false)
 const usernameStatus = ref<'available' | 'taken' | null>(null)
+
+// Computed property to check if form can be submitted
+const canSubmit = computed(() => {
+  // If Turnstile is not configured (dev mode), allow submission
+  if (!isConfigured) {
+    return true
+  }
+  // Otherwise, require a valid token
+  return !!turnstileToken.value && turnstileToken.value !== 'dev-bypass-token'
+})
 
 let checkUsernameTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -139,21 +150,21 @@ onMounted(() => {
   // Show warning if Turnstile is not configured
   if (!isConfigured) {
     showTurnstileWarning.value = true
-    // Set a dummy token to allow form submission in development
+    turnstileReady.value = true
+    // Set a dummy token for development only when not configured
     turnstileToken.value = 'dev-bypass-token'
+    return
   }
 
   // Render Turnstile widget
   renderTurnstile('turnstile-container', (token: string) => {
     turnstileToken.value = token
+    turnstileReady.value = true
   }).then((widgetId) => {
     turnstileWidgetId.value = widgetId
   }).catch((err) => {
     console.error('Failed to load Turnstile:', err)
-    // Set a dummy token to allow form submission if Turnstile fails
-    if (!turnstileToken.value) {
-      turnstileToken.value = 'dev-bypass-token'
-    }
+    error.value = 'Failed to load security verification. Please refresh the page.'
   })
 })
 
@@ -183,10 +194,11 @@ const handleSignup = async () => {
     }
   } catch (err: any) {
     error.value = err.message || 'Signup failed. Please try again.'
-    // Reset Turnstile on error
+    // Reset Turnstile on error - user needs to complete verification again
     if (turnstileWidgetId.value) {
       resetTurnstile(turnstileWidgetId.value)
       turnstileToken.value = ''
+      turnstileReady.value = false
     }
   } finally {
     loading.value = false

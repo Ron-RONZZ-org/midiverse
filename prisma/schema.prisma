@@ -267,6 +267,7 @@ enum ComplaintStatus {
   sustained      // Complaint was valid, markmap retired
   dismissed      // Complaint was invalid
   appealed       // User appealed after dismissal (escalated to admin)
+  escalated      // Content manager escalated to admin for decision
 }
 
 model Complaint {

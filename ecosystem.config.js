@@ -6,6 +6,7 @@ module.exports = {
       cwd: __dirname,
       env: {
         NODE_ENV: 'production',
+        FRONTEND_URL: 'https://www.midiverse.org',
       },
       instances: 2,
       exec_mode: 'cluster',

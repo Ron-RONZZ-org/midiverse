@@ -1,0 +1,10 @@
+- `/editor`
+  - `Color Freeze Level` not respected
+    - test result : set to 2, in reality not applied
+- `/login` and `/signup`
+  - user allowed to proceed before cloudflare Turnstile finishes its checks/after Turnstile failure
+- `/content-management`
+  - implement coalascing
+    - if multiple reports concerning the same markmap appears, coalasce them into one entry in Complaints tab
+  - add `escalate` option in addition
+    - 

@@ -37,6 +37,8 @@ sudo npm install -g pm2
 
 ```bash
 # Clone repository
+sudo mkdir -p /var/www/midiverse-deployment/
+cd /var/www/midiverse-deployment/
 git clone https://github.com/Ron-RONZZ-org/midiverse.git
 cd midiverse
 
@@ -148,7 +150,7 @@ cd ..
 
 ## 7. Start with PM2
 
-Create PM2 ecosystem file `ecosystem.config.js`:
+Create PM2 ecosystem file `~/ecosystem.config.js`:
 
 ```javascript
 module.exports = {
@@ -156,9 +158,10 @@ module.exports = {
     {
       name: 'midiverse-backend',
       script: './dist/main.js',
-      cwd: '/path/to/midiverse',
+      cwd: '/var/www/midiverse-deployment/midiverse',
       env: {
         NODE_ENV: 'production',
+        PORT: 3010,
       },
       instances: 2,
       exec_mode: 'cluster',
@@ -170,7 +173,7 @@ module.exports = {
       name: 'midiverse-frontend',
       script: 'node_modules/nuxt/bin/nuxt.mjs',
       args: 'start',
-      cwd: '/path/to/midiverse/frontend',
+      cwd: '/var/www/midiverse-deployment/midiverse/frontend',
       env: {
         NODE_ENV: 'production',
         HOST: '0.0.0.0',
@@ -196,6 +199,14 @@ pm2 save
 
 # Setup PM2 to start on boot
 pm2 startup
+```
+
+Test the deployment:
+
+```bash
+sudo apt install curl 
+pm2 status # if you switched user to execute sudo, you may need to restart the applications
+curl http://localhost:3001
 ```
 
 ## 8. Configure Nginx (Reverse Proxy)
@@ -225,8 +236,9 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    # Backend routes (auth, markmaps, etc.)
-    location ~ ^/(auth|markmaps|users|series|tags) {
+    # Backend routes (auth, markmaps, complaints, etc.)
+    # Ensure top-level paths that should be handled by the API are proxied to the backend.
+    location ~ ^/(auth|markmaps|users|series|tags|complaints) {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -249,12 +261,42 @@ server {
 }
 ```
 
-Enable the site:
+Enable the site and allow it through firewall:
 
 ```bash
 sudo ln -s /etc/nginx/sites-available/midiverse /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
+# Configure UFW
+sudo ufw allow 22/tcp   # SSH
+sudo ufw allow 80/tcp   # HTTP
+sudo ufw allow 443/tcp  # HTTPS
+sudo ufw enable
+```
+
+Test connection from another machine:
+
+```bash
+curl http://<server-ip-address>
+```
+
+You should see the nginx welcome page. You do not see your actual site content since nginx is built for multi-site hosting and you must specify the web domain name in your request header to resolve to the actual site.
+
+See [guide on uncomplicated firewall if the site is not accessible from the public internet](https://ronzz.org/uncomplicated-firewall-ufw/)
+
+If the server is now publically available via `HTTP`, add the following DNS records in your domain name configuration through your DNS provider :
+
+```BIND
+; A records (replace <SERVER_IPV4> with your server IP)
+@       IN  A   <SERVER_IPV4>
+www     IN  A   <SERVER_IPV4>
+
+; Optional IPv6
+@       IN  AAAA  <SERVER_IPV6>
+www     IN  AAAA  <SERVER_IPV6>
+
+; Allow Let's Encrypt to issue certificates
+@       IN  CAA 0 issue "letsencrypt.org"
 ```
 
 ## 9. SSL Certificate (Let's Encrypt)
@@ -270,17 +312,7 @@ sudo certbot --nginx -d yourdomain.com
 sudo certbot renew --dry-run
 ```
 
-## 10. Firewall Configuration
-
-```bash
-# Configure UFW
-sudo ufw allow 22/tcp   # SSH
-sudo ufw allow 80/tcp   # HTTP
-sudo ufw allow 443/tcp  # HTTPS
-sudo ufw enable
-```
-
-## 11. Monitoring and Logs
+## 10. Monitoring and Logs
 
 ### View PM2 Logs
 
@@ -306,11 +338,12 @@ sudo tail -f /var/log/nginx/access.log
 sudo tail -f /var/log/nginx/error.log
 ```
 
-## 12. Maintenance
+## 11. Maintenance
 
 ### Update Application
 
 ```bash
+cd /var/www/midiverse-deployment/midiverse
 # Pull latest changes
 git pull origin main
 

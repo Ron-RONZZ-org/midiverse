@@ -94,8 +94,8 @@ export class ComplaintsService {
    */
   async findAppealed() {
     return this.prisma.complaint.findMany({
-      where: { 
-        status: { in: ['appealed', 'escalated'] }
+      where: {
+        status: { in: ['appealed', 'escalated'] },
       },
       include: {
         markmap: {

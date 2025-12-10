@@ -150,7 +150,52 @@ cd ..
 
 ## 7. Start with PM2
 
-PM2 ecosystem file is found at `./ecosystem.config.js`:
+Create PM2 ecosystem file `~/ecosystem.config.js`:
+
+**Important Notes:**
+- Backend requires `FRONTEND_URL` environment variable for CORS configuration (which frontend origin is allowed)
+- Frontend requires `NUXT_PUBLIC_API_BASE` environment variable to know the backend API URL (must include `/api` suffix)
+- Frontend also requires `NUXT_PUBLIC_TURNSTILE_SITE_KEY` for Cloudflare Turnstile CAPTCHA
+- Alternatively, these can be set in `.env` files, but PM2 env variables take precedence
+
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'midiverse-backend',
+      script: './dist/main.js',
+      cwd: '/var/www/midiverse-deployment/midiverse',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3010,
+        FRONTEND_URL: "https://midiverse.org",
+      },
+      instances: 2,
+      exec_mode: 'cluster',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+    },
+    {
+      name: 'midiverse-frontend',
+      script: 'node_modules/nuxt/bin/nuxt.mjs',
+      args: 'start',
+      cwd: '/var/www/midiverse-deployment/midiverse/frontend',
+      env: {
+        NODE_ENV: 'production',
+        HOST: '0.0.0.0',
+        PORT: 3001,
+        NUXT_PUBLIC_API_BASE: "https://midiverse.org/api",
+        NUXT_PUBLIC_TURNSTILE_SITE_KEY: "your-turnstile-site-key"
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+    },
+  ],
+};
+```
 
 Start the applications:
 

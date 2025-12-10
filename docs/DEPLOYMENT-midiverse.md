@@ -150,45 +150,7 @@ cd ..
 
 ## 7. Start with PM2
 
-Create PM2 ecosystem file `~/ecosystem.config.js`:
-
-```javascript
-module.exports = {
-  apps: [
-    {
-      name: 'midiverse-backend',
-      script: './dist/main.js',
-      cwd: '/var/www/midiverse-deployment/midiverse',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 3010,
-        FRONTEND_URL: "https://midiverse.org",
-      },
-      instances: 2,
-      exec_mode: 'cluster',
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '500M',
-    },
-    {
-      name: 'midiverse-frontend',
-      script: 'node_modules/nuxt/bin/nuxt.mjs',
-      args: 'start',
-      cwd: '/var/www/midiverse-deployment/midiverse/frontend',
-      env: {
-        NODE_ENV: 'production',
-        HOST: '0.0.0.0',
-        PORT: 3001,
-        FRONTEND_URL: "https://midiverse.org",
-      },
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '500M',
-    },
-  ],
-};
-```
+PM2 ecosystem file is found at `./ecosystem.config.js`:
 
 Start the applications:
 

@@ -7,6 +7,10 @@ async function bootstrap() {
   console.log('DB URL:', process.env.DATABASE_URL);
   const app = await NestFactory.create(AppModule);
 
+  // Set global API prefix BEFORE enabling CORS
+  // This ensures CORS is applied to the prefixed routes
+  app.setGlobalPrefix('api');
+
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: true,
@@ -20,9 +24,6 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-
-  // Set global API prefix
-  app.setGlobalPrefix('api');
 
   // Get PORT from .env or default to 3000
   const configService = app.get(ConfigService);

@@ -5,6 +5,8 @@ ssh ronzz-linux-server-2
 cd /var/www/midiverse-deployment/midiverse
 cd frontend
 
+nano /var/www/midiverse-deployment/midiverse/ecosystem.config.js 
+
 sudo nano /etc/nginx/sites-available/midiverse
 sudo nginx -t
 sudo systemctl restart nginx

@@ -152,6 +152,12 @@ cd ..
 
 Create PM2 ecosystem file `~/ecosystem.config.js`:
 
+**Important Notes:**
+- Backend requires `FRONTEND_URL` environment variable for CORS configuration (which frontend origin is allowed)
+- Frontend requires `NUXT_PUBLIC_API_BASE` environment variable to know the backend API URL (must include `/api` suffix)
+- Frontend also requires `NUXT_PUBLIC_TURNSTILE_SITE_KEY` for Cloudflare Turnstile CAPTCHA
+- Alternatively, these can be set in `.env` files, but PM2 env variables take precedence
+
 ```javascript
 module.exports = {
   apps: [
@@ -179,7 +185,8 @@ module.exports = {
         NODE_ENV: 'production',
         HOST: '0.0.0.0',
         PORT: 3001,
-        FRONTEND_URL: "https://midiverse.org",
+        NUXT_PUBLIC_API_BASE: "https://midiverse.org/api",
+        NUXT_PUBLIC_TURNSTILE_SITE_KEY: "your-turnstile-site-key"
       },
       instances: 1,
       autorestart: true,

@@ -7,7 +7,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3010,
-        FRONTEND_URL: "https://midiverse.org",
+        FRONTEND_URL: "https://midiverse.org", // Both midiverse.org and www.midiverse.org are allowed
       },
       instances: 1,
       exec_mode: 'fork',

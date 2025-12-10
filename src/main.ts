@@ -11,8 +11,24 @@ async function bootstrap() {
   // This ensures CORS is applied to the prefixed routes
   app.setGlobalPrefix('api');
 
+  // Allow both midiverse.org and www.midiverse.org for production
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3001',
+    'https://midiverse.org',
+    'https://www.midiverse.org',
+  ];
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 

@@ -24,7 +24,7 @@ module.exports = {
         NODE_ENV: 'production',
         HOST: '0.0.0.0',
         PORT: 3001,
-        NUXT_PUBLIC_API_BASE: "https://midiverse.org/api",
+        NUXT_PUBLIC_API_BASE: "/api",
       },
       instances: 1,
       autorestart: true,

@@ -88,8 +88,9 @@ EMAIL_LINK_BASEURL="https://yourdomain.com"
 Create `frontend/.env` file:
 
 ```env
-# Backend API URL
-NUXT_PUBLIC_API_BASE=https://yourdomain.com/api
+# Backend API URL - Use relative path to avoid CORS issues when accessing from www subdomain
+# This will make API calls relative to the current origin (e.g., if loaded from www.domain.com, calls go to www.domain.com/api)
+NUXT_PUBLIC_API_BASE=/api
 
 # Cloudflare Turnstile Site Key
 NUXT_PUBLIC_TURNSTILE_SITE_KEY="your-turnstile-site-key"
@@ -153,8 +154,8 @@ cd ..
 Create PM2 ecosystem file `~/ecosystem.config.js`:
 
 **Important Notes:**
-- Backend requires `FRONTEND_URL` environment variable for CORS configuration (which frontend origin is allowed)
-- Frontend requires `NUXT_PUBLIC_API_BASE` environment variable to know the backend API URL (must include `/api` suffix)
+- Backend requires `FRONTEND_URL` environment variable for CORS configuration (which frontend origins are allowed)
+- **Frontend should use relative API path (`/api`) to avoid CORS issues** when users access from different subdomains (e.g., www.domain.com vs domain.com)
 - Frontend also requires `NUXT_PUBLIC_TURNSTILE_SITE_KEY` for Cloudflare Turnstile CAPTCHA
 - Alternatively, these can be set in `.env` files, but PM2 env variables take precedence
 
@@ -168,7 +169,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3010,
-        FRONTEND_URL: "https://midiverse.org",
+        FRONTEND_URL: "https://midiverse.org", // Both midiverse.org and www.midiverse.org are allowed
       },
       instances: 2,
       exec_mode: 'cluster',
@@ -185,7 +186,7 @@ module.exports = {
         NODE_ENV: 'production',
         HOST: '0.0.0.0',
         PORT: 3001,
-        NUXT_PUBLIC_API_BASE: "https://midiverse.org/api",
+        NUXT_PUBLIC_API_BASE: "/api", // Relative path - API calls use same origin as frontend
         NUXT_PUBLIC_TURNSTILE_SITE_KEY: "your-turnstile-site-key"
       },
       instances: 1,
@@ -406,9 +407,11 @@ If you're upgrading from a previous version where API routes were at the root le
 
 1. **Update Frontend Environment Variable**:
    ```bash
-   # In frontend/.env, change from:
+   # In frontend/.env or PM2 ecosystem.config.js, change from:
    NUXT_PUBLIC_API_BASE=https://yourdomain.com
-   # To:
+   # To (recommended - avoids CORS issues with www subdomain):
+   NUXT_PUBLIC_API_BASE=/api
+   # Or with full URL:
    NUXT_PUBLIC_API_BASE=https://yourdomain.com/api
    ```
 

@@ -29,7 +29,7 @@ npm install
 Create a `.env` file in the frontend directory:
 
 ```env
-NUXT_PUBLIC_API_BASE=http://localhost:3000
+NUXT_PUBLIC_API_BASE=http://localhost:3000/api
 ```
 
 Adjust the API URL if your backend is running on a different port or host.
@@ -185,7 +185,7 @@ Nuxt 3 supports hot module replacement. Changes to components, pages, and styles
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| NUXT_PUBLIC_API_BASE | Backend API base URL | http://localhost:3000 |
+| NUXT_PUBLIC_API_BASE | Backend API base URL | http://localhost:3000/api |
 
 ## Building for Production
 

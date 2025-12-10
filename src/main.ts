@@ -21,6 +21,9 @@ async function bootstrap() {
     }),
   );
 
+  // Set global API prefix
+  app.setGlobalPrefix('api');
+
   // Get PORT from .env or default to 3000
   const configService = app.get(ConfigService);
   const port = configService.get('PORT') || 3000;

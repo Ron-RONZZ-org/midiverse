@@ -132,7 +132,7 @@ EMAIL_LINK_BASEURL="http://localhost:3001"
 Create a `.env` file in the `frontend` directory:
 
 ```env
-NUXT_PUBLIC_API_BASE=http://localhost:3000
+NUXT_PUBLIC_API_BASE=http://localhost:3000/api
 NUXT_PUBLIC_TURNSTILE_SITE_KEY=your-turnstile-site-key
 ```
 
@@ -182,7 +182,7 @@ npm run build
 npm run start:prod
 ```
 
-The backend will be available at `http://localhost:3000`
+The backend will be available at `http://localhost:3000/api`
 
 ### Start the Frontend
 

@@ -89,7 +89,7 @@ Create `frontend/.env` file:
 
 ```env
 # Backend API URL
-NUXT_PUBLIC_API_BASE=https://yourdomain.com
+NUXT_PUBLIC_API_BASE=https://yourdomain.com/api
 
 # Cloudflare Turnstile Site Key
 NUXT_PUBLIC_TURNSTILE_SITE_KEY="your-turnstile-site-key"
@@ -226,7 +226,7 @@ server {
     listen 80;
     server_name yourdomain.com;
 
-    # Backend API
+    # Backend API (all API routes are prefixed with /api)
     location /api {
         proxy_pass http://localhost:3010;
         proxy_http_version 1.1;
@@ -238,20 +238,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    # Backend routes (auth, markmaps, complaints, etc.)
-    # Ensure top-level paths that should be handled by the API are proxied to the backend.
-    location ~ ^/(auth|markmaps|users|series|tags|complaints|admin|keynodes) {
-        proxy_pass http://localhost:3010;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    # Frontend
+    # Frontend (all other routes)
     location / {
         proxy_pass http://localhost:3001;
         proxy_http_version 1.1;
@@ -405,6 +392,41 @@ pm2 restart all
 3. **PM2 Clustering**: Use cluster mode for backend (already configured)
 4. **CDN**: Consider using Cloudflare CDN for static assets
 5. **Monitoring**: Set up monitoring with tools like Prometheus/Grafana
+
+## Migrating from Previous Configuration
+
+If you're upgrading from a previous version where API routes were at the root level (e.g., `/markmaps`, `/auth`), you need to:
+
+1. **Update Frontend Environment Variable**:
+   ```bash
+   # In frontend/.env, change from:
+   NUXT_PUBLIC_API_BASE=https://yourdomain.com
+   # To:
+   NUXT_PUBLIC_API_BASE=https://yourdomain.com/api
+   ```
+
+2. **Update Nginx Configuration**:
+   - Remove the regex location block for specific routes (auth, markmaps, etc.)
+   - Keep only the `/api` and `/` location blocks as shown in this guide
+   - Test configuration: `sudo nginx -t`
+   - Reload nginx: `sudo systemctl reload nginx`
+
+3. **Restart Applications**:
+   ```bash
+   cd /var/www/midiverse-deployment/midiverse
+   git pull origin main
+   npm install
+   cd frontend && npm install && cd ..
+   npx prisma migrate deploy
+   npm run build
+   cd frontend && npm run build && cd ..
+   pm2 restart all
+   ```
+
+4. **Verify the Changes**:
+   - Test API endpoint: `curl https://yourdomain.com/api/markmaps`
+   - Test frontend page: Visit `https://yourdomain.com/markmaps/username/slug` in browser
+   - Check logs: `pm2 logs`
 
 ## Support
 

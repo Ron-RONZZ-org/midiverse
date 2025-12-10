@@ -393,6 +393,41 @@ pm2 restart all
 4. **CDN**: Consider using Cloudflare CDN for static assets
 5. **Monitoring**: Set up monitoring with tools like Prometheus/Grafana
 
+## Migrating from Previous Configuration
+
+If you're upgrading from a previous version where API routes were at the root level (e.g., `/markmaps`, `/auth`), you need to:
+
+1. **Update Frontend Environment Variable**:
+   ```bash
+   # In frontend/.env, change from:
+   NUXT_PUBLIC_API_BASE=https://yourdomain.com
+   # To:
+   NUXT_PUBLIC_API_BASE=https://yourdomain.com/api
+   ```
+
+2. **Update Nginx Configuration**:
+   - Remove the regex location block for specific routes (auth, markmaps, etc.)
+   - Keep only the `/api` and `/` location blocks as shown in this guide
+   - Test configuration: `sudo nginx -t`
+   - Reload nginx: `sudo systemctl reload nginx`
+
+3. **Restart Applications**:
+   ```bash
+   cd /var/www/midiverse-deployment/midiverse
+   git pull origin main
+   npm install
+   cd frontend && npm install && cd ..
+   npx prisma migrate deploy
+   npm run build
+   cd frontend && npm run build && cd ..
+   pm2 restart all
+   ```
+
+4. **Verify the Changes**:
+   - Test API endpoint: `curl https://yourdomain.com/api/markmaps`
+   - Test frontend page: Visit `https://yourdomain.com/markmaps/username/slug` in browser
+   - Check logs: `pm2 logs`
+
 ## Support
 
 For issues or questions:

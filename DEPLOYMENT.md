@@ -89,7 +89,7 @@ Create `frontend/.env` file:
 
 ```env
 # Backend API URL
-NUXT_PUBLIC_API_BASE=https://yourdomain.com
+NUXT_PUBLIC_API_BASE=https://yourdomain.com/api
 
 # Cloudflare Turnstile Site Key
 NUXT_PUBLIC_TURNSTILE_SITE_KEY="your-turnstile-site-key"
@@ -226,7 +226,7 @@ server {
     listen 80;
     server_name yourdomain.com;
 
-    # Backend API
+    # Backend API (all API routes are prefixed with /api)
     location /api {
         proxy_pass http://localhost:3010;
         proxy_http_version 1.1;
@@ -238,20 +238,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    # Backend routes (auth, markmaps, complaints, etc.)
-    # Ensure top-level paths that should be handled by the API are proxied to the backend.
-    location ~ ^/(auth|markmaps|users|series|tags|complaints|admin|keynodes) {
-        proxy_pass http://localhost:3010;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    # Frontend
+    # Frontend (all other routes)
     location / {
         proxy_pass http://localhost:3001;
         proxy_http_version 1.1;

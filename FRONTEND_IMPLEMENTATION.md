@@ -121,7 +121,7 @@ devServer: {
 ```typescript
 runtimeConfig: {
   public: {
-    apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3000'
+    apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3000/api'
   }
 }
 ```
@@ -199,7 +199,7 @@ runtimeConfig: {
    ```bash
    npm run start:dev
    ```
-   Backend runs on http://localhost:3000
+   Backend API runs on http://localhost:3000/api
 
 2. **Start Frontend** (Terminal 2):
    ```bash

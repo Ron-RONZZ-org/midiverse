@@ -303,8 +303,9 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
               id="keynode-name" 
               v-model="newKeynode.name" 
               type="text" 
-              required
-              :placeholder="keynodeInput"
+                @blur="ensureName"
+                @keydown.enter.prevent="ensureName"
+                :placeholder="keynodeInput"
             />
           </div>
           <div class="form-group">
@@ -1099,6 +1100,27 @@ const submitFormData = async () => {
     loading.value = false
     pendingManualKeynodes.value = []
     currentManualKeynodeIndex.value = 0
+  }
+}
+
+// --- Ajout: ensureName() idempotente et sûre ---
+const ensureName = () => {
+  try {
+    // Assure que newKeynode est un objet réactif valide
+    if (!newKeynode || typeof newKeynode !== 'object' || !('value' in newKeynode)) {
+      // réinitialise proprement si nécessaire
+      (newKeynode as any).value = { name: '', category: '', parentId: '' }
+    }
+    const nk = (newKeynode as any).value
+    // Ne rien faire si un nom est déjà présent (idempotence)
+    if (nk && (!nk.name || nk.name.toString().trim() === '')) {
+      if (keynodeInput && keynodeInput.value && keynodeInput.value.toString().trim() !== '') {
+        nk.name = keynodeInput.value.toString()
+      }
+    }
+  } catch (e) {
+    // Ne pas empêcher l'exécution, log minimal pour debug
+    console.error('ensureName error', e)
   }
 }
 

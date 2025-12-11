@@ -5,7 +5,9 @@ ssh ronzz-linux-server-2
 cd /var/www/midiverse-deployment/midiverse
 cd frontend
 
-nano /var/www/midiverse-deployment/midiverse/ecosystem.config.js 
+nano /var/www/midiverse-deployment/midiverse/ecosystem.config.js
+nano /var/www/midiverse-deployment/midiverse/.env
+nano /var/www/midiverse-deployment/midiverse/frontend/.env
 
 sudo nano /etc/nginx/sites-available/midiverse
 sudo nginx -t
@@ -19,6 +21,12 @@ sudo systemctl restart nginx
 ```bash
 pm2 status
 
+pm2 restart all -update-env
+```
+
+If a simple refresh does not work as expected:
+
+```bash
 pm2 delete all
 
 # Start applications

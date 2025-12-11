@@ -90,11 +90,13 @@ export class ComplaintsService {
   }
 
   /**
-   * Get appealed complaints (for administrators only)
+   * Get appealed and escalated complaints (for administrators only)
    */
   async findAppealed() {
     return this.prisma.complaint.findMany({
-      where: { status: 'appealed' },
+      where: {
+        status: { in: ['appealed', 'escalated'] },
+      },
       include: {
         markmap: {
           select: {
@@ -190,7 +192,7 @@ export class ComplaintsService {
   }
 
   /**
-   * Resolve a complaint (sustain or dismiss)
+   * Resolve a complaint (sustain, dismiss, or escalate)
    */
   async resolve(
     id: string,
@@ -221,6 +223,23 @@ export class ComplaintsService {
 
     if (complaint.status !== 'pending' && complaint.status !== 'appealed') {
       throw new BadRequestException('Complaint has already been resolved');
+    }
+
+    // Handle escalation differently - only pending complaints can be escalated
+    if (resolveDto.action === ComplaintResolutionAction.ESCALATE) {
+      if (complaint.status !== 'pending') {
+        throw new BadRequestException(
+          'Only pending complaints can be escalated',
+        );
+      }
+      const updatedComplaint = await this.prisma.complaint.update({
+        where: { id },
+        data: {
+          status: 'escalated',
+          resolution: resolveDto.resolution,
+        },
+      });
+      return updatedComplaint;
     }
 
     const newStatus =

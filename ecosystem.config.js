@@ -7,7 +7,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3010,
-        FRONTEND_URL: "https://midiverse.org",
+        FRONTEND_URL: "https://midiverse.org", // Both midiverse.org and www.midiverse.org are allowed
       },
       instances: 1,
       exec_mode: 'fork',
@@ -24,7 +24,7 @@ module.exports = {
         NODE_ENV: 'production',
         HOST: '0.0.0.0',
         PORT: 3001,
-        NUXT_PUBLIC_API_BASE: "https://midiverse.org/api",
+        NUXT_PUBLIC_API_BASE: "/api",
       },
       instances: 1,
       autorestart: true,

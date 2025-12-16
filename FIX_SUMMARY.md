@@ -11,35 +11,36 @@ This document summarizes the fixes implemented for the two remaining issues from
 When setting `colorFreezeLevel` to values like 2 in the editor or markmaps, the setting was not being applied during rendering.
 
 ### Root Cause Analysis
-The issue appeared to be related to how options were passed to the markmap-view library:
-1. Potential type coercion issues (string vs number)
-2. Falsy value handling with `||` operator treating `0` as falsy
-3. Lack of explicit type conversion
+The markmap-view library has two different option interfaces:
+1. `IMarkmapJSONOptions` - has `colorFreezeLevel: number` (for JSON/frontmatter config)
+2. `IMarkmapOptions` - has `color: (node: INode) => string` (for JavaScript API)
+
+The issue was passing `colorFreezeLevel` as a number directly to `Markmap.create()`, which expects `IMarkmapOptions` with a color function, not a numeric colorFreezeLevel.
 
 ### Solution Implemented
 **File**: `frontend/components/MarkmapViewer.vue`
 
-Changes made:
-1. Replaced `||` with `??` (nullish coalescing operator) for better falsy value handling
-2. Added explicit `Number()` coercion for all option values
-3. Extracted options into a separate object for clarity
+Used the `deriveOptions()` function from markmap-view to properly convert JSON options to IMarkmapOptions:
 
 ```typescript
-// Before
-mm = Markmap.create(markmapRef.value, {
-  maxWidth: props.options?.maxWidth || 0,
-  colorFreezeLevel: props.options?.colorFreezeLevel || 0,
-  initialExpandLevel: props.options?.initialExpandLevel || -1,
-}, root)
+// Import deriveOptions
+import { Markmap, deriveOptions } from 'markmap-view'
 
-// After
-const options = {
+// Create JSON options with numeric colorFreezeLevel
+const jsonOptions = {
   maxWidth: Number(props.options?.maxWidth ?? 0),
   colorFreezeLevel: Number(props.options?.colorFreezeLevel ?? 0),
   initialExpandLevel: Number(props.options?.initialExpandLevel ?? -1),
 }
+
+// Convert to IMarkmapOptions (with color function)
+const options = deriveOptions(jsonOptions)
+
+// Pass converted options to Markmap.create
 mm = Markmap.create(markmapRef.value, options, root)
 ```
+
+The `deriveOptions()` function internally converts the `colorFreezeLevel` number into a proper color function that freezes colors at the specified depth level.
 
 ### Testing
 - ✅ Backend and frontend build successfully
@@ -124,8 +125,9 @@ pending → [CM dismisses] → dismissed → [Reporter appeals] → appealed →
    - Impact: Fixes 400 Bad Request errors when resolving escalated complaints
 
 2. **frontend/components/MarkmapViewer.vue**
-   - Lines 112-118: Improved option handling with Number() coercion and ?? operator
-   - Impact: Ensures colorFreezeLevel is properly applied during rendering
+   - Line 6: Import deriveOptions from markmap-view
+   - Lines 112-122: Use deriveOptions to convert JSON options to IMarkmapOptions
+   - Impact: Fixes colorFreezeLevel not being applied during rendering
 
 3. **TESTING_GUIDE.md** (new file)
    - Comprehensive manual testing procedures for both issues

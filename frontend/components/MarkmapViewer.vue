@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { Markmap } from 'markmap-view'
+import { Markmap, deriveOptions } from 'markmap-view'
 import { Transformer } from 'markmap-lib'
 import { loadCSS, loadJS } from 'markmap-common'
 
@@ -109,11 +109,17 @@ const renderMarkmap = async () => {
       mm = null
     }
     
-    mm = Markmap.create(markmapRef.value, {
-      maxWidth: props.options?.maxWidth || 0,
-      colorFreezeLevel: props.options?.colorFreezeLevel || 0,
-      initialExpandLevel: props.options?.initialExpandLevel || -1,
-    }, root)
+    // Use deriveOptions to convert JSON options (with colorFreezeLevel as number)
+    // to IMarkmapOptions (with color as function)
+    const jsonOptions = {
+      maxWidth: Number(props.options?.maxWidth ?? 0),
+      colorFreezeLevel: Number(props.options?.colorFreezeLevel ?? 0),
+      initialExpandLevel: Number(props.options?.initialExpandLevel ?? -1),
+    }
+    
+    const options = deriveOptions(jsonOptions)
+    
+    mm = Markmap.create(markmapRef.value, options, root)
     
     // Apply theme styles after rendering
     applyThemeStyles()

@@ -221,7 +221,11 @@ export class ComplaintsService {
       throw new NotFoundException('Complaint not found');
     }
 
-    if (complaint.status !== 'pending' && complaint.status !== 'appealed') {
+    if (
+      complaint.status !== 'pending' &&
+      complaint.status !== 'appealed' &&
+      complaint.status !== 'escalated'
+    ) {
       throw new BadRequestException('Complaint has already been resolved');
     }
 

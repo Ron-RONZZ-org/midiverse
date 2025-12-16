@@ -17,8 +17,7 @@ module.exports = {
     },
     {
       name: 'midiverse-frontend',
-      script: 'node_modules/nuxt/bin/nuxt.mjs',
-      args: 'start',
+      script: '.output/server/index.mjs',
       cwd: '/var/www/midiverse-deployment/midiverse/frontend',
       env: {
         NODE_ENV: 'production',

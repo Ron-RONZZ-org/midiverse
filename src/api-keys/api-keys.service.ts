@@ -107,10 +107,7 @@ export class ApiKeysService {
     const apiKeys = await this.prisma.apiKey.findMany({
       where: {
         prefix,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
       include: {
         user: {

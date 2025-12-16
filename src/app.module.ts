@@ -11,6 +11,7 @@ import { KeynodesModule } from './keynodes/keynodes.module';
 import { ComplaintsModule } from './complaints/complaints.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ComplaintsModule,
     AdminModule,
     NotificationsModule,
+    ApiKeysModule,
   ],
   controllers: [AppController],
   providers: [AppService],

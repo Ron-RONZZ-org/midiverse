@@ -109,11 +109,13 @@ const renderMarkmap = async () => {
       mm = null
     }
     
-    mm = Markmap.create(markmapRef.value, {
-      maxWidth: props.options?.maxWidth ?? 0,
-      colorFreezeLevel: props.options?.colorFreezeLevel ?? 0,
-      initialExpandLevel: props.options?.initialExpandLevel ?? -1,
-    }, root)
+    const options = {
+      maxWidth: Number(props.options?.maxWidth ?? 0),
+      colorFreezeLevel: Number(props.options?.colorFreezeLevel ?? 0),
+      initialExpandLevel: Number(props.options?.initialExpandLevel ?? -1),
+    }
+    
+    mm = Markmap.create(markmapRef.value, options, root)
     
     // Apply theme styles after rendering
     applyThemeStyles()

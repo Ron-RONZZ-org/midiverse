@@ -1,0 +1,3 @@
+- enhancements
+  - `/signup`
+    - should display prompt when user input invalid username (<3 chars, forbiden chars, etc.)

@@ -157,6 +157,14 @@ curl -X POST \
   https://api.midiverse.com/markmaps
 ```
 
+```bash
+jq -n --rawfile text midiverse/API-docs.md '{title:"My API Created Markmap", text:$text, language:"en", tags:["#api","#automation"], isPublic:true}' \
+| curl -X POST \
+  -H "Authorization: Bearer $MIDIVERSE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d @- https://api.midiverse.com/markmaps
+```
+
 ### 5. Update a Markmap (Requires Full Access)
 
 ```bash

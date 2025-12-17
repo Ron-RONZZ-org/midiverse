@@ -2,6 +2,7 @@
 
 ```bash
 ssh ronzz-linux-server-2
+
 cd /var/www/midiverse-deployment/midiverse
 cd frontend
 
@@ -14,6 +15,20 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
+## prisma migration
+
+```bash
+npx prisma generate --no-engine
+npx prisma migrate deploy
+```
+
+## rebuilding
+
+```bash
+sudo npm run build
+cd frontend && sudo npm run build
+```
+
 ## pm2 reload
 
 > ❗ pm2 SHOULD be managed from the **midiverse-user**, so the created system services are correctly attached to midiverse-user.
@@ -21,12 +36,6 @@ sudo systemctl restart nginx
 ```bash
 pm2 status
 
-pm2 restart all -update-env
-```
-
-If a simple refresh does not work as expected:
-
-```bash
 pm2 delete all
 
 # Start applications
@@ -38,6 +47,8 @@ pm2 save
 # Setup PM2 to start on boot
 pm2 startup
 ```
+
+> You may be tempted to do a simple `pm2 restart all -update-env`. This will not serve the latest build.
 
 ## Known pitfalls
 

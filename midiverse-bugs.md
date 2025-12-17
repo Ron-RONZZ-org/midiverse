@@ -1,3 +1,11 @@
 - enhancements
   - `/signup`
     - should display prompt when user input invalid username (<3 chars, forbiden chars, etc.)
+- `/profile/{self-username}`
+  - "User Preferences"
+    - add section "Default editor options"
+      - Language
+      - Series
+      - Max Width
+      - Color Freeze Level
+      - Initial Expand Level (-1 for all)

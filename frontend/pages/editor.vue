@@ -1085,14 +1085,30 @@ const getSeriesName = (seriesId: string): string => {
   return series?.name || ''
 }
 
-// Find all manual !{keynode} patterns in text (deduplicated)
+// Find all manual keynode references in text (deduplicated)
+// Supports: !{keynode}, [text](/search?keynode=name), <a href="/search?keynode=name">text</a>
 const findManualKeynodes = (text: string): string[] => {
-  const pattern = /!\{([^}]+)\}/g
   const matches = new Set<string>()
+  
+  // Pattern 1: !{keynode}
+  const pattern1 = /!\{([^}]+)\}/g
   let match
-  while ((match = pattern.exec(text)) !== null) {
+  while ((match = pattern1.exec(text)) !== null) {
     matches.add(match[1].trim())
   }
+  
+  // Pattern 2: Markdown links [text](/search?keynode=name) or [text](/search?keynode=name&...)
+  const pattern2 = /\[([^\]]+)\]\(\/search\?keynode=([^)&]+)/g
+  while ((match = pattern2.exec(text)) !== null) {
+    matches.add(decodeURIComponent(match[2].trim()))
+  }
+  
+  // Pattern 3: HTML links <a href="/search?keynode=name">text</a> or with other attributes
+  const pattern3 = /<a[^>]*href=["']\/search\?keynode=([^"'&]+)/gi
+  while ((match = pattern3.exec(text)) !== null) {
+    matches.add(decodeURIComponent(match[1].trim()))
+  }
+  
   return Array.from(matches)
 }
 
@@ -1272,6 +1288,41 @@ onMounted(async () => {
     editMode.value = true
     markmapId.value = id
     loadMarkmap(id)
+  } else {
+    // Not editing - try to restore from localStorage
+    if (process.client) {
+      const savedDraft = localStorage.getItem('markmap-draft')
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft)
+          // Only restore if it's recent (within last 24 hours)
+          const draftAge = Date.now() - (draft.timestamp || 0)
+          if (draftAge < 24 * 60 * 60 * 1000) {
+            form.value = {
+              ...form.value,
+              ...draft.data,
+            }
+            languageInput.value = draft.data.language || ''
+            if (draft.data.seriesId) {
+              // Will be populated after series load
+              setTimeout(() => {
+                const series = userSeries.value.find(s => s.id === draft.data.seriesId)
+                if (series) {
+                  seriesInput.value = series.name
+                }
+              }, 500)
+            }
+            console.log('Restored draft from localStorage')
+          } else {
+            // Clear old draft
+            localStorage.removeItem('markmap-draft')
+          }
+        } catch (e) {
+          console.error('Failed to restore draft:', e)
+          localStorage.removeItem('markmap-draft')
+        }
+      }
+    }
   }
   await loadUserSeries()
   // Load default preferences after series are loaded (for series default to work)
@@ -1283,6 +1334,34 @@ watch(() => form.value.text, () => {
   nextTick(() => {
     onTextInput()
   })
+})
+
+// Save draft to localStorage on form changes (debounced)
+let saveDraftTimer: NodeJS.Timeout | null = null
+watch(() => form.value, (newValue) => {
+  // Only save drafts when not in edit mode
+  if (!editMode.value && process.client) {
+    if (saveDraftTimer) {
+      clearTimeout(saveDraftTimer)
+    }
+    saveDraftTimer = setTimeout(() => {
+      try {
+        localStorage.setItem('markmap-draft', JSON.stringify({
+          data: newValue,
+          timestamp: Date.now()
+        }))
+      } catch (e) {
+        console.error('Failed to save draft:', e)
+      }
+    }, 1000) // Save after 1 second of inactivity
+  }
+}, { deep: true })
+
+// Clear draft on successful submission
+watch(() => success.value, (newSuccess) => {
+  if (newSuccess && process.client) {
+    localStorage.removeItem('markmap-draft')
+  }
 })
 
 </script>

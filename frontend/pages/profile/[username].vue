@@ -51,7 +51,55 @@
 
       <div class="profile-content">
         <h2>{{ profile.isOwnProfile ? 'Your Markmaps' : `${profile.username}'s Markmaps` }}</h2>
-        <div v-if="markmaps.length === 0" class="no-results">
+        
+        <!-- Filters and sorting for own profile -->
+        <div v-if="profile.isOwnProfile && markmaps.length > 0" class="markmap-controls card">
+          <div class="control-row">
+            <div class="control-group">
+              <label>Visibility</label>
+              <div class="checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="visibilityFilters.published" @change="applyFilters" />
+                  Published
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="visibilityFilters.private" @change="applyFilters" />
+                  Private
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="visibilityFilters.actionRequired" @change="applyFilters" />
+                  Action Required
+                </label>
+              </div>
+            </div>
+            
+            <div class="control-group">
+              <label>Sort By</label>
+              <select v-model="sortBy" @change="applyFilters" class="form-control">
+                <option value="created-desc">Creation Date (Newest)</option>
+                <option value="created-asc">Creation Date (Oldest)</option>
+                <option value="title-asc">Title (A-Z)</option>
+                <option value="title-desc">Title (Z-A)</option>
+              </select>
+            </div>
+            
+            <div class="control-group search-group">
+              <label>Search</label>
+              <input 
+                type="text" 
+                v-model="markmapSearch" 
+                @input="applyFilters" 
+                placeholder="Search your markmaps..." 
+                class="form-control"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="filteredMarkmaps.length === 0 && markmaps.length > 0" class="no-results">
+          No markmaps match your filters.
+        </div>
+        <div v-else-if="markmaps.length === 0" class="no-results">
           <template v-if="profile.isOwnProfile">
             You haven't created any markmaps yet. 
             <NuxtLink to="/editor">Create your first one!</NuxtLink>
@@ -62,7 +110,7 @@
         </div>
         <div v-else class="markmap-grid">
           <div 
-            v-for="markmap in markmaps" 
+            v-for="markmap in filteredMarkmaps" 
             :key="markmap.id" 
             class="markmap-card-wrapper"
           >
@@ -573,6 +621,66 @@ const markmaps = ref<any[]>([])
 const deletedMarkmaps = ref<any[]>([])
 const loading = ref(true)
 const error = ref('')
+
+// Markmap filters and sorting for own profile
+const visibilityFilters = ref({
+  published: true,
+  private: true,
+  actionRequired: true
+})
+const sortBy = ref('created-desc')
+const markmapSearch = ref('')
+
+const filteredMarkmaps = computed(() => {
+  if (!profile.value?.isOwnProfile) {
+    return markmaps.value
+  }
+  
+  let filtered = [...markmaps.value]
+  
+  // Apply visibility filters
+  filtered = filtered.filter(m => {
+    if (m.isRetired && m.reviewStatus === 'action_required') {
+      return visibilityFilters.value.actionRequired
+    } else if (!m.isPublic) {
+      return visibilityFilters.value.private
+    } else {
+      return visibilityFilters.value.published
+    }
+  })
+  
+  // Apply search filter
+  if (markmapSearch.value.trim()) {
+    const search = markmapSearch.value.toLowerCase()
+    filtered = filtered.filter(m => 
+      m.title.toLowerCase().includes(search) || 
+      m.text.toLowerCase().includes(search)
+    )
+  }
+  
+  // Apply sorting
+  filtered.sort((a, b) => {
+    switch (sortBy.value) {
+      case 'created-desc':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case 'created-asc':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      case 'title-asc':
+        return a.title.localeCompare(b.title)
+      case 'title-desc':
+        return b.title.localeCompare(a.title)
+      default:
+        return 0
+    }
+  })
+  
+  return filtered
+})
+
+const applyFilters = () => {
+  // Filters are automatically applied through the computed property
+  // This function exists for explicit change events
+}
 
 const showEditModal = ref(false)
 const editForm = ref({ 
@@ -1763,5 +1871,59 @@ textarea.form-control {
   background: var(--background-secondary);
   border-radius: 8px;
   margin-top: 1rem;
+}
+
+/* Markmap controls */
+.markmap-controls {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.search-group input {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .control-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

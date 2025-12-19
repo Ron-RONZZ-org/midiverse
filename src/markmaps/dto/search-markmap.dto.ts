@@ -14,6 +14,10 @@ export class SearchMarkmapDto {
   author?: string;
 
   @IsOptional()
+  @IsString()
+  series?: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   tags?: string[];

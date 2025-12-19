@@ -9,6 +9,7 @@ import {
   UseGuards,
   ValidationPipe,
   Req,
+  Query,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { SeriesService } from './series.service';
@@ -41,6 +42,28 @@ export class SeriesController {
   findAll(@Req() req: RequestWithUser) {
     const userId = req.user?.id;
     return this.seriesService.findAll(userId);
+  }
+
+  @Get('suggestions')
+  @UseGuards(OptionalJwtAuthGuard)
+  async getSeriesSuggestions(
+    @Query('author') author?: string,
+    @Req() req?: RequestWithUser,
+  ) {
+    if (!author) {
+      return [];
+    }
+    
+    const userId = req.user?.id;
+    const seriesList = await this.seriesService.findByUsername(author, userId);
+    
+    // Return simplified list with just id, name for suggestions
+    return seriesList.map(s => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      markmapCount: s._count?.markmaps || 0,
+    }));
   }
 
   @Get('user/:username')

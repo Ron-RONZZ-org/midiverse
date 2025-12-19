@@ -1,4 +1,4 @@
-import { IsOptional, IsBoolean, IsString } from 'class-validator';
+import { IsOptional, IsBoolean, IsString, IsInt } from 'class-validator';
 
 export class UpdateUserPreferencesDto {
   @IsOptional()
@@ -24,4 +24,20 @@ export class UpdateUserPreferencesDto {
   @IsOptional()
   @IsBoolean()
   emailComplaintsNotifications?: boolean;
+
+  @IsOptional()
+  @IsString()
+  defaultEditorLanguage?: string
+
+  @IsOptional()
+  @IsInt()
+  defaultEditorMaxWidth?: number;
+
+  @IsOptional()
+  @IsInt()
+  defaultEditorColorFreezeLevel?: number;
+
+  @IsOptional()
+  @IsInt()
+  defaultEditorInitialExpandLevel?: number;
 }

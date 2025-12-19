@@ -578,6 +578,50 @@ const loadUserSeries = async () => {
   }
 }
 
+const loadDefaultEditorPreferences = async () => {
+  try {
+    const response = await authFetch('/users/preferences')
+    if (response.ok) {
+      const prefs = await response.json()
+      
+      // Only apply defaults when creating a new markmap (not editing)
+      if (!editMode.value) {
+        // Apply language preference
+        if (prefs.defaultEditorLanguage) {
+          form.value.language = prefs.defaultEditorLanguage
+          languageInput.value = prefs.defaultEditorLanguage
+        }
+        
+        // Apply maxWidth preference
+        if (prefs.defaultEditorMaxWidth !== null && prefs.defaultEditorMaxWidth !== undefined) {
+          form.value.maxWidth = prefs.defaultEditorMaxWidth
+        }
+        
+        // Apply colorFreezeLevel preference
+        if (prefs.defaultEditorColorFreezeLevel !== null && prefs.defaultEditorColorFreezeLevel !== undefined) {
+          form.value.colorFreezeLevel = prefs.defaultEditorColorFreezeLevel
+        }
+        
+        // Apply initialExpandLevel preference
+        if (prefs.defaultEditorInitialExpandLevel !== null && prefs.defaultEditorInitialExpandLevel !== undefined) {
+          form.value.initialExpandLevel = prefs.defaultEditorInitialExpandLevel
+        }
+        
+        // Apply series preference
+        if (prefs.defaultEditorSeriesId) {
+          form.value.seriesId = prefs.defaultEditorSeriesId
+          const series = userSeries.value.find(s => s.id === prefs.defaultEditorSeriesId)
+          if (series) {
+            seriesInput.value = series.name
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load default editor preferences', err)
+  }
+}
+
 const createSeries = async () => {
   if (!newSeriesName.value.trim()) {
     seriesError.value = 'Series name is required'
@@ -1222,14 +1266,16 @@ const ensureName = () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   const id = route.query.id as string
   if (id) {
     editMode.value = true
     markmapId.value = id
     loadMarkmap(id)
   }
-  loadUserSeries()
+  await loadUserSeries()
+  // Load default preferences after series are loaded (for series default to work)
+  await loadDefaultEditorPreferences()
 })
 
 // Watch for text changes to trigger keynode detection

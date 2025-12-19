@@ -142,12 +142,35 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
             <div class="form-group">
               <label for="series">Series (optional)</label>
               <div class="series-select-container">
-                <select id="series" v-model="form.seriesId">
-                  <option value="">No series</option>
-                  <option v-for="series in userSeries" :key="series.id" :value="series.id">
-                    {{ series.name }}
-                  </option>
-                </select>
+                <div class="series-input-wrapper">
+                  <input
+                    id="series"
+                    v-model="seriesInput"
+                    type="text"
+                    placeholder="Type to search or select a series..."
+                    @input="onSeriesInput"
+                    @focus="showSeriesSuggestions = true"
+                    @blur="hideSeriesSuggestions"
+                    @keydown.down="navigateSeriesSuggestions(1)"
+                    @keydown.up.prevent="navigateSeriesSuggestions(-1)"
+                    @keydown.enter.prevent="selectSeriesSuggestion"
+                  />
+                  <div v-if="form.seriesId" class="selected-series-badge">
+                    {{ getSeriesName(form.seriesId) }}
+                    <button type="button" @click="clearSeries" class="clear-series-btn">&times;</button>
+                  </div>
+                  <div v-if="showSeriesSuggestions && filteredSeries.length > 0" class="suggestions-dropdown">
+                    <div 
+                      v-for="(series, index) in filteredSeries" 
+                      :key="series.id"
+                      :class="['suggestion-item', { active: index === selectedSeriesIndex }]"
+                      @mousedown.prevent="selectSeries(series)"
+                      @mouseenter="selectedSeriesIndex = index"
+                    >
+                      <span class="suggestion-name">{{ series.name }}</span>
+                    </div>
+                  </div>
+                </div>
                 <button type="button" @click="showCreateSeriesModal = true" class="btn btn-sm">+ New</button>
               </div>
             </div>
@@ -413,6 +436,12 @@ const newSeriesName = ref('')
 const newSeriesDescription = ref('')
 const seriesLoading = ref(false)
 const seriesError = ref('')
+const seriesInput = ref('')
+const showSeriesSuggestions = ref(false)
+const selectedSeriesIndex = ref(0)
+const seriesInput = ref('')
+const showSeriesSuggestions = ref(false)
+const selectedSeriesIndex = ref(0)
 
 const tagInput = ref('')
 const suggestions = ref<{ name: string; count: number }[]>([])
@@ -534,10 +563,62 @@ const loadUserSeries = async () => {
       const response = await authFetch(`/series/user/${currentUser.value.username}`)
       if (response.ok) {
         userSeries.value = await response.json()
+        
+        // If editing and series is selected, populate seriesInput
+        if (form.value.seriesId) {
+          const series = userSeries.value.find(s => s.id === form.value.seriesId)
+          if (series) {
+            seriesInput.value = series.name
+          }
+        }
       }
     }
   } catch (err) {
     console.error('Failed to load series', err)
+  }
+}
+
+const loadDefaultEditorPreferences = async () => {
+  try {
+    const response = await authFetch('/users/preferences')
+    if (response.ok) {
+      const prefs = await response.json()
+      
+      // Only apply defaults when creating a new markmap (not editing)
+      if (!editMode.value) {
+        // Apply language preference
+        if (prefs.defaultEditorLanguage) {
+          form.value.language = prefs.defaultEditorLanguage
+          languageInput.value = prefs.defaultEditorLanguage
+        }
+        
+        // Apply maxWidth preference
+        if (prefs.defaultEditorMaxWidth !== null && prefs.defaultEditorMaxWidth !== undefined) {
+          form.value.maxWidth = prefs.defaultEditorMaxWidth
+        }
+        
+        // Apply colorFreezeLevel preference
+        if (prefs.defaultEditorColorFreezeLevel !== null && prefs.defaultEditorColorFreezeLevel !== undefined) {
+          form.value.colorFreezeLevel = prefs.defaultEditorColorFreezeLevel
+        }
+        
+        // Apply initialExpandLevel preference
+        if (prefs.defaultEditorInitialExpandLevel !== null && prefs.defaultEditorInitialExpandLevel !== undefined) {
+          form.value.initialExpandLevel = prefs.defaultEditorInitialExpandLevel
+        }
+        
+        // Apply series preference
+        if (prefs.defaultEditorSeriesId) {
+          form.value.seriesId = prefs.defaultEditorSeriesId
+          const series = userSeries.value.find(s => s.id === prefs.defaultEditorSeriesId)
+          if (series) {
+            seriesInput.value = series.name
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load default editor preferences', err)
   }
 }
 
@@ -564,6 +645,7 @@ const createSeries = async () => {
       const newSeries = await response.json()
       userSeries.value.push(newSeries)
       form.value.seriesId = newSeries.id
+      seriesInput.value = newSeries.name
       showCreateSeriesModal.value = false
       newSeriesName.value = ''
       newSeriesDescription.value = ''
@@ -783,8 +865,8 @@ const selectKeynoteSuggestion = (keynode: any) => {
   const beforeKeynode = text.substring(0, keynodeStartPos)
   const afterCursor = text.substring(cursorPos)
   
-  // Create markdown link to search page with keynode filter
-  const keynodeLink = `[${keynode.name}](/search?keynode=${encodeURIComponent(keynode.name)})`
+  // Create HTML link that opens in new tab
+  const keynodeLink = `<a href="/search?keynode=${encodeURIComponent(keynode.name)}" target="_blank">${keynode.name}</a>`
   
   form.value.text = beforeKeynode + keynodeLink + afterCursor
   
@@ -890,7 +972,7 @@ const createKeynode = async () => {
           const beforeKeynode = text.substring(0, keynodeStartPos)
           const afterCursor = text.substring(cursorPos)
           
-          const keynodeLink = `[${createdKeynode.name}](/search?keynode=${encodeURIComponent(createdKeynode.name)})`
+          const keynodeLink = `<a href="/search?keynode=${encodeURIComponent(createdKeynode.name)}" target="_blank">${createdKeynode.name}</a>`
           form.value.text = beforeKeynode + keynodeLink + afterCursor
           
           // Add to keynodes array
@@ -943,6 +1025,66 @@ const filteredSuggestions = computed(() => {
   return suggestions.value.filter(s => !tagExists(s.name))
 })
 
+// Series filtering and sorting
+const filteredSeries = computed(() => {
+  let series = [...userSeries.value]
+  
+  // Sort alphabetically
+  series.sort((a, b) => a.name.localeCompare(b.name))
+  
+  // Filter by input
+  if (seriesInput.value) {
+    const lowerInput = seriesInput.value.toLowerCase()
+    series = series.filter(s => s.name.toLowerCase().includes(lowerInput))
+  }
+  
+  return series
+})
+
+const onSeriesInput = () => {
+  showSeriesSuggestions.value = true
+  selectedSeriesIndex.value = 0
+}
+
+const navigateSeriesSuggestions = (direction: number) => {
+  if (filteredSeries.value.length === 0) return
+  
+  selectedSeriesIndex.value += direction
+  if (selectedSeriesIndex.value < 0) {
+    selectedSeriesIndex.value = filteredSeries.value.length - 1
+  } else if (selectedSeriesIndex.value >= filteredSeries.value.length) {
+    selectedSeriesIndex.value = 0
+  }
+}
+
+const selectSeriesSuggestion = () => {
+  if (filteredSeries.value.length > 0 && selectedSeriesIndex.value < filteredSeries.value.length) {
+    selectSeries(filteredSeries.value[selectedSeriesIndex.value])
+  }
+}
+
+const selectSeries = (series: any) => {
+  form.value.seriesId = series.id
+  seriesInput.value = series.name
+  showSeriesSuggestions.value = false
+}
+
+const clearSeries = () => {
+  form.value.seriesId = ''
+  seriesInput.value = ''
+}
+
+const hideSeriesSuggestions = () => {
+  setTimeout(() => {
+    showSeriesSuggestions.value = false
+  }, 200)
+}
+
+const getSeriesName = (seriesId: string): string => {
+  const series = userSeries.value.find(s => s.id === seriesId)
+  return series?.name || ''
+}
+
 // Find all manual !{keynode} patterns in text (deduplicated)
 const findManualKeynodes = (text: string): string[] => {
   const pattern = /!\{([^}]+)\}/g
@@ -979,7 +1121,7 @@ const onManualKeynodeCreated = async (createdKeynode: any) => {
   // Replace the !{keynode} pattern with proper link in text
   const keynodeName = pendingManualKeynodes.value[currentManualKeynodeIndex.value]
   const pattern = new RegExp(`!\\{${escapeRegExp(keynodeName)}\\}`, 'g')
-  const keynodeLink = `[${createdKeynode.name}](/search?keynode=${encodeURIComponent(createdKeynode.name)})`
+  const keynodeLink = `<a href="/search?keynode=${encodeURIComponent(createdKeynode.name)}" target="_blank">${createdKeynode.name}</a>`
   form.value.text = form.value.text.replace(pattern, keynodeLink)
   
   // Add to keynodes array
@@ -1015,7 +1157,7 @@ const checkKeynodeExists = async (name: string): Promise<any | null> => {
 // Handle existing keynode - replace and add to keynodes array
 const handleExistingKeynode = (keynodeName: string, existingKeynode: any) => {
   const pattern = new RegExp(`!\\{${escapeRegExp(keynodeName)}\\}`, 'g')
-  const keynodeLink = `[${existingKeynode.name}](/search?keynode=${encodeURIComponent(existingKeynode.name)})`
+  const keynodeLink = `<a href="/search?keynode=${encodeURIComponent(existingKeynode.name)}" target="_blank">${existingKeynode.name}</a>`
   form.value.text = form.value.text.replace(pattern, keynodeLink)
   
   if (!form.value.keynodes.includes(existingKeynode.name)) {
@@ -1124,14 +1266,16 @@ const ensureName = () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   const id = route.query.id as string
   if (id) {
     editMode.value = true
     markmapId.value = id
     loadMarkmap(id)
   }
-  loadUserSeries()
+  await loadUserSeries()
+  // Load default preferences after series are loaded (for series default to work)
+  await loadDefaultEditorPreferences()
 })
 
 // Watch for text changes to trigger keynode detection
@@ -1390,6 +1534,46 @@ h1 {
 .series-select-container {
   display: flex;
   gap: 0.5rem;
+}
+
+.series-input-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.series-input-wrapper input {
+  width: 100%;
+}
+
+.selected-series-badge {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: #007bff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.clear-series-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  pointer-events: all;
+}
+
+.clear-series-btn:hover {
+  color: #ffcccc;
 }
 
 .series-select-container select {

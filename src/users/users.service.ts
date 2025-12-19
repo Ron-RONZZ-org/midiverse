@@ -501,6 +501,11 @@ export class UsersService {
       profilePictureVisible?: boolean;
       emailVisible?: boolean;
       emailComplaintsNotifications?: boolean;
+      defaultEditorLanguage?: string;
+      defaultEditorSeriesId?: string;
+      defaultEditorMaxWidth?: number;
+      defaultEditorColorFreezeLevel?: number;
+      defaultEditorInitialExpandLevel?: number;
     },
   ) {
     // Use upsert to handle both create and update atomically

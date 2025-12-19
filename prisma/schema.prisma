@@ -191,6 +191,11 @@ model UserPreferences {
   profilePictureVisible Boolean  @default(true)
   emailVisible          Boolean  @default(true)
   emailComplaintsNotifications Boolean @default(true)  // Email notifications for complaints
+  defaultEditorLanguage String?  // Default language for new markmaps
+  defaultEditorSeriesId String?  // Default series for new markmaps
+  defaultEditorMaxWidth Int?     // Default maxWidth for new markmaps
+  defaultEditorColorFreezeLevel Int?  // Default colorFreezeLevel for new markmaps
+  defaultEditorInitialExpandLevel Int? // Default initialExpandLevel for new markmaps
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

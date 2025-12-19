@@ -293,6 +293,59 @@
             <small class="form-text">Notifications about complaints on your markmaps</small>
           </div>
 
+          <div class="form-group">
+            <h3>Default Editor Options</h3>
+            <small class="form-text">These settings will be pre-filled when creating new markmaps</small>
+            
+            <div class="form-group" style="margin-top: 1rem;">
+              <label for="defaultEditorLanguage">Language</label>
+              <input 
+                id="defaultEditorLanguage" 
+                v-model="preferencesForm.defaultEditorLanguage" 
+                type="text" 
+                class="form-control"
+                placeholder="e.g., en (leave empty for no default)"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="defaultEditorMaxWidth">Max Width</label>
+              <input 
+                id="defaultEditorMaxWidth" 
+                v-model.number="preferencesForm.defaultEditorMaxWidth" 
+                type="number" 
+                class="form-control"
+                placeholder="0"
+                min="0"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="defaultEditorColorFreezeLevel">Color Freeze Level</label>
+              <input 
+                id="defaultEditorColorFreezeLevel" 
+                v-model.number="preferencesForm.defaultEditorColorFreezeLevel" 
+                type="number" 
+                class="form-control"
+                placeholder="0"
+                min="0"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="defaultEditorInitialExpandLevel">Initial Expand Level</label>
+              <input 
+                id="defaultEditorInitialExpandLevel" 
+                v-model.number="preferencesForm.defaultEditorInitialExpandLevel" 
+                type="number" 
+                class="form-control"
+                placeholder="-1 for all"
+                min="-1"
+              />
+              <small class="form-text">Use -1 to expand all nodes by default</small>
+            </div>
+          </div>
+
           <div class="modal-actions">
             <button type="button" @click="showPreferencesModal = false" class="btn btn-secondary">Cancel</button>
             <button type="submit" class="btn" :disabled="preferencesLoading">
@@ -538,7 +591,11 @@ const preferencesForm = ref({
   profilePageVisible: true,
   profilePictureVisible: true,
   emailVisible: true,
-  emailComplaintsNotifications: true
+  emailComplaintsNotifications: true,
+  defaultEditorLanguage: '',
+  defaultEditorMaxWidth: null as number | null,
+  defaultEditorColorFreezeLevel: null as number | null,
+  defaultEditorInitialExpandLevel: null as number | null
 })
 const preferencesError = ref('')
 const preferencesLoading = ref(false)
@@ -920,7 +977,11 @@ const loadPreferences = async () => {
         profilePageVisible: prefs.profilePageVisible,
         profilePictureVisible: prefs.profilePictureVisible,
         emailVisible: prefs.emailVisible,
-        emailComplaintsNotifications: prefs.emailComplaintsNotifications ?? true
+        emailComplaintsNotifications: prefs.emailComplaintsNotifications ?? true,
+        defaultEditorLanguage: prefs.defaultEditorLanguage ?? '',
+        defaultEditorMaxWidth: prefs.defaultEditorMaxWidth ?? null,
+        defaultEditorColorFreezeLevel: prefs.defaultEditorColorFreezeLevel ?? null,
+        defaultEditorInitialExpandLevel: prefs.defaultEditorInitialExpandLevel ?? null
       }
       // Apply the theme immediately
       setTheme(prefs.darkTheme)

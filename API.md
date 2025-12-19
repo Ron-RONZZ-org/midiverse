@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-http://localhost:3000/api
+http://midiverse.org/api
 ```
 
 ## Authentication
@@ -577,14 +577,14 @@ The initial expansion level of the markmap. Default: -1.
 
 1. **User Registration**
    ```bash
-   curl -X POST http://localhost:3000/api/auth/signup \
+   curl -X POST http://midiverse.org/api/auth/signup \
      -H "Content-Type: application/json" \
      -d '{"email":"user@example.com","username":"johndoe","password":"secure123"}'
    ```
 
 2. **Create a Markmap**
    ```bash
-   curl -X POST http://localhost:3000/api/markmaps \
+   curl -X POST http://midiverse.org/api/markmaps \
      -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"title":"My Map","text":"# Root\n## Branch","isPublic":true}'
@@ -592,23 +592,23 @@ The initial expansion level of the markmap. Default: -1.
 
 3. **View Public Markmaps**
    ```bash
-   curl http://localhost:3000/api/markmaps
+   curl http://midiverse.org/api/markmaps
    ```
 
 4. **Search Markmaps**
    ```bash
-   curl "http://localhost:3000/api/markmaps/search?query=programming&language=en"
+   curl "http://midiverse.org/api/markmaps/search?query=programming&language=en"
    ```
 
 5. **Track Interaction**
    ```bash
-   curl -X POST http://localhost:3000/api/markmaps/MARKMAP_ID/interactions \
+   curl -X POST http://midiverse.org/api/markmaps/MARKMAP_ID/interactions \
      -H "Content-Type: application/json" \
      -d '{"type":"expand","metadata":{"nodeId":"node-1"}}'
    ```
 
 6. **View Your History**
    ```bash
-   curl http://localhost:3000/api/users/history \
+   curl http://midiverse.org/api/users/history \
      -H "Authorization: Bearer YOUR_TOKEN"
    ```

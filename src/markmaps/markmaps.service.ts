@@ -1194,28 +1194,29 @@ ${markmapConfig}
   }
 
   async getLanguageSuggestions(query?: string) {
-    // Common language codes with their full names
+    // Common language codes with their full names (alphabetically sorted by name)
     const languages = [
-      { code: 'en', name: 'English' },
-      { code: 'es', name: 'Español' },
-      { code: 'fr', name: 'Français' },
+      { code: 'ar', name: 'العربية' },
+      { code: 'zh', name: '中文' },
+      { code: 'cs', name: 'Čeština' },
+      { code: 'da', name: 'Dansk' },
       { code: 'de', name: 'Deutsch' },
+      { code: 'en', name: 'English' },
+      { code: 'eo', name: 'Esperanto' },
+      { code: 'es', name: 'Español' },
+      { code: 'fi', name: 'Suomi' },
+      { code: 'fr', name: 'Français' },
+      { code: 'hi', name: 'हिन्दी' },
       { code: 'it', name: 'Italiano' },
+      { code: 'ja', name: '日本語' },
+      { code: 'ko', name: '한국어' },
+      { code: 'nl', name: 'Nederlands' },
+      { code: 'no', name: 'Norsk' },
+      { code: 'pl', name: 'Polski' },
       { code: 'pt', name: 'Português' },
       { code: 'ru', name: 'Русский' },
-      { code: 'ja', name: '日本語' },
-      { code: 'zh', name: '中文' },
-      { code: 'ko', name: '한국어' },
-      { code: 'ar', name: 'العربية' },
-      { code: 'hi', name: 'हिन्दी' },
-      { code: 'nl', name: 'Nederlands' },
-      { code: 'pl', name: 'Polski' },
-      { code: 'tr', name: 'Türkçe' },
       { code: 'sv', name: 'Svenska' },
-      { code: 'da', name: 'Dansk' },
-      { code: 'fi', name: 'Suomi' },
-      { code: 'no', name: 'Norsk' },
-      { code: 'cs', name: 'Čeština' },
+      { code: 'tr', name: 'Türkçe' },
     ];
 
     if (!query) {

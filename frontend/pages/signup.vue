@@ -41,8 +41,12 @@
               minlength="3"
               placeholder="Choose a username"
               @input="debouncedCheckUsername"
+              @blur="validateUsername"
             />
-            <div v-if="usernameChecking" class="field-status checking">
+            <div v-if="usernameValidationError" class="field-status validation-error">
+              ✗ {{ usernameValidationError }}
+            </div>
+            <div v-else-if="usernameChecking" class="field-status checking">
               Checking availability...
             </div>
             <div v-else-if="usernameStatus === 'available'" class="field-status available">
@@ -75,7 +79,7 @@
           </div>
 
           <div v-if="error" class="error">{{ error }}</div>
-          <button type="submit" class="btn" :disabled="loading || usernameStatus === 'taken' || usernameChecking || !canSubmit">
+          <button type="submit" class="btn" :disabled="loading || usernameStatus === 'taken' || usernameChecking || usernameValidationError || !canSubmit">
             {{ loading ? 'Creating account...' : (!canSubmit ? 'Waiting for verification...' : 'Sign Up') }}
           </button>
         </form>
@@ -106,6 +110,7 @@ const showTurnstileWarning = ref(false)
 const turnstileReady = ref(false)
 const usernameChecking = ref(false)
 const usernameStatus = ref<'available' | 'taken' | null>(null)
+const usernameValidationError = ref('')
 
 // Computed property to check if form can be submitted
 const canSubmit = computed(() => {
@@ -119,14 +124,44 @@ const canSubmit = computed(() => {
 
 let checkUsernameTimeout: ReturnType<typeof setTimeout> | null = null
 
+const validateUsername = () => {
+  usernameValidationError.value = ''
+  
+  if (!username.value) {
+    return
+  }
+  
+  // Check minimum length
+  if (username.value.length < 3) {
+    usernameValidationError.value = 'Username must be at least 3 characters long'
+    return
+  }
+  
+  // Check for forbidden characters
+  const validPattern = /^[a-zA-Z0-9_-]+$/
+  if (!validPattern.test(username.value)) {
+    usernameValidationError.value = 'Username can only contain letters, numbers, underscores, and hyphens'
+    return
+  }
+  
+  // Check if starts with letter or number
+  if (!/^[a-zA-Z0-9]/.test(username.value)) {
+    usernameValidationError.value = 'Username must start with a letter or number'
+    return
+  }
+}
+
 const debouncedCheckUsername = () => {
   // Clear previous timeout
   if (checkUsernameTimeout) {
     clearTimeout(checkUsernameTimeout)
   }
   
-  // Reset status if username is too short
-  if (username.value.length < 3) {
+  // Validate first
+  validateUsername()
+  
+  // Reset status if username is too short or has validation errors
+  if (username.value.length < 3 || usernameValidationError.value) {
     usernameStatus.value = null
     usernameChecking.value = false
     return
@@ -325,6 +360,10 @@ const handleResendVerification = async () => {
 }
 
 .field-status.taken {
+  color: #dc3545;
+}
+
+.field-status.validation-error {
   color: #dc3545;
 }
 </style>

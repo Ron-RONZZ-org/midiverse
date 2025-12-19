@@ -18,8 +18,8 @@ sudo systemctl restart nginx
 ## prisma migration
 
 ```bash
-npx prisma generate --no-engine
 npx prisma migrate deploy
+npx prisma generate --no-engine
 ```
 
 ## rebuilding

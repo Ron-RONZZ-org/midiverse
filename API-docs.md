@@ -55,7 +55,7 @@ Authorization: Bearer mk_your_api_key_here
 
 ```bash
 curl -H "Authorization: Bearer $MIDIVERSE_API_KEY" \
-  https://api.midiverse.com/markmaps
+  https://midiverse.org/api/markmaps
 ```
 
 ### Example with JavaScript/Fetch
@@ -63,7 +63,7 @@ curl -H "Authorization: Bearer $MIDIVERSE_API_KEY" \
 ```javascript
 const apiKey = process.env.MIDIVERSE_API_KEY;
 
-const response = await fetch('https://api.midiverse.com/markmaps', {
+const response = await fetch('https://midiverse.org/api/markmaps', {
   headers: {
     'Authorization': `Bearer ${apiKey}`,
     'Content-Type': 'application/json'
@@ -85,7 +85,7 @@ headers = {
     'Content-Type': 'application/json'
 }
 
-response = requests.get('https://api.midiverse.com/markmaps', headers=headers)
+response = requests.get('https://midiverse.org/api/markmaps', headers=headers)
 markmaps = response.json()
 ```
 
@@ -124,21 +124,21 @@ All read-only operations, plus:
 
 ```bash
 curl -H "Authorization: Bearer $MIDIVERSE_API_KEY" \
-  https://api.midiverse.com/markmaps
+  https://midiverse.org/api/markmaps
 ```
 
 ### 2. Search Markmaps
 
 ```bash
 curl -H "Authorization: Bearer $MIDIVERSE_API_KEY" \
-  "https://api.midiverse.com/markmaps/search?query=programming&language=en"
+  "https://midiverse.org/api/markmaps/search?query=programming&language=en"
 ```
 
 ### 3. Get a Specific Markmap
 
 ```bash
 curl -H "Authorization: Bearer $MIDIVERSE_API_KEY" \
-  https://api.midiverse.com/markmaps/550e8400-e29b-41d4-a716-446655440001
+  https://midiverse.org/api/markmaps/550e8400-e29b-41d4-a716-446655440001
 ```
 
 ### 4. Create a New Markmap (Requires Full Access)
@@ -154,7 +154,7 @@ curl -X POST \
     "tags": ["#api", "#automation"],
     "isPublic": true
   }' \
-  https://api.midiverse.com/markmaps
+  https://midiverse.org/api/markmaps
 ```
 
 ```bash
@@ -162,7 +162,7 @@ jq -n --rawfile text midiverse/API-docs.md '{title:"My API Created Markmap", tex
 | curl -X POST \
   -H "Authorization: Bearer $MIDIVERSE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d @- https://api.midiverse.com/markmaps
+  -d @- https://midiverse.org/api/markmaps
 ```
 
 ### 5. Update a Markmap (Requires Full Access)
@@ -175,7 +175,7 @@ curl -X PATCH \
     "title": "Updated Title",
     "text": "# Updated Content\n## New Branch"
   }' \
-  https://api.midiverse.com/markmaps/550e8400-e29b-41d4-a716-446655440001
+  https://midiverse.org/api/markmaps/550e8400-e29b-41d4-a716-446655440001
 ```
 
 ### 6. Delete a Markmap (Requires Full Access)
@@ -183,7 +183,7 @@ curl -X PATCH \
 ```bash
 curl -X DELETE \
   -H "Authorization: Bearer $MIDIVERSE_API_KEY" \
-  https://api.midiverse.com/markmaps/550e8400-e29b-41d4-a716-446655440001
+  https://midiverse.org/api/markmaps/550e8400-e29b-41d4-a716-446655440001
 ```
 
 ## Error Handling
@@ -213,7 +213,7 @@ curl -X DELETE \
 
 ```javascript
 try {
-  const response = await fetch('https://api.midiverse.com/markmaps', {
+  const response = await fetch('https://midiverse.org/api/markmaps', {
     headers: {
       'Authorization': `Bearer ${apiKey}`
     }
@@ -322,7 +322,7 @@ import fs from 'fs';
 import fetch from 'node-fetch';
 
 const API_KEY = process.env.MIDIVERSE_API_KEY;
-const API_BASE = 'https://api.midiverse.com';
+const API_BASE = 'https://midiverse.com/api';
 
 async function createMarkmapFromFile(filePath) {
   try {
@@ -356,7 +356,7 @@ async function createMarkmapFromFile(filePath) {
     
     const markmap = await response.json();
     console.log(`✓ Created markmap: ${markmap.title}`);
-    console.log(`  URL: https://midiverse.com/markmaps/${markmap.id}`);
+    console.log(`  URL: https://midiverse.com/api/markmaps/${markmap.id}`);
     console.log(`  ID: ${markmap.id}`);
     
     return markmap;

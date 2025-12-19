@@ -9,3 +9,8 @@
       - Max Width
       - Color Freeze Level
       - Initial Expand Level (-1 for all)
+- `/editor`
+  - Series dropdown list should be alphabetical and allow filtering by typing partial name
+  - Links and keynodes should be inserted in `<a href="" target="_blank"></a>` format so the keynode page opens in new tab upon click
+    - even if user uses ![](), automatically updates to `<a href="" target="_blank"></a>` on save
+- esperanto support

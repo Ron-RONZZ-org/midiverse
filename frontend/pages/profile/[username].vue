@@ -397,6 +397,111 @@
             </button>
           </div>
         </form>
+
+        <hr class="settings-divider" />
+
+        <h3>API Keys</h3>
+        <p class="api-keys-description">
+          API keys allow you to access the Midiverse API programmatically. Create keys with different permissions based on your needs.
+        </p>
+        
+        <div v-if="apiKeysError" class="error">{{ apiKeysError }}</div>
+        <div v-if="apiKeysSuccess" class="success-message">{{ apiKeysSuccess }}</div>
+        
+        <!-- Create API Key Form -->
+        <form @submit.prevent="createApiKey" class="api-key-create-form">
+          <div class="form-group">
+            <label for="apiKeyName">Key Name</label>
+            <input 
+              id="apiKeyName" 
+              v-model="apiKeyForm.name" 
+              type="text" 
+              class="form-control"
+              placeholder="e.g., Production App, Testing Script"
+              required
+            />
+            <small class="form-text">A descriptive name to help you identify this key</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="apiKeyPermission">Permission Level</label>
+            <select 
+              id="apiKeyPermission" 
+              v-model="apiKeyForm.permission" 
+              class="form-control"
+              required
+            >
+              <option value="read_only">Read Only (fetch/search markmaps)</option>
+              <option value="full_access">Full Access (create/edit/delete markmaps)</option>
+            </select>
+            <small class="form-text">Choose the access level for this API key</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="apiKeyExpires">Expiration (Optional)</label>
+            <input 
+              id="apiKeyExpires" 
+              v-model="apiKeyForm.expiresAt" 
+              type="date" 
+              class="form-control"
+              :min="new Date().toISOString().split('T')[0]"
+            />
+            <small class="form-text">Leave empty for a key that never expires</small>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="submit" class="btn" :disabled="apiKeyLoading">
+              {{ apiKeyLoading ? 'Generating...' : 'Generate API Key' }}
+            </button>
+          </div>
+        </form>
+
+        <!-- Show new key once after creation -->
+        <div v-if="newApiKey" class="api-key-reveal">
+          <div class="api-key-warning">
+            ⚠️ <strong>Important:</strong> Copy this API key now. You won't be able to see it again!
+          </div>
+          <div class="api-key-display">
+            <code>{{ newApiKey }}</code>
+            <button @click="copyApiKey" class="btn-icon" title="Copy to clipboard">
+              {{ copiedApiKey ? '✓ Copied' : '📋 Copy' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- List of existing API keys -->
+        <div v-if="apiKeys.length > 0" class="api-keys-list">
+          <h4>Your API Keys</h4>
+          <div v-for="key in apiKeys" :key="key.id" class="api-key-item">
+            <div class="api-key-info">
+              <div class="api-key-name">
+                <strong>{{ key.name }}</strong>
+                <span class="api-key-prefix">{{ key.prefix }}...</span>
+              </div>
+              <div class="api-key-meta">
+                <span :class="['permission-badge', `permission-${key.permission}`]">
+                  {{ key.permission === 'read_only' ? 'Read Only' : 'Full Access' }}
+                </span>
+                <span class="api-key-date">
+                  Created: {{ new Date(key.createdAt).toLocaleDateString() }}
+                </span>
+                <span v-if="key.lastUsedAt" class="api-key-date">
+                  Last used: {{ new Date(key.lastUsedAt).toLocaleDateString() }}
+                </span>
+                <span v-else class="api-key-date">Never used</span>
+                <span v-if="key.expiresAt" class="api-key-date" :class="{ 'expired': new Date(key.expiresAt) < new Date() }">
+                  {{ new Date(key.expiresAt) < new Date() ? 'Expired' : 'Expires' }}: {{ new Date(key.expiresAt).toLocaleDateString() }}
+                </span>
+              </div>
+            </div>
+            <button @click="deleteApiKey(key.id)" class="btn btn-danger btn-sm" :disabled="apiKeyDeleteLoading === key.id">
+              {{ apiKeyDeleteLoading === key.id ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+        <div v-else-if="!apiKeyLoading && apiKeys.length === 0" class="no-api-keys">
+          No API keys created yet. Generate one above to get started.
+        </div>
       </div>
 
     </div>
@@ -456,6 +561,20 @@ const passwordError = ref('')
 const passwordSuccess = ref('')
 const passwordLoading = ref(false)
 
+// API Keys
+const apiKeys = ref<any[]>([])
+const apiKeyForm = ref({
+  name: '',
+  permission: 'read_only',
+  expiresAt: ''
+})
+const newApiKey = ref('')
+const copiedApiKey = ref(false)
+const apiKeysError = ref('')
+const apiKeysSuccess = ref('')
+const apiKeyLoading = ref(false)
+const apiKeyDeleteLoading = ref<string | null>(null)
+
 const loadProfile = async () => {
   loading.value = true
   error.value = ''
@@ -490,6 +609,9 @@ const loadProfile = async () => {
       if (deletedRes.ok) {
         deletedMarkmaps.value = await deletedRes.json()
       }
+      
+      // Load API keys if viewing own profile
+      loadApiKeys()
     }
   } catch (err: any) {
     error.value = err.message || 'Failed to load profile'
@@ -834,6 +956,105 @@ const updatePreferences = async () => {
     preferencesError.value = err.message || 'Failed to update preferences'
   } finally {
     preferencesLoading.value = false
+  }
+}
+
+// API Key functions
+const loadApiKeys = async () => {
+  try {
+    const response = await authFetch('/api-keys')
+    if (response.ok) {
+      apiKeys.value = await response.json()
+    }
+  } catch (err: any) {
+    console.error('Failed to load API keys:', err)
+  }
+}
+
+const createApiKey = async () => {
+  apiKeyLoading.value = true
+  apiKeysError.value = ''
+  apiKeysSuccess.value = ''
+  newApiKey.value = ''
+  copiedApiKey.value = false
+  
+  try {
+    const response = await authFetch('/api-keys', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: apiKeyForm.value.name,
+        permission: apiKeyForm.value.permission,
+        expiresAt: apiKeyForm.value.expiresAt || undefined
+      })
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      apiKeysError.value = errorData.message || 'Failed to create API key'
+      return
+    }
+    
+    const result = await response.json()
+    newApiKey.value = result.key
+    apiKeysSuccess.value = 'API key created successfully! Copy it now.'
+    
+    // Reset form
+    apiKeyForm.value = {
+      name: '',
+      permission: 'read_only',
+      expiresAt: ''
+    }
+    
+    // Reload API keys list
+    await loadApiKeys()
+  } catch (err: any) {
+    apiKeysError.value = err.message || 'Failed to create API key'
+  } finally {
+    apiKeyLoading.value = false
+  }
+}
+
+const copyApiKey = async () => {
+  try {
+    await navigator.clipboard.writeText(newApiKey.value)
+    copiedApiKey.value = true
+    setTimeout(() => {
+      copiedApiKey.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy API key:', err)
+  }
+}
+
+const deleteApiKey = async (keyId: string) => {
+  if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+    return
+  }
+  
+  apiKeyDeleteLoading.value = keyId
+  apiKeysError.value = ''
+  
+  try {
+    const response = await authFetch(`/api-keys/${keyId}`, {
+      method: 'DELETE'
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      apiKeysError.value = errorData.message || 'Failed to delete API key'
+      return
+    }
+    
+    apiKeysSuccess.value = 'API key deleted successfully'
+    await loadApiKeys()
+    
+    setTimeout(() => {
+      apiKeysSuccess.value = ''
+    }, 3000)
+  } catch (err: any) {
+    apiKeysError.value = err.message || 'Failed to delete API key'
+  } finally {
+    apiKeyDeleteLoading.value = null
   }
 }
 
@@ -1346,5 +1567,140 @@ textarea.form-control {
 
 .btn-link:hover {
   color: #a71d2a;
+}
+
+/* API Keys styles */
+.api-keys-description {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.api-key-create-form {
+  background: var(--background-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.api-key-reveal {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.api-key-warning {
+  color: #856404;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.api-key-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #ffc107;
+}
+
+.api-key-display code {
+  flex: 1;
+  font-family: monospace;
+  font-size: 0.9rem;
+  word-break: break-all;
+  color: #333;
+}
+
+.api-keys-list {
+  margin-top: 2rem;
+}
+
+.api-keys-list h4 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.api-key-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--border-color);
+}
+
+.api-key-info {
+  flex: 1;
+}
+
+.api-key-name {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.api-key-name strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.api-key-prefix {
+  font-family: monospace;
+  background: var(--background-tertiary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.api-key-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.permission-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.permission-badge.permission-read_only {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.permission-badge.permission-full_access {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.api-key-date {
+  color: var(--text-secondary);
+}
+
+.api-key-date.expired {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.no-api-keys {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  background: var(--background-secondary);
+  border-radius: 8px;
+  margin-top: 1rem;
 }
 </style>

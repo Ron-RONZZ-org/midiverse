@@ -60,6 +60,7 @@ model User {
   complaints          Complaint[]      @relation("ComplaintReporter")
   resolvedComplaints  Complaint[]      @relation("ComplaintResolver")
   notifications       Notification[]
+  apiKeys             ApiKey[]
 
   @@index([role])
   @@index([status])
@@ -324,4 +325,29 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+// API Key permissions enum
+enum ApiKeyPermission {
+  read_only      // Can only fetch/search markmaps
+  full_access    // Can create, edit, and delete markmaps
+}
+
+model ApiKey {
+  id          String           @id @default(uuid())
+  name        String           // User-friendly name for the API key
+  key         String           @unique // Hashed API key
+  prefix      String           // First 8 chars of the key for display (e.g., "mk_1234...")
+  permission  ApiKeyPermission @default(read_only)
+  expiresAt   DateTime?        // Optional expiration date
+  lastUsedAt  DateTime?        // Last time this key was used
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([key])
+  @@index([expiresAt])
 }

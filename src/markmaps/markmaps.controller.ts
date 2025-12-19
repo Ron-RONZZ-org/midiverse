@@ -27,7 +27,11 @@ import { GetTagStatisticsDto } from './dto/get-tag-statistics.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { ActiveUserGuard } from '../common/guards/active-user.guard';
+import { JwtOrApiKeyAuthGuard } from '../common/guards/jwt-or-api-key-auth.guard';
+import { ApiPermissionGuard } from '../common/guards/api-permission.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RequireApiPermission } from '../common/decorators/require-api-permission.decorator';
+import { ApiKeyPermission } from '@prisma/client';
 import type { UserFromToken } from '../common/interfaces/auth.interface';
 
 interface RequestWithUser extends Request {
@@ -39,7 +43,8 @@ export class MarkmapsController {
   constructor(private readonly markmapsService: MarkmapsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, ActiveUserGuard)
+  @UseGuards(JwtOrApiKeyAuthGuard, ActiveUserGuard, ApiPermissionGuard)
+  @RequireApiPermission(ApiKeyPermission.full_access)
   create(
     @Body(ValidationPipe) createMarkmapDto: CreateMarkmapDto,
     @CurrentUser() user: UserFromToken,
@@ -72,7 +77,8 @@ export class MarkmapsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, ActiveUserGuard)
+  @UseGuards(JwtOrApiKeyAuthGuard, ActiveUserGuard, ApiPermissionGuard)
+  @RequireApiPermission(ApiKeyPermission.full_access)
   update(
     @Param('id') id: string,
     @Body(ValidationPipe) updateMarkmapDto: UpdateMarkmapDto,
@@ -82,7 +88,8 @@ export class MarkmapsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtOrApiKeyAuthGuard, ApiPermissionGuard)
+  @RequireApiPermission(ApiKeyPermission.full_access)
   remove(@Param('id') id: string, @CurrentUser() user: UserFromToken) {
     return this.markmapsService.remove(id, user.id);
   }

@@ -1,3 +1,7 @@
-- enhancements
-  - `/signup`
-    - should display prompt when user input invalid username (<3 chars, forbiden chars, etc.)
+- Testing
+  - How can I test the API endpoints while running `npm run start:dev` on `localhost:3010` ?
+- Deployment
+  - What changes do I need to make ?
+    - nginx record ?
+    - DNS record ?
+    - refer to `docs/DEPLOYMENT-midiverse.md` for deployment details

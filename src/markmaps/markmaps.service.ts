@@ -180,6 +180,9 @@ export class MarkmapsService {
         author: {
           select: { id: true, username: true },
         },
+        series: {
+          select: { id: true, name: true, slug: true },
+        },
         tags: {
           include: {
             tag: true,
@@ -801,6 +804,7 @@ ${markmapConfig}
       isRetired?: boolean;
       language?: string;
       authorId?: string;
+      seriesId?: string;
       tags?: {
         some: {
           tag: {
@@ -824,6 +828,7 @@ ${markmapConfig}
         isPublic?: boolean;
         isRetired?: boolean;
         language?: string;
+        seriesId?: string;
         deletedAt?: null;
       }>;
     }
@@ -846,6 +851,23 @@ ${markmapConfig}
       });
       if (author) {
         where.authorId = author.id;
+      }
+    }
+
+    // Filter by series name (requires author to be specified)
+    if (searchDto.series && searchDto.author) {
+      // Find the series by author username and series name
+      const series = await this.prisma.series.findFirst({
+        where: {
+          name: searchDto.series,
+          author: {
+            username: searchDto.author,
+          },
+        },
+        select: { id: true },
+      });
+      if (series) {
+        where.seriesId = series.id;
       }
     }
 
@@ -885,12 +907,91 @@ ${markmapConfig}
 
     // If user is logged in, also include their private markmaps (including retired ones)
     if (userId) {
-      // Remove isRetired from base where since we're building OR conditions
-      const publicConditions = { ...where };
-      delete publicConditions.OR;
-      where.OR = [publicConditions, { authorId: userId, deletedAt: null }];
+      // Build the base public conditions
+      const publicConditions: any = {
+        isPublic: true,
+        deletedAt: null,
+        isRetired: false,
+      };
+
+      // Apply filters to public conditions
+      if (searchDto.language) publicConditions.language = searchDto.language;
+      if (searchDto.author) {
+        const author = await this.prisma.user.findUnique({
+          where: { username: searchDto.author },
+          select: { id: true },
+        });
+        if (author) publicConditions.authorId = author.id;
+      }
+      if (searchDto.series && searchDto.author) {
+        const series = await this.prisma.series.findFirst({
+          where: {
+            name: searchDto.series,
+            author: {
+              username: searchDto.author,
+            },
+          },
+          select: { id: true },
+        });
+        if (series) publicConditions.seriesId = series.id;
+      }
+      if (searchDto.tags && searchDto.tags.length > 0) {
+        publicConditions.tags = where.tags;
+      }
+      if (searchDto.keynode) {
+        publicConditions.keynodes = where.keynodes;
+      }
+      if (searchDto.query) {
+        publicConditions.OR = [
+          { title: { contains: searchDto.query, mode: 'insensitive' } },
+          { text: { contains: searchDto.query, mode: 'insensitive' } },
+        ];
+      }
+
+      // Build private conditions (user's own markmaps)
+      const privateConditions: any = {
+        authorId: userId,
+        deletedAt: null,
+      };
+
+      // Apply filters to private conditions (except isPublic and isRetired)
+      if (searchDto.language) privateConditions.language = searchDto.language;
+      if (searchDto.series && searchDto.author) {
+        const series = await this.prisma.series.findFirst({
+          where: {
+            name: searchDto.series,
+            author: {
+              username: searchDto.author,
+            },
+          },
+          select: { id: true },
+        });
+        if (series) privateConditions.seriesId = series.id;
+      }
+      if (searchDto.tags && searchDto.tags.length > 0) {
+        privateConditions.tags = where.tags;
+      }
+      if (searchDto.keynode) {
+        privateConditions.keynodes = where.keynodes;
+      }
+      if (searchDto.query) {
+        privateConditions.OR = [
+          { title: { contains: searchDto.query, mode: 'insensitive' } },
+          { text: { contains: searchDto.query, mode: 'insensitive' } },
+        ];
+      }
+
+      // Combine public and private conditions
+      where.OR = [publicConditions, privateConditions];
+      
+      // Remove base conditions that are now in OR
       delete where.isPublic;
       delete where.isRetired;
+      delete where.language;
+      delete where.authorId;
+      delete where.seriesId;
+      delete where.tags;
+      delete where.keynodes;
     }
 
     // Determine ordering based on sortBy parameter
@@ -921,6 +1022,9 @@ ${markmapConfig}
       include: {
         author: {
           select: { id: true, username: true },
+        },
+        series: {
+          select: { id: true, name: true, slug: true },
         },
         tags: {
           include: {

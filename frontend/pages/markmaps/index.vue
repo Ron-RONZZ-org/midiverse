@@ -6,22 +6,46 @@
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
       <div class="markmap-grid">
-        <NuxtLink 
+        <div 
           v-for="markmap in markmaps" 
           :key="markmap.id" 
-          :to="getMarkmapUrl(markmap)"
           class="markmap-card"
         >
-          <h3>{{ markmap.title }}</h3>
+          <NuxtLink 
+            :to="getMarkmapUrl(markmap)"
+            class="markmap-card-link"
+          >
+            <h3>{{ markmap.title }}</h3>
+          </NuxtLink>
           <p class="meta">
-            By {{ markmap.author?.username || 'Anonymous' }} • 
+            By 
+            <NuxtLink 
+              v-if="markmap.author?.username" 
+              :to="`/profile/${markmap.author.username}`"
+              class="author-link"
+              @click.stop
+            >
+              {{ markmap.author.username }}
+            </NuxtLink>
+            <span v-else>Anonymous</span>
+            <span v-if="markmap.series">
+              • Series: 
+              <NuxtLink 
+                :to="`/series/${markmap.author.username}/${markmap.series.slug}`"
+                class="series-link"
+                @click.stop
+              >
+                {{ markmap.series.name }}
+              </NuxtLink>
+            </span>
+            •
             {{ new Date(markmap.createdAt).toLocaleDateString() }}
           </p>
           <div class="tags">
             <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
             <span v-for="tag in markmap.tags" :key="tag.id" class="tag">{{ tag.tag.name }}</span>
           </div>
-        </NuxtLink>
+        </div>
       </div>
       <div v-if="markmaps.length === 0" class="no-results">
         No markmaps found. <NuxtLink to="/editor">Create the first one!</NuxtLink>
@@ -95,9 +119,29 @@ h1 {
   box-shadow: 0 4px 8px var(--shadow, rgba(0,0,0,0.15));
 }
 
+.markmap-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
 .markmap-card h3 {
   margin-bottom: 0.5rem;
   color: var(--link-color, #007bff);
+  transition: color 0.2s;
+}
+
+.markmap-card-link:hover h3 {
+  text-decoration: underline;
+}
+
+.author-link, .series-link {
+  color: var(--link-color, #007bff);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.author-link:hover, .series-link:hover {
+  text-decoration: underline;
 }
 
 .meta {

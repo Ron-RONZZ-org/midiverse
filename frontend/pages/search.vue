@@ -78,6 +78,32 @@
             </div>
           </div>
           <div class="form-group">
+            <label for="series">Series <span v-if="!searchForm.author" class="field-hint">(requires author)</span></label>
+            <div class="autocomplete-wrapper">
+              <input 
+                id="series" 
+                v-model="seriesInput" 
+                type="text" 
+                placeholder="Filter by series name"
+                :disabled="!searchForm.author"
+                @input="onSeriesInput"
+                @focus="onSeriesInput"
+                @blur="hideSeriesSuggestions"
+              />
+              <div v-if="showSeriesSuggestions && seriesSuggestions.length > 0" class="suggestions-dropdown">
+                <div 
+                  v-for="suggestion in seriesSuggestions" 
+                  :key="suggestion.id"
+                  class="suggestion-item"
+                  @mousedown.prevent="selectSeriesSuggestion(suggestion)"
+                >
+                  <span class="suggestion-name">{{ suggestion.name }}</span>
+                  <span class="suggestion-count">{{ suggestion.markmapCount }} markmaps</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
             <label for="tags">Tags</label>
             <div class="tags-input-container">
               <div class="tags-list">
@@ -182,6 +208,7 @@ const searchForm = ref({
   query: '',
   language: '',
   author: '',
+  series: '',
   tags: [] as string[],
   keynode: '',
   sortBy: 'newest' as 'newest' | 'oldest' | 'relevant' | 'views'
@@ -202,6 +229,12 @@ let languageDebounceTimer: NodeJS.Timeout | null = null
 const authorSuggestions = ref<any[]>([])
 const showAuthorSuggestions = ref(false)
 let authorDebounceTimer: NodeJS.Timeout | null = null
+
+// Series suggestions
+const seriesInput = ref('')
+const seriesSuggestions = ref<any[]>([])
+const showSeriesSuggestions = ref(false)
+let seriesDebounceTimer: NodeJS.Timeout | null = null
 
 // Tag suggestions
 const tagInput = ref('')
@@ -297,6 +330,56 @@ const selectLanguageSuggestion = (language: { code: string; name: string }) => {
 const selectAuthorSuggestion = (author: any) => {
   searchForm.value.author = author.username
   showAuthorSuggestions.value = false
+  
+  // Clear series when author changes
+  searchForm.value.series = ''
+  seriesInput.value = ''
+}
+
+// Series functions
+const fetchSeriesSuggestions = async (author: string) => {
+  if (!author) {
+    seriesSuggestions.value = []
+    return
+  }
+  
+  try {
+    const response = await authFetch(`/series/suggestions?author=${encodeURIComponent(author)}`)
+    if (response.ok) {
+      seriesSuggestions.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch series suggestions', err)
+  }
+}
+
+const onSeriesInput = () => {
+  showSeriesSuggestions.value = true
+  
+  if (!searchForm.value.author) {
+    showSeriesSuggestions.value = false
+    return
+  }
+  
+  if (seriesDebounceTimer) {
+    clearTimeout(seriesDebounceTimer)
+  }
+  
+  seriesDebounceTimer = setTimeout(() => {
+    fetchSeriesSuggestions(searchForm.value.author)
+  }, 300)
+}
+
+const selectSeriesSuggestion = (series: any) => {
+  searchForm.value.series = series.name
+  seriesInput.value = series.name
+  showSeriesSuggestions.value = false
+}
+
+const hideSeriesSuggestions = () => {
+  setTimeout(() => {
+    showSeriesSuggestions.value = false
+  }, 200)
 }
 
 const selectTagSuggestion = (tagName: string) => {
@@ -393,6 +476,7 @@ const handleSearch = async () => {
     if (searchForm.value.query) params.append('query', searchForm.value.query)
     if (searchForm.value.language) params.append('language', searchForm.value.language)
     if (searchForm.value.author) params.append('author', searchForm.value.author)
+    if (searchForm.value.series) params.append('series', searchForm.value.series)
     if (searchForm.value.keynode) params.append('keynode', searchForm.value.keynode)
     if (searchForm.value.sortBy) params.append('sortBy', searchForm.value.sortBy)
     if (searchForm.value.tags.length > 0) {
@@ -418,11 +502,12 @@ const handleSearch = async () => {
 // Auto-search if query params are present
 onMounted(() => {
   const route = useRoute()
-  if (route.query.query || route.query.language || route.query.author || route.query.keynode) {
+  if (route.query.query || route.query.language || route.query.author || route.query.series || route.query.keynode) {
     searchForm.value = {
       query: (route.query.query as string) || '',
       language: (route.query.language as string) || '',
       author: (route.query.author as string) || '',
+      series: (route.query.series as string) || '',
       keynode: (route.query.keynode as string) || '',
       tags: [],
       sortBy: (route.query.sortBy as any) || 'newest'
@@ -623,6 +708,18 @@ h1 {
   color: var(--text-secondary);
   font-size: 0.8rem;
   margin-left: 0.5rem;
+}
+
+.field-hint {
+  color: var(--text-secondary);
+  font-size: 0.85em;
+  font-weight: normal;
+}
+
+input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--bg-secondary) !important;
 }
 
 </style>

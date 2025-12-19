@@ -2,14 +2,32 @@
 
 ## Base URL
 ```
-http://midiverse.org/api
+https://midiverse.org/api
 ```
 
 ## Authentication
-Most endpoints require authentication using JWT tokens. Include the token in the `Authorization` header:
+
+Midiverse API supports two authentication methods:
+
+### 1. JWT Tokens (For Web Applications)
+Include the JWT token in the `Authorization` header:
 ```
 Authorization: Bearer <your-jwt-token>
 ```
+
+JWT tokens are obtained by logging in through the `/auth/login` endpoint and are primarily used for web applications.
+
+### 2. API Keys (For Programmatic Access)
+Include your API key in the `Authorization` header:
+```
+Authorization: Bearer <your-api-key>
+```
+
+API keys start with `mk_` prefix and can be generated from your profile page. They support two permission levels:
+- **Read Only**: Can only fetch and search markmaps
+- **Full Access**: Can create, edit, and delete markmaps
+
+**For detailed API key usage, see [API-docs.md](./API-docs.md)**
 
 ## Endpoints
 
@@ -59,6 +77,80 @@ Login with existing credentials.
     "email": "user@example.com",
     "username": "johndoe"
   }
+}
+```
+
+### API Key Endpoints
+
+#### POST /api-keys
+Generate a new API key. **Requires JWT authentication.**
+
+**Request Body:**
+```json
+{
+  "name": "Production App",
+  "permission": "full_access",
+  "expiresAt": "2025-12-31T23:59:59Z"
+}
+```
+
+**Fields:**
+- `name` (required): A descriptive name for the API key
+- `permission` (required): Either `read_only` or `full_access`
+- `expiresAt` (optional): ISO 8601 timestamp for when the key expires
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440010",
+  "name": "Production App",
+  "key": "mk_abc123def456...",
+  "prefix": "mk_abc12",
+  "permission": "full_access",
+  "expiresAt": "2025-12-31T23:59:59.000Z",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastUsedAt": null
+}
+```
+
+**Important:** The `key` field is only returned once during creation. Store it securely - you won't be able to retrieve it again!
+
+#### GET /api-keys
+List all API keys for the authenticated user. **Requires JWT authentication.**
+
+**Response:**
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440010",
+    "name": "Production App",
+    "prefix": "mk_abc12",
+    "permission": "full_access",
+    "expiresAt": "2025-12-31T23:59:59.000Z",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "lastUsedAt": "2024-01-15T10:30:00.000Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440011",
+    "name": "Analytics Script",
+    "prefix": "mk_xyz78",
+    "permission": "read_only",
+    "expiresAt": null,
+    "createdAt": "2024-01-02T00:00:00.000Z",
+    "lastUsedAt": null
+  }
+]
+```
+
+Note: The actual API key is never returned after creation, only the prefix is shown for identification.
+
+#### DELETE /api-keys/:id
+Delete an API key. **Requires JWT authentication.**
+
+**Response:**
+```json
+{
+  "message": "API key deleted successfully"
 }
 ```
 

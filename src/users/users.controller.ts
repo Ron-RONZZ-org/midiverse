@@ -97,10 +97,10 @@ export class UsersController {
     @CurrentUser() user: UserFromToken,
     @Body() updatePreferencesDto: UpdateUserPreferencesDto,
   ) {
-    console.log(
-      '[DEBUG] Received preferences update:',
-      JSON.stringify(updatePreferencesDto, null, 2),
-    );
+    console.log('[DEBUG] Preferences - DTO instance check:', updatePreferencesDto instanceof UpdateUserPreferencesDto);
+    console.log('[DEBUG] Preferences - DTO constructor name:', updatePreferencesDto.constructor.name);
+    console.log('[DEBUG] Preferences - Received data:', JSON.stringify(updatePreferencesDto, null, 2));
+    console.log('[DEBUG] Preferences - Reflect metadata test:', Reflect.getMetadata('design:type', UpdateUserPreferencesDto.prototype, 'defaultEditorLanguage'));
     return this.usersService.updateUserPreferences(
       user.id,
       updatePreferencesDto,

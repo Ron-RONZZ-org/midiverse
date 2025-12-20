@@ -30,6 +30,10 @@ export class UpdateUserPreferencesDto {
   defaultEditorLanguage?: string;
 
   @IsOptional()
+  @IsString()
+  defaultEditorSeriesId?: string;
+
+  @IsOptional()
   @IsInt()
   defaultEditorMaxWidth?: number;
 

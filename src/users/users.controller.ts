@@ -48,9 +48,7 @@ export class UsersController {
   }
 
   @Post('verify-email-change')
-  verifyEmailChange(
-    @Body() verifyEmailChangeDto: VerifyEmailChangeDto,
-  ) {
+  verifyEmailChange(@Body() verifyEmailChangeDto: VerifyEmailChangeDto) {
     return this.usersService.verifyEmailChange(verifyEmailChangeDto.token);
   }
 
@@ -99,7 +97,10 @@ export class UsersController {
     @CurrentUser() user: UserFromToken,
     @Body() updatePreferencesDto: UpdateUserPreferencesDto,
   ) {
-    console.log('[DEBUG] Received preferences update:', JSON.stringify(updatePreferencesDto, null, 2));
+    console.log(
+      '[DEBUG] Received preferences update:',
+      JSON.stringify(updatePreferencesDto, null, 2),
+    );
     return this.usersService.updateUserPreferences(
       user.id,
       updatePreferencesDto,

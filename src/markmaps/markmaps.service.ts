@@ -983,7 +983,7 @@ ${markmapConfig}
 
       // Combine public and private conditions
       where.OR = [publicConditions, privateConditions];
-      
+
       // Remove base conditions that are now in OR
       delete where.isPublic;
       delete where.isRetired;

@@ -1,4 +1,4 @@
-import { Controller, Post, Body} from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -28,30 +28,22 @@ export class AuthController {
   }
 
   @Post('resend-verification')
-  async resendVerification(
-    @Body() resendDto: ResendVerificationDto,
-  ) {
+  async resendVerification(@Body() resendDto: ResendVerificationDto) {
     return this.authService.resendVerificationEmail(resendDto);
   }
 
   @Post('check-username')
-  async checkUsername(
-    @Body() checkUsernameDto: CheckUsernameDto,
-  ) {
+  async checkUsername(@Body() checkUsernameDto: CheckUsernameDto) {
     return this.authService.checkUsernameAvailability(checkUsernameDto);
   }
 
   @Post('forgot-password')
-  async forgotPassword(
-    @Body() forgotPasswordDto: ForgotPasswordDto,
-  ) {
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('reset-password')
-  async resetPassword(
-    @Body() resetPasswordDto: ResetPasswordDto,
-  ) {
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
 }

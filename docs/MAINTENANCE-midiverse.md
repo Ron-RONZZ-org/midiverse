@@ -25,6 +25,7 @@ npx prisma generate --no-engine
 ## rebuilding
 
 ```bash
+git pull && git status
 sudo npm run build
 cd frontend && sudo npm run build
 ```

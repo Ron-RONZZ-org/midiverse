@@ -47,8 +47,8 @@ export class SeriesController {
   @Get('suggestions')
   @UseGuards(OptionalJwtAuthGuard)
   async getSeriesSuggestions(
+    @Req() req: RequestWithUser,
     @Query('author') author?: string,
-    @Req() req?: RequestWithUser,
   ) {
     if (!author) {
       return [];

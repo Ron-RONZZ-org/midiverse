@@ -1,7 +1,19 @@
-- Testing
-  - How can I test the API endpoints while running `npm run start:dev` on `localhost:3010` ?
-- Deployment
-  - What changes do I need to make ?
-    - nginx record ?
-    - DNS record ?
-    - refer to `docs/DEPLOYMENT-midiverse.md` for deployment details
+- `/markmaps`
+  - author name should be link to user profile
+  - if the markmap is in a series, series name should be shown as link to a page listing all markmaps in the series
+- `/search`
+  - keyword search
+    - bug : all markmaps shown including those not containing at all the searched keyword
+  - add series filter
+    - available when author filter used
+- `/user/{self-username}`
+  - add for own markmaps
+    - visibility filter checkboxes: published/private/action required
+    - sorting : alphabetical/creation date
+      - inverse
+    - search : similar to keyword search in `/search` but limited to own markmaps
+- `/editor`
+  - save user input in localstorage
+    - restore on reload (in case of accidental refresh/closing)
+  - manual keynode detection
+    - In all markmaps, manual references to keynodes should be recognised and processed accordingly. As long as a link like `/search?keynode=FreeCAD%20Mesh%20workbench` is present, the keynode is present. It can be in markdown format `[]()`, or HTML format `<a>` what-so-ever.

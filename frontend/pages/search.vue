@@ -185,8 +185,27 @@
         >
           <h3>{{ markmap.title }}</h3>
           <p class="meta">
-            By {{ markmap.author?.username || 'Anonymous' }} • 
-            {{ new Date(markmap.createdAt).toLocaleDateString() }}
+            By 
+            <NuxtLink 
+              v-if="markmap.author?.username" 
+              :to="`/profile/${markmap.author.username}`"
+              class="author-link"
+              @click.stop
+            >
+              {{ markmap.author.username }}
+            </NuxtLink>
+            <span v-else>Anonymous</span>
+            <span v-if="markmap.series">
+              • Series: 
+              <NuxtLink 
+                :to="`/series/${markmap.author.username}/${markmap.series.slug}`"
+                class="series-link"
+                @click.stop
+              >
+                {{ markmap.series.name }}
+              </NuxtLink>
+            </span>
+            • {{ new Date(markmap.createdAt).toLocaleDateString() }}
             <span v-if="markmap._count?.viewHistory">
                • {{ markmap._count.viewHistory }} views
             </span>
@@ -578,6 +597,16 @@ h1 {
   color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
+}
+
+.author-link, .series-link {
+  color: var(--link-color, #007bff);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.author-link:hover, .series-link:hover {
+  text-decoration: underline;
 }
 
 .tags {

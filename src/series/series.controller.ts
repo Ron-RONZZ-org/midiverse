@@ -53,12 +53,12 @@ export class SeriesController {
     if (!author) {
       return [];
     }
-    
+
     const userId = req.user?.id;
     const seriesList = await this.seriesService.findByUsername(author, userId);
-    
+
     // Return simplified list with just id, name for suggestions
-    return seriesList.map(s => ({
+    return seriesList.map((s) => ({
       id: s.id,
       name: s.name,
       slug: s.slug,

@@ -42,6 +42,7 @@ pm2 delete all
 # Start applications
 pm2 start /var/www/midiverse-deployment/midiverse/ecosystem.config.js
 
+pm2 status
 # Save PM2 configuration
 pm2 save
 

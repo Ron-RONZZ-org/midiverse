@@ -97,6 +97,7 @@ export class UsersController {
     @CurrentUser() user: UserFromToken,
     @Body() updatePreferencesDto: UpdateUserPreferencesDto,
   ) {
+    // TODO: Remove debug logging after diagnosing production validation issue
     console.log('[DEBUG] Preferences - DTO instance check:', updatePreferencesDto instanceof UpdateUserPreferencesDto);
     console.log('[DEBUG] Preferences - DTO constructor name:', updatePreferencesDto.constructor.name);
     console.log('[DEBUG] Preferences - Received data:', JSON.stringify(updatePreferencesDto, null, 2));

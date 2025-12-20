@@ -1,4 +1,4 @@
-import { Controller, Post, Body, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Body} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -13,44 +13,44 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
-  async signUp(@Body(ValidationPipe) signUpDto: SignUpDto) {
+  async signUp(@Body() signUpDto: SignUpDto) {
     return this.authService.signUp(signUpDto);
   }
 
   @Post('login')
-  async login(@Body(ValidationPipe) loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
   @Post('verify-email')
-  async verifyEmail(@Body(ValidationPipe) verifyEmailDto: VerifyEmailDto) {
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyEmailDto);
   }
 
   @Post('resend-verification')
   async resendVerification(
-    @Body(ValidationPipe) resendDto: ResendVerificationDto,
+    @Body() resendDto: ResendVerificationDto,
   ) {
     return this.authService.resendVerificationEmail(resendDto);
   }
 
   @Post('check-username')
   async checkUsername(
-    @Body(ValidationPipe) checkUsernameDto: CheckUsernameDto,
+    @Body() checkUsernameDto: CheckUsernameDto,
   ) {
     return this.authService.checkUsernameAvailability(checkUsernameDto);
   }
 
   @Post('forgot-password')
   async forgotPassword(
-    @Body(ValidationPipe) forgotPasswordDto: ForgotPasswordDto,
+    @Body() forgotPasswordDto: ForgotPasswordDto,
   ) {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('reset-password')
   async resetPassword(
-    @Body(ValidationPipe) resetPasswordDto: ResetPasswordDto,
+    @Body() resetPasswordDto: ResetPasswordDto,
   ) {
     return this.authService.resetPassword(resetPasswordDto);
   }

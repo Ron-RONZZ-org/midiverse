@@ -46,7 +46,7 @@ export class MarkmapsController {
   @UseGuards(JwtOrApiKeyAuthGuard, ActiveUserGuard, ApiPermissionGuard)
   @RequireApiPermission(ApiKeyPermission.full_access)
   create(
-    @Body(ValidationPipe) createMarkmapDto: CreateMarkmapDto,
+    @Body() createMarkmapDto: CreateMarkmapDto,
     @CurrentUser() user: UserFromToken,
   ) {
     return this.markmapsService.create(createMarkmapDto, user.id);
@@ -81,7 +81,7 @@ export class MarkmapsController {
   @RequireApiPermission(ApiKeyPermission.full_access)
   update(
     @Param('id') id: string,
-    @Body(ValidationPipe) updateMarkmapDto: UpdateMarkmapDto,
+    @Body() updateMarkmapDto: UpdateMarkmapDto,
     @CurrentUser() user: UserFromToken,
   ) {
     return this.markmapsService.update(id, updateMarkmapDto, user.id);
@@ -193,7 +193,7 @@ export class MarkmapsController {
   @Post(':id/interactions')
   createInteraction(
     @Param('id') id: string,
-    @Body(ValidationPipe) createInteractionDto: CreateInteractionDto,
+    @Body() createInteractionDto: CreateInteractionDto,
     @Req() req: RequestWithUser,
   ) {
     const userId = req.user?.id;

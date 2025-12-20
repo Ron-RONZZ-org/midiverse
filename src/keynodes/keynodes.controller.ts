@@ -29,7 +29,7 @@ export class KeynodesController {
   @Post()
   @UseGuards(OptionalJwtAuthGuard, ActiveUserGuard)
   create(
-    @Body(ValidationPipe) createKeynodeDto: CreateKeynodeDto,
+    @Body() createKeynodeDto: CreateKeynodeDto,
     @CurrentUser() user?: UserFromToken,
   ) {
     return this.keynodesService.create(createKeynodeDto, user?.id, user?.role);
@@ -65,7 +65,7 @@ export class KeynodesController {
   @Post('admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrator')
-  createVerified(@Body(ValidationPipe) data: AdminCreateKeynodeDto) {
+  createVerified(@Body() data: AdminCreateKeynodeDto) {
     return this.keynodesService.createVerified(data);
   }
 
@@ -113,7 +113,7 @@ export class KeynodesController {
   @Roles('content_manager', 'administrator')
   editAndApprove(
     @Param('id') id: string,
-    @Body(ValidationPipe)
+    @Body()
     data: { name?: string; category?: string; parentId?: string | null },
   ) {
     return this.keynodesService.editAndApprove(id, data);
@@ -150,7 +150,7 @@ export class KeynodesController {
   @Roles('administrator')
   update(
     @Param('id') id: string,
-    @Body(ValidationPipe)
+    @Body()
     data: { name?: string; category?: string; parentId?: string | null },
   ) {
     return this.keynodesService.update(id, data);

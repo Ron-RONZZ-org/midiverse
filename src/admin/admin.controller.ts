@@ -55,7 +55,7 @@ export class AdminController {
   @Patch('users/:userId/role')
   updateUserRole(
     @Param('userId') userId: string,
-    @Body(ValidationPipe) updateRoleDto: UpdateUserRoleDto,
+    @Body() updateRoleDto: UpdateUserRoleDto,
   ) {
     return this.adminService.updateUserRole(userId, updateRoleDto);
   }
@@ -66,7 +66,7 @@ export class AdminController {
   @Post('users/:userId/suspend')
   suspendUser(
     @Param('userId') userId: string,
-    @Body(ValidationPipe) suspendDto: SuspendUserDto,
+    @Body() suspendDto: SuspendUserDto,
   ) {
     return this.adminService.suspendUser(userId, suspendDto);
   }

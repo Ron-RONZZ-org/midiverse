@@ -21,7 +21,7 @@ export class ApiKeysController {
 
   @Post()
   create(
-    @Body(ValidationPipe) createApiKeyDto: CreateApiKeyDto,
+    @Body() createApiKeyDto: CreateApiKeyDto,
     @CurrentUser() user: UserFromToken,
   ) {
     return this.apiKeysService.create(user.id, createApiKeyDto);

@@ -7,7 +7,6 @@ import {
   Body,
   Query,
   UseGuards,
-  ValidationPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -34,7 +33,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   updateProfile(
     @CurrentUser() user: UserFromToken,
-    @Body(ValidationPipe) updateUserDto: UpdateUserDto,
+    @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.usersService.updateProfile(user.id, updateUserDto);
   }
@@ -43,14 +42,14 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   changePassword(
     @CurrentUser() user: UserFromToken,
-    @Body(ValidationPipe) changePasswordDto: ChangePasswordDto,
+    @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.usersService.changePassword(user.id, changePasswordDto);
   }
 
   @Post('verify-email-change')
   verifyEmailChange(
-    @Body(ValidationPipe) verifyEmailChangeDto: VerifyEmailChangeDto,
+    @Body() verifyEmailChangeDto: VerifyEmailChangeDto,
   ) {
     return this.usersService.verifyEmailChange(verifyEmailChangeDto.token);
   }
@@ -98,8 +97,9 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   updateUserPreferences(
     @CurrentUser() user: UserFromToken,
-    @Body(ValidationPipe) updatePreferencesDto: UpdateUserPreferencesDto,
+    @Body() updatePreferencesDto: UpdateUserPreferencesDto,
   ) {
+    console.log('[DEBUG] Received preferences update:', JSON.stringify(updatePreferencesDto, null, 2));
     return this.usersService.updateUserPreferences(
       user.id,
       updatePreferencesDto,
@@ -121,7 +121,7 @@ export class UsersController {
    */
   @Patch('email-preferences')
   updateEmailPreferences(
-    @Body(ValidationPipe) updateEmailPreferencesDto: UpdateEmailPreferencesDto,
+    @Body() updateEmailPreferencesDto: UpdateEmailPreferencesDto,
   ) {
     return this.usersService.updateEmailPreferencesByToken(
       updateEmailPreferencesDto.token,

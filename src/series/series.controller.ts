@@ -31,7 +31,7 @@ export class SeriesController {
   @Post()
   @UseGuards(JwtAuthGuard)
   create(
-    @Body(ValidationPipe) createSeriesDto: CreateSeriesDto,
+    @Body() createSeriesDto: CreateSeriesDto,
     @CurrentUser() user: UserFromToken,
   ) {
     return this.seriesService.create(createSeriesDto, user.id);
@@ -98,7 +98,7 @@ export class SeriesController {
   @UseGuards(JwtAuthGuard)
   update(
     @Param('id') id: string,
-    @Body(ValidationPipe) updateSeriesDto: UpdateSeriesDto,
+    @Body() updateSeriesDto: UpdateSeriesDto,
     @CurrentUser() user: UserFromToken,
   ) {
     return this.seriesService.update(id, updateSeriesDto, user.id);

@@ -27,7 +27,7 @@ export class UpdateUserPreferencesDto {
 
   @IsOptional()
   @IsString()
-  defaultEditorLanguage?: string
+  defaultEditorLanguage?: string;
 
   @IsOptional()
   @IsInt()

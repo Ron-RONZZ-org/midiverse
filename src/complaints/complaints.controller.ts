@@ -30,7 +30,7 @@ export class ComplaintsController {
   @UseGuards(OptionalJwtAuthGuard)
   create(
     @Param('markmapId') markmapId: string,
-    @Body(ValidationPipe) createComplaintDto: CreateComplaintDto,
+    @Body() createComplaintDto: CreateComplaintDto,
     @CurrentUser() user?: UserFromToken,
   ) {
     return this.complaintsService.create(
@@ -88,7 +88,7 @@ export class ComplaintsController {
   @Roles('content_manager', 'administrator')
   resolve(
     @Param('id') id: string,
-    @Body(ValidationPipe) resolveComplaintDto: ResolveComplaintDto,
+    @Body() resolveComplaintDto: ResolveComplaintDto,
     @CurrentUser() user: UserFromToken,
   ) {
     return this.complaintsService.resolve(id, resolveComplaintDto, user.id);
@@ -102,7 +102,7 @@ export class ComplaintsController {
   @Roles('content_manager', 'administrator')
   reviewMarkmap(
     @Param('markmapId') markmapId: string,
-    @Body(ValidationPipe)
+    @Body()
     body: { action: 'reinstate' | 'needs_edit'; resolution: string },
     @CurrentUser() user: UserFromToken,
   ) {

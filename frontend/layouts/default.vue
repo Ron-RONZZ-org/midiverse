@@ -12,6 +12,7 @@
           <NuxtLink to="/tags">Tags</NuxtLink>
           <NuxtLink to="/keynode">Keynodes</NuxtLink>
           <ClientOnly>
+            <LanguageSwitcher />
             <template v-if="isAuthenticated">
               <NuxtLink to="/editor">Create</NuxtLink>
               <button @click="showImportModal = true" class="btn btn-info">Import</button>

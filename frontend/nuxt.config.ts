@@ -11,6 +11,20 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  // Modules
+  modules: ['@nuxtjs/i18n'],
+
+  // i18n configuration
+  i18n: {
+    locales: [
+      { code: 'en', name: 'English' },
+      { code: 'fr', name: 'Français' },
+      { code: 'eo', name: 'Esperanto' }
+    ],
+    defaultLocale: 'en',
+    strategy: 'no_prefix'
+  },
+
   // HTTPS configuration (optional - only if certificates exist)
   devServer: {
     ...(hasSSLCerts && {

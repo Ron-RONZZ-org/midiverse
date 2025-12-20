@@ -6,8 +6,27 @@
       <div class="markmap-header" v-if="!isFullscreenMode">
         <h1>{{ markmap.title }}</h1>
         <div class="meta">
-          <span>By {{ markmap.author?.username || 'Anonymous' }}</span>
-          <span>Created: {{ new Date(markmap.createdAt).toLocaleDateString() }}</span>
+          <span>
+            By 
+            <NuxtLink 
+              v-if="markmap.author?.username" 
+              :to="`/profile/${markmap.author.username}`"
+              class="author-link"
+            >
+              {{ markmap.author.username }}
+            </NuxtLink>
+            <span v-else>Anonymous</span>
+          </span>
+          <span v-if="markmap.series">
+            • Series: 
+            <NuxtLink 
+              :to="`/series/${markmap.author.username}/${markmap.series.slug}`"
+              class="series-link"
+            >
+              {{ markmap.series.name }}
+            </NuxtLink>
+          </span>
+          <span>• Created: {{ new Date(markmap.createdAt).toLocaleDateString() }}</span>
           <div class="tags">
             <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
             <span v-for="tag in markmap.tags" :key="tag.id" class="tag">{{ tag.tag.name }}</span>
@@ -369,6 +388,16 @@ onMounted(() => {
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: 1rem;
+}
+
+.author-link, .series-link {
+  color: var(--link-color, #007bff);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.author-link:hover, .series-link:hover {
+  text-decoration: underline;
 }
 
 .tags {

@@ -17,19 +17,12 @@ export default defineNuxtConfig({
   // i18n configuration
   i18n: {
     locales: [
-      { code: 'en', name: 'English', file: 'en.json' },
-      { code: 'fr', name: 'Français', file: 'fr.json' },
-      { code: 'eo', name: 'Esperanto', file: 'eo.json' }
+      { code: 'en', name: 'English' },
+      { code: 'fr', name: 'Français' },
+      { code: 'eo', name: 'Esperanto' }
     ],
     defaultLocale: 'en',
-    lazy: true,
-    langDir: 'locales/',
-    strategy: 'no_prefix',
-    detectBrowserLanguage: {
-      useCookie: true,
-      cookieKey: 'i18n_redirected',
-      redirectOn: 'root'
-    }
+    strategy: 'no_prefix'
   },
 
   // HTTPS configuration (optional - only if certificates exist)

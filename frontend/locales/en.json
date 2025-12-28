@@ -33,7 +33,8 @@
     "profile": "Profile",
     "admin": "Admin",
     "notifications": "Notifications",
-    "tags": "Tags"
+    "tags": "Tags",
+    "import": "Import"
   },
   "editor": {
     "title": "Create Markmap",

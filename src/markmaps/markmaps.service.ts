@@ -26,6 +26,51 @@ export class MarkmapsService {
   /**
    * Generate a URL-friendly slug from title
    */
+  /**
+   * Generate a unique title for imported markmaps
+   * Adds a counter suffix if a title already exists for the same author
+   */
+  private async generateUniqueTitle(
+    baseTitle: string,
+    authorId?: string,
+  ): Promise<string> {
+    // Check if title exists for this author
+    const existingTitles = await this.prisma.markmap.findMany({
+      where: {
+        authorId,
+        title: {
+          startsWith: baseTitle,
+        },
+        deletedAt: null,
+      },
+      select: { title: true },
+    });
+
+    // If no existing titles, use the base title
+    if (existingTitles.length === 0) {
+      return baseTitle;
+    }
+
+    // Find the highest counter
+    let maxCounter = 0;
+    // Escape special regex characters in baseTitle
+    const escapedTitle = baseTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const titlePattern = new RegExp(`^${escapedTitle}\\s*(?:\\((\\d+)\\))?$`);
+
+    existingTitles.forEach(({ title }) => {
+      const match = title.match(titlePattern);
+      if (match) {
+        const counter = match[1] ? parseInt(match[1], 10) : 0;
+        maxCounter = Math.max(maxCounter, counter);
+      }
+    });
+
+    // Return title with next counter
+    return maxCounter === 0
+      ? `${baseTitle} (1)`
+      : `${baseTitle} (${maxCounter + 1})`;
+  }
+
   private generateSlugFromTitle(title: string): string {
     return title
       .toLowerCase()
@@ -727,6 +772,11 @@ ${markmapConfig}
 
     // Always set imported markmaps to private
     result.isPublic = false;
+
+    // Make title unique to avoid slug conflicts
+    if (userId && result.title) {
+      result.title = await this.generateUniqueTitle(result.title, userId);
+    }
 
     return result;
   }

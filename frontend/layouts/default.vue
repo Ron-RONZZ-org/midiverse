@@ -15,27 +15,27 @@
         </button>
         
         <div class="nav-links" :class="{ 'mobile-open': mobileMenuOpen }">
-          <NuxtLink to="/markmaps" @click="closeMobileMenu">Explore</NuxtLink>
-          <NuxtLink to="/search" @click="closeMobileMenu">Search</NuxtLink>
-          <NuxtLink to="/tags" @click="closeMobileMenu">Tags</NuxtLink>
+          <NuxtLink to="/markmaps" @click="closeMobileMenu">{{ t('nav.explore') }}</NuxtLink>
+          <NuxtLink to="/search" @click="closeMobileMenu">{{ t('nav.search') }}</NuxtLink>
+          <NuxtLink to="/tags" @click="closeMobileMenu">{{ t('nav.tags') }}</NuxtLink>
           <NuxtLink to="/keynode" @click="closeMobileMenu">Keynodes</NuxtLink>
           <ClientOnly>
             <LanguageSwitcher />
             <template v-if="isAuthenticated">
-              <NuxtLink to="/editor" @click="closeMobileMenu">Create</NuxtLink>
-              <button @click="showImportModal = true; closeMobileMenu()" class="btn btn-info">Import</button>
+              <NuxtLink to="/editor" @click="closeMobileMenu">{{ t('nav.editor') }}</NuxtLink>
+              <button @click="showImportModal = true; closeMobileMenu()" class="btn btn-info">{{ t('nav.import') || 'Import' }}</button>
               <NuxtLink to="/notifications" class="btn btn-notification" @click="closeMobileMenu">
                 🔔
                 <span v-if="notificationCount > 0" class="notification-badge">{{ notificationCount > 9 ? '9+' : notificationCount }}</span>
               </NuxtLink>
               <NuxtLink v-if="isContentManager" to="/content-management" class="btn btn-purple" @click="closeMobileMenu">Content</NuxtLink>
-              <NuxtLink v-if="isAdministrator" to="/admin" class="btn btn-admin" @click="closeMobileMenu">Admin</NuxtLink>
-              <NuxtLink :to="dashboardUrl" class="btn" @click="closeMobileMenu">Dashboard</NuxtLink>
-              <button @click="handleLogout" class="btn btn-secondary">Logout</button>
+              <NuxtLink v-if="isAdministrator" to="/admin" class="btn btn-admin" @click="closeMobileMenu">{{ t('nav.admin') }}</NuxtLink>
+              <NuxtLink :to="dashboardUrl" class="btn" @click="closeMobileMenu">{{ t('nav.profile') }}</NuxtLink>
+              <button @click="handleLogout" class="btn btn-secondary">{{ t('common.logout') }}</button>
             </template>
             <template v-else>
-              <NuxtLink to="/login" class="btn" @click="closeMobileMenu">Login</NuxtLink>
-              <NuxtLink to="/signup" class="btn" @click="closeMobileMenu">Sign Up</NuxtLink>
+              <NuxtLink to="/login" class="btn" @click="closeMobileMenu">{{ t('common.login') }}</NuxtLink>
+              <NuxtLink to="/signup" class="btn" @click="closeMobileMenu">{{ t('common.signup') }}</NuxtLink>
             </template>
           </ClientOnly>
         </div>
@@ -103,6 +103,7 @@
 const { isAuthenticated, currentUser, isContentManager, isAdministrator, logout } = useAuth()
 const { authFetch, notificationCount } = useApi()
 const { initTheme, setTheme } = useTheme()
+const { t } = useI18n()
 
 const loadNotificationCount = async () => {
   if (!isAuthenticated.value) {

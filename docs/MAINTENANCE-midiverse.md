@@ -26,8 +26,26 @@ npx prisma generate --no-engine
 
 ```bash
 git pull && git status
+sudo rm -rf dist
 sudo npm run build
 cd frontend && sudo npm run build
+```
+
+## Kill stale processes
+
+> **pm2 configurations are per user. Having multiple users each starting their own instances with exactly the same configuration is destined to cause weird port/version conflict behaviors and MAKE YOU A VERY UNHAPPY INDIVIDUAL.** The only way to be sure is to kill all processes listening on the target port and start afresh.
+
+
+```bash
+sudo systemctl stop pm2-midiverse-user
+sudo systemctl stop pm2-ubuntu
+sudo systemctl disable pm2-midiverse-user
+sudo systemctl disable pm2-ubuntu
+sudo rm /etc/systemd/system/pm2-midiverse-user.service
+sudo rm /etc/systemd/system/pm2-ubuntu.service
+sudo pkill -f PM2
+sudo pkill -f node
+sudo lsof -i :3010 # should see no output
 ```
 
 ## pm2 reload
@@ -35,6 +53,8 @@ cd frontend && sudo npm run build
 > ❗ pm2 SHOULD be managed from the **midiverse-user**, so the created system services are correctly attached to midiverse-user.
 
 ```bash
+sudo su - midiverse-user
+
 pm2 status
 
 pm2 delete all

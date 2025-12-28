@@ -33,7 +33,8 @@
     "profile": "Profil",
     "admin": "Administration",
     "notifications": "Notifications",
-    "tags": "Étiquettes"
+    "tags": "Étiquettes",
+    "import": "Importer"
   },
   "editor": {
     "title": "Créer un Markmap",

@@ -98,10 +98,26 @@ export class UsersController {
     @Body() updatePreferencesDto: UpdateUserPreferencesDto,
   ) {
     // TODO: Remove debug logging after diagnosing production validation issue
-    console.log('[DEBUG] Preferences - DTO instance check:', updatePreferencesDto instanceof UpdateUserPreferencesDto);
-    console.log('[DEBUG] Preferences - DTO constructor name:', updatePreferencesDto.constructor.name);
-    console.log('[DEBUG] Preferences - Received data:', JSON.stringify(updatePreferencesDto, null, 2));
-    console.log('[DEBUG] Preferences - Reflect metadata test:', Reflect.getMetadata('design:type', UpdateUserPreferencesDto.prototype, 'defaultEditorLanguage'));
+    console.log(
+      '[DEBUG] Preferences - DTO instance check:',
+      updatePreferencesDto instanceof UpdateUserPreferencesDto,
+    );
+    console.log(
+      '[DEBUG] Preferences - DTO constructor name:',
+      updatePreferencesDto.constructor.name,
+    );
+    console.log(
+      '[DEBUG] Preferences - Received data:',
+      JSON.stringify(updatePreferencesDto, null, 2),
+    );
+    console.log(
+      '[DEBUG] Preferences - Reflect metadata test:',
+      Reflect.getMetadata(
+        'design:type',
+        UpdateUserPreferencesDto.prototype,
+        'defaultEditorLanguage',
+      ),
+    );
     return this.usersService.updateUserPreferences(
       user.id,
       updatePreferencesDto,

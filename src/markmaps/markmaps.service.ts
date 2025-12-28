@@ -26,6 +26,51 @@ export class MarkmapsService {
   /**
    * Generate a URL-friendly slug from title
    */
+  /**
+   * Generate a unique title for imported markmaps
+   * Adds a counter suffix if a title already exists for the same author
+   */
+  private async generateUniqueTitle(
+    baseTitle: string,
+    authorId?: string,
+  ): Promise<string> {
+    // Check if title exists for this author
+    const existingTitles = await this.prisma.markmap.findMany({
+      where: {
+        authorId,
+        title: {
+          startsWith: baseTitle,
+        },
+        deletedAt: null,
+      },
+      select: { title: true },
+    });
+
+    // If no existing titles, use the base title
+    if (existingTitles.length === 0) {
+      return baseTitle;
+    }
+
+    // Find the highest counter
+    let maxCounter = 0;
+    // Escape special regex characters in baseTitle
+    const escapedTitle = baseTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const titlePattern = new RegExp(`^${escapedTitle}\\s*(?:\\((\\d+)\\))?$`);
+
+    existingTitles.forEach(({ title }) => {
+      const match = title.match(titlePattern);
+      if (match) {
+        const counter = match[1] ? parseInt(match[1], 10) : 0;
+        maxCounter = Math.max(maxCounter, counter);
+      }
+    });
+
+    // Return title with next counter
+    return maxCounter === 0
+      ? `${baseTitle} (1)`
+      : `${baseTitle} (${maxCounter + 1})`;
+  }
+
   private generateSlugFromTitle(title: string): string {
     return title
       .toLowerCase()
@@ -682,16 +727,58 @@ ${markmapConfig}
   async parseImportedFile(
     filename: string,
     content: string,
+    userId?: string,
   ): Promise<Partial<CreateMarkmapDto>> {
     const isHtml =
       filename.toLowerCase().endsWith('.html') ||
       filename.toLowerCase().endsWith('.htm');
 
+    let result: Partial<CreateMarkmapDto>;
     if (isHtml) {
-      return this.parseHtmlImport(content);
+      result = this.parseHtmlImport(content);
     } else {
-      return this.parseMarkdownImport(content);
+      result = this.parseMarkdownImport(content);
     }
+
+    // Apply user default preferences for import
+    if (userId) {
+      const userPrefs = await this.prisma.userPreferences.findUnique({
+        where: { userId },
+      });
+
+      if (userPrefs) {
+        // Apply default maxWidth if not specified in the imported file (i.e., still at default 0)
+        if (result.maxWidth === 0 && userPrefs.defaultEditorMaxWidth != null) {
+          result.maxWidth = userPrefs.defaultEditorMaxWidth;
+        }
+
+        // Apply default colorFreezeLevel if not specified (i.e., still at default 0)
+        if (
+          result.colorFreezeLevel === 0 &&
+          userPrefs.defaultEditorColorFreezeLevel != null
+        ) {
+          result.colorFreezeLevel = userPrefs.defaultEditorColorFreezeLevel;
+        }
+
+        // Apply default initialExpandLevel if not specified (i.e., still at default -1)
+        if (
+          result.initialExpandLevel === -1 &&
+          userPrefs.defaultEditorInitialExpandLevel != null
+        ) {
+          result.initialExpandLevel = userPrefs.defaultEditorInitialExpandLevel;
+        }
+      }
+    }
+
+    // Always set imported markmaps to private
+    result.isPublic = false;
+
+    // Make title unique to avoid slug conflicts
+    if (userId && result.title) {
+      result.title = await this.generateUniqueTitle(result.title, userId);
+    }
+
+    return result;
   }
 
   private parseHtmlImport(html: string): Partial<CreateMarkmapDto> {
@@ -703,7 +790,7 @@ ${markmapConfig}
       colorFreezeLevel: 0,
       initialExpandLevel: -1,
       tags: [],
-      isPublic: true,
+      isPublic: false, // Default to private for imports
     };
 
     // Extract language from <html lang="...">
@@ -793,7 +880,7 @@ ${markmapConfig}
       colorFreezeLevel: 0,
       initialExpandLevel: -1,
       tags: [],
-      isPublic: true,
+      isPublic: false, // Default to private for imports
     };
   }
 

@@ -22,7 +22,14 @@ export default defineNuxtConfig({
       { code: 'eo', name: 'Esperanto' }
     ],
     defaultLocale: 'en',
-    strategy: 'no_prefix'
+    strategy: 'no_prefix',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'i18n_redirected',
+      redirectOn: 'root',
+      alwaysRedirect: false,
+      fallbackLocale: 'en'
+    }
   },
 
   // HTTPS configuration (optional - only if certificates exist)

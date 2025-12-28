@@ -6,28 +6,36 @@
           <div class="brand-logo">M</div>
           <span>Midiverse</span>
         </NuxtLink>
-        <div class="nav-links">
-          <NuxtLink to="/markmaps">Explore</NuxtLink>
-          <NuxtLink to="/search">Search</NuxtLink>
-          <NuxtLink to="/tags">Tags</NuxtLink>
-          <NuxtLink to="/keynode">Keynodes</NuxtLink>
+        
+        <!-- Hamburger menu button for mobile -->
+        <button class="hamburger-menu" @click="toggleMobileMenu" :class="{ active: mobileMenuOpen }">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        
+        <div class="nav-links" :class="{ 'mobile-open': mobileMenuOpen }">
+          <NuxtLink to="/markmaps" @click="closeMobileMenu">{{ t('nav.explore') }}</NuxtLink>
+          <NuxtLink to="/search" @click="closeMobileMenu">{{ t('nav.search') }}</NuxtLink>
+          <NuxtLink to="/tags" @click="closeMobileMenu">{{ t('nav.tags') }}</NuxtLink>
+          <NuxtLink to="/keynode" @click="closeMobileMenu">Keynodes</NuxtLink>
           <ClientOnly>
             <LanguageSwitcher />
             <template v-if="isAuthenticated">
-              <NuxtLink to="/editor">Create</NuxtLink>
-              <button @click="showImportModal = true" class="btn btn-info">Import</button>
-              <NuxtLink to="/notifications" class="btn btn-notification">
+              <NuxtLink to="/editor" @click="closeMobileMenu">{{ t('nav.editor') }}</NuxtLink>
+              <button @click="showImportModal = true; closeMobileMenu()" class="btn btn-info">{{ t('nav.import') || 'Import' }}</button>
+              <NuxtLink to="/notifications" class="btn btn-notification" @click="closeMobileMenu">
                 🔔
                 <span v-if="notificationCount > 0" class="notification-badge">{{ notificationCount > 9 ? '9+' : notificationCount }}</span>
               </NuxtLink>
-              <NuxtLink v-if="isContentManager" to="/content-management" class="btn btn-purple">Content</NuxtLink>
-              <NuxtLink v-if="isAdministrator" to="/admin" class="btn btn-admin">Admin</NuxtLink>
-              <NuxtLink :to="dashboardUrl" class="btn">Dashboard</NuxtLink>
-              <button @click="handleLogout" class="btn btn-secondary">Logout</button>
+              <NuxtLink v-if="isContentManager" to="/content-management" class="btn btn-purple" @click="closeMobileMenu">Content</NuxtLink>
+              <NuxtLink v-if="isAdministrator" to="/admin" class="btn btn-admin" @click="closeMobileMenu">{{ t('nav.admin') }}</NuxtLink>
+              <NuxtLink :to="dashboardUrl" class="btn" @click="closeMobileMenu">{{ t('nav.profile') }}</NuxtLink>
+              <button @click="handleLogout" class="btn btn-secondary">{{ t('common.logout') }}</button>
             </template>
             <template v-else>
-              <NuxtLink to="/login" class="btn">Login</NuxtLink>
-              <NuxtLink to="/signup" class="btn">Sign Up</NuxtLink>
+              <NuxtLink to="/login" class="btn" @click="closeMobileMenu">{{ t('common.login') }}</NuxtLink>
+              <NuxtLink to="/signup" class="btn" @click="closeMobileMenu">{{ t('common.signup') }}</NuxtLink>
             </template>
           </ClientOnly>
         </div>
@@ -95,6 +103,7 @@
 const { isAuthenticated, currentUser, isContentManager, isAdministrator, logout } = useAuth()
 const { authFetch, notificationCount } = useApi()
 const { initTheme, setTheme } = useTheme()
+const { t } = useI18n()
 
 const loadNotificationCount = async () => {
   if (!isAuthenticated.value) {
@@ -154,6 +163,17 @@ const handleLogout = () => {
   logout()
 }
 
+// Mobile menu state
+const mobileMenuOpen = ref(false)
+
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
+
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false
+}
+
 // Import modal state
 const showImportModal = ref(false)
 const selectedFiles = ref<File[]>([])
@@ -206,11 +226,11 @@ const handleImport = async () => {
 
     if (result.count === 1 && result.imported.length === 1 && !result.imported[0].error) {
       // Single file import - redirect to editor
-      importSuccess.value = 'File imported successfully! Redirecting to editor...'
+      importSuccess.value = 'File imported successfully as private! Redirecting to editor...'
       setTimeout(() => {
         navigateTo(`/editor?id=${result.imported[0].id}`)
         showImportModal.value = false
-      }, 1000)
+      }, 1500)
     } else if (result.count === 0 && result.imported.length === 1 && result.imported[0].error) {
       // Single file import with error - show specific error
       importError.value = `Failed to import ${result.imported[0].filename}: ${result.imported[0].error}`
@@ -229,13 +249,13 @@ const handleImport = async () => {
         if (successCount === 0) {
           importError.value = `All ${errorCount} files failed to import:\n${failedFiles}`
         } else {
-          importSuccess.value = `Imported ${successCount} of ${result.total} files. ${errorCount} failed.`
+          importSuccess.value = `Imported ${successCount} of ${result.total} files as private. ${errorCount} failed.\n\nTo view your imported markmaps, visit your profile page and toggle the visibility filter to "Private".`
           if (failedFiles) {
             importError.value = `Failed files:\n${failedFiles}`
           }
         }
       } else {
-        importSuccess.value = `Successfully imported ${successCount} files!`
+        importSuccess.value = `Successfully imported ${successCount} files as private!\n\nTo view your imported markmaps, visit your profile page and toggle the visibility filter to "Private".`
       }
       
       // Only redirect if at least one file was successfully imported
@@ -243,7 +263,7 @@ const handleImport = async () => {
         setTimeout(() => {
           navigateTo(dashboardUrl.value)
           showImportModal.value = false
-        }, 2000)
+        }, 3000)
       }
     }
   } catch (err: any) {
@@ -282,6 +302,78 @@ watch(showImportModal, (newVal) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+}
+
+.hamburger-menu {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  z-index: 102;
+}
+
+.hamburger-menu span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background: var(--text-primary);
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+.hamburger-menu.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-menu.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-menu.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(7px, -6px);
+}
+
+@media (max-width: 768px) {
+  .hamburger-menu {
+    display: flex;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 70%;
+    max-width: 300px;
+    height: 100vh;
+    background: var(--card-bg);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 5rem 2rem 2rem;
+    box-shadow: -2px 0 10px var(--shadow);
+    transition: right 0.3s ease;
+    z-index: 101;
+    overflow-y: auto;
+  }
+
+  .nav-links.mobile-open {
+    right: 0;
+  }
+
+  .nav-links a,
+  .nav-links button {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+  }
+
+  .nav-links button {
+    justify-content: flex-start;
+  }
 }
 
 .brand {

@@ -161,6 +161,7 @@ export class MarkmapsController {
         const parsed = await this.markmapsService.parseImportedFile(
           file.originalname,
           content,
+          user.id,
         );
 
         // Create the markmap

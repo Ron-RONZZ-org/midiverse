@@ -212,14 +212,11 @@ export class MarkmapsService {
         });
 
         return markmap;
-      } catch (error) {
+      } catch (error: any) {
         // Check if it's a unique constraint error on (authorId, slug)
-        if (
-          error.code === 'P2002' &&
-          error.meta?.target?.includes('slug')
-        ) {
+        if (error?.code === 'P2002' && error?.meta?.target?.includes('slug')) {
           attempt++;
-          lastError = error;
+          lastError = error as Error;
           // Add a small delay to reduce race condition likelihood
           await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
           continue; // Retry with a new slug

@@ -1228,9 +1228,30 @@ const submitFormData = async () => {
     const url = editMode.value ? `/markmaps/${markmapId.value}` : '/markmaps'
     const method = editMode.value ? 'PATCH' : 'POST'
 
+    // Convert markdown links to HTML links with target="_blank"
+    let processedText = form.value.text
+    
+    // Pattern to match markdown links: [text](url)
+    // This regex handles:
+    // - Simple URLs
+    // - URLs with query parameters
+    // - URLs with fragments
+    // - Avoids matching keynode search links and already converted HTML links
+    const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g
+    
+    processedText = processedText.replace(markdownLinkPattern, (match, text, url) => {
+      // Don't convert if this is already a keynode link pattern
+      if (url.includes('/search?keynode=')) {
+        return match
+      }
+      // Convert to HTML link with target="_blank"
+      return `<a href="${url}" target="_blank">${text}</a>`
+    })
+
     // Clean the form data - convert empty seriesId to undefined
     const submitData = {
       ...form.value,
+      text: processedText,
       seriesId: form.value.seriesId || undefined
     }
 

@@ -708,12 +708,18 @@ ${markmapConfig}
         }
 
         // Apply default colorFreezeLevel if not specified (i.e., still at default 0)
-        if (result.colorFreezeLevel === 0 && userPrefs.defaultEditorColorFreezeLevel != null) {
+        if (
+          result.colorFreezeLevel === 0 &&
+          userPrefs.defaultEditorColorFreezeLevel != null
+        ) {
           result.colorFreezeLevel = userPrefs.defaultEditorColorFreezeLevel;
         }
 
         // Apply default initialExpandLevel if not specified (i.e., still at default -1)
-        if (result.initialExpandLevel === -1 && userPrefs.defaultEditorInitialExpandLevel != null) {
+        if (
+          result.initialExpandLevel === -1 &&
+          userPrefs.defaultEditorInitialExpandLevel != null
+        ) {
           result.initialExpandLevel = userPrefs.defaultEditorInitialExpandLevel;
         }
       }

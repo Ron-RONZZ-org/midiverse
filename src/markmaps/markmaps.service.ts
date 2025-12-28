@@ -217,8 +217,17 @@ export class MarkmapsService {
         if (error?.code === 'P2002' && error?.meta?.target?.includes('slug')) {
           attempt++;
           lastError = error as Error;
-          // Add a small delay to reduce race condition likelihood
-          await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+          // Exponential backoff with jitter to reduce race conditions and thundering herd
+          const baseDelay = 100;
+          const maxDelay = 1000;
+          const exponentialDelay = Math.min(
+            maxDelay,
+            baseDelay * Math.pow(2, attempt - 1),
+          );
+          const jitter = Math.random() * baseDelay;
+          await new Promise((resolve) =>
+            setTimeout(resolve, exponentialDelay + jitter),
+          );
           continue; // Retry with a new slug
         }
         // For other errors, throw immediately

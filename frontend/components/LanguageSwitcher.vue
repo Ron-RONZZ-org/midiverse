@@ -42,6 +42,11 @@ const toggleDropdown = () => {
 const switchLanguage = (newLocale: string) => {
   locale.value = newLocale
   isOpen.value = false
+  
+  // Persist locale to localStorage
+  if (process.client) {
+    localStorage.setItem('preferred-locale', newLocale)
+  }
 }
 
 // Close dropdown when clicking outside
@@ -52,8 +57,17 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
+// Initialize locale from localStorage on mount
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  
+  // Load saved locale preference
+  if (process.client) {
+    const savedLocale = localStorage.getItem('preferred-locale')
+    if (savedLocale && locales.value.find(l => l.code === savedLocale)) {
+      locale.value = savedLocale
+    }
+  }
 })
 
 onUnmounted(() => {

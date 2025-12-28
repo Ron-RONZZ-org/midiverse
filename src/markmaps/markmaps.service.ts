@@ -682,16 +682,47 @@ ${markmapConfig}
   async parseImportedFile(
     filename: string,
     content: string,
+    userId?: string,
   ): Promise<Partial<CreateMarkmapDto>> {
     const isHtml =
       filename.toLowerCase().endsWith('.html') ||
       filename.toLowerCase().endsWith('.htm');
 
+    let result: Partial<CreateMarkmapDto>;
     if (isHtml) {
-      return this.parseHtmlImport(content);
+      result = this.parseHtmlImport(content);
     } else {
-      return this.parseMarkdownImport(content);
+      result = this.parseMarkdownImport(content);
     }
+
+    // Apply user default preferences for import
+    if (userId) {
+      const userPrefs = await this.prisma.userPreferences.findUnique({
+        where: { userId },
+      });
+
+      if (userPrefs) {
+        // Apply default maxWidth if not specified in the imported file (i.e., still at default 0)
+        if (result.maxWidth === 0 && userPrefs.defaultEditorMaxWidth != null) {
+          result.maxWidth = userPrefs.defaultEditorMaxWidth;
+        }
+
+        // Apply default colorFreezeLevel if not specified (i.e., still at default 0)
+        if (result.colorFreezeLevel === 0 && userPrefs.defaultEditorColorFreezeLevel != null) {
+          result.colorFreezeLevel = userPrefs.defaultEditorColorFreezeLevel;
+        }
+
+        // Apply default initialExpandLevel if not specified (i.e., still at default -1)
+        if (result.initialExpandLevel === -1 && userPrefs.defaultEditorInitialExpandLevel != null) {
+          result.initialExpandLevel = userPrefs.defaultEditorInitialExpandLevel;
+        }
+      }
+    }
+
+    // Always set imported markmaps to private
+    result.isPublic = false;
+
+    return result;
   }
 
   private parseHtmlImport(html: string): Partial<CreateMarkmapDto> {
@@ -703,7 +734,7 @@ ${markmapConfig}
       colorFreezeLevel: 0,
       initialExpandLevel: -1,
       tags: [],
-      isPublic: true,
+      isPublic: false, // Default to private for imports
     };
 
     // Extract language from <html lang="...">
@@ -793,7 +824,7 @@ ${markmapConfig}
       colorFreezeLevel: 0,
       initialExpandLevel: -1,
       tags: [],
-      isPublic: true,
+      isPublic: false, // Default to private for imports
     };
   }
 

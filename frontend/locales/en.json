@@ -161,6 +161,32 @@
     "creating": "Creating...",
     "createFailed": "Failed to create keynode",
     "suggestions": "Keynode suggestions for",
-    "nodes": "nodes"
+    "nodes": "nodes",
+    "keynodes": "Keynodes"
+  },
+  "import": {
+    "title": "Import Markmaps",
+    "description": "Upload HTML or Markdown files to import as markmaps.",
+    "descriptionDetail": "HTML files will preserve metadata, while Markdown files will use the first line as the title.",
+    "selectFiles": "Select Files",
+    "selectedFiles": "Selected files:",
+    "importing": "Importing...",
+    "button": "Import",
+    "noFilesSelected": "Please select at least one file",
+    "failedToImport": "Failed to import files",
+    "singleSuccess": "File imported successfully as private! Redirecting to editor...",
+    "singleError": "Failed to import {filename}: {error}",
+    "allFailed": "All {count} files failed to import:",
+    "partialSuccess": "Imported {success} of {total} files as private. {failed} failed.",
+    "viewInProfile": "To view your imported markmaps, visit your profile page and toggle the visibility filter to \"Private\".",
+    "multipleSuccess": "Successfully imported {count} files as private!",
+    "failedFiles": "Failed files:"
+  },
+  "footer": {
+    "copyright": "© 2025 The Ron Company. GNU Affero General Public License 3.0 .",
+    "madeWith": "Made for the world with love from 🇫🇷"
+  },
+  "contentManagement": {
+    "title": "Content"
   }
 }

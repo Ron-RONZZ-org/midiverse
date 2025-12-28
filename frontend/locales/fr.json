@@ -161,6 +161,32 @@
     "creating": "Création...",
     "createFailed": "Échec de la création du keynode",
     "suggestions": "Suggestions de keynode pour",
-    "nodes": "nœuds"
+    "nodes": "nœuds",
+    "keynodes": "Keynodes"
+  },
+  "import": {
+    "title": "Importer des Markmaps",
+    "description": "Téléchargez des fichiers HTML ou Markdown pour les importer en tant que markmaps.",
+    "descriptionDetail": "Les fichiers HTML préserveront les métadonnées, tandis que les fichiers Markdown utiliseront la première ligne comme titre.",
+    "selectFiles": "Sélectionner des fichiers",
+    "selectedFiles": "Fichiers sélectionnés:",
+    "importing": "Importation...",
+    "button": "Importer",
+    "noFilesSelected": "Veuillez sélectionner au moins un fichier",
+    "failedToImport": "Échec de l'importation des fichiers",
+    "singleSuccess": "Fichier importé avec succès en privé! Redirection vers l'éditeur...",
+    "singleError": "Échec de l'importation de {filename}: {error}",
+    "allFailed": "Tous les {count} fichiers n'ont pas pu être importés:",
+    "partialSuccess": "{success} fichiers sur {total} importés en privé. {failed} ont échoué.",
+    "viewInProfile": "Pour voir vos markmaps importés, visitez votre page de profil et activez le filtre de visibilité sur \"Privé\".",
+    "multipleSuccess": "{count} fichiers importés avec succès en privé!",
+    "failedFiles": "Fichiers ayant échoué:"
+  },
+  "footer": {
+    "copyright": "© 2025 La Ron Company. Licence publique générale GNU Affero 3.0 .",
+    "madeWith": "Fait pour le monde avec amour depuis 🇫🇷"
+  },
+  "contentManagement": {
+    "title": "Contenu"
   }
 }

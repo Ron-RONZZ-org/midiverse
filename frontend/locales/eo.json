@@ -57,7 +57,7 @@
     "newSeries": "+ Nova",
     "tagsLabel": "Etikedoj (komencu kun #)",
     "tagsPlaceholder": "Tajpu por aldoni etikedojn (ekz: #javascript)",
-    "keynoteLabel": "Keynode",
+    "keynodeLabel": "Keynode",
     "keynotePlaceholder": "Filtri laŭ keynode (ekz: vulkano)",
     "maxWidth": "Maksimuma larĝo",
     "colorFreezeLevel": "Nivelo de kolora frostigo",

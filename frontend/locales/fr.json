@@ -57,7 +57,7 @@
     "newSeries": "+ Nouveau",
     "tagsLabel": "Étiquettes (commencez par #)",
     "tagsPlaceholder": "Tapez pour ajouter des étiquettes (ex: #javascript)",
-    "keynoteLabel": "Keynode",
+    "keynodeLabel": "Keynode",
     "keynotePlaceholder": "Filtrer par keynode (ex: volcan)",
     "maxWidth": "Largeur maximale",
     "colorFreezeLevel": "Niveau de gel des couleurs",

@@ -1,21 +1,21 @@
 <template>
   <div class="container">
-    <h1>Search Markmaps</h1>
+    <h1>{{ t('search.title') }}</h1>
 
     <div class="search-form card">
       <form @submit.prevent="handleSearch">
         <div class="form-row">
           <div class="form-group">
-            <label for="query">Search</label>
+            <label for="query">{{ t('search.query') }}</label>
             <input 
               id="query" 
               v-model="searchForm.query" 
               type="text" 
-              placeholder="Search by title or content"
+              :placeholder="t('search.queryPlaceholder')"
             />
           </div>
           <div class="form-group">
-            <label for="language">Language</label>
+            <label for="language">{{ t('search.language') }}</label>
             <div class="autocomplete-wrapper">
               <input 
                 id="language" 
@@ -39,24 +39,24 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="sortBy">Sort By</label>
+            <label for="sortBy">{{ t('search.sortBy') }}</label>
             <select id="sortBy" v-model="searchForm.sortBy" class="form-control">
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="relevant">Most Relevant</option>
-              <option value="views">Most Views</option>
+              <option value="newest">{{ t('search.sortNewest') }}</option>
+              <option value="oldest">{{ t('search.sortOldest') }}</option>
+              <option value="relevant">{{ t('search.sortRelevant') }}</option>
+              <option value="views">{{ t('search.sortViews') }}</option>
             </select>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="author">Author</label>
+            <label for="author">{{ t('search.author') }}</label>
             <div class="autocomplete-wrapper">
               <input 
                 id="author" 
                 v-model="searchForm.author" 
                 type="text" 
-                placeholder="Filter by author username"
+                :placeholder="t('search.authorPlaceholder')"
                 @input="onAuthorInput"
                 @focus="onAuthorInput"
                 @blur="hideAuthorSuggestions"
@@ -78,13 +78,13 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="series">Series <span v-if="!searchForm.author" class="field-hint">(requires author)</span></label>
+            <label for="series">{{ t('search.series') }} <span v-if="!searchForm.author" class="field-hint">{{ t('search.seriesRequiresAuthor') }}</span></label>
             <div class="autocomplete-wrapper">
               <input 
                 id="series" 
                 v-model="seriesInput" 
                 type="text" 
-                placeholder="Filter by series name"
+                :placeholder="t('search.seriesPlaceholder')"
                 :disabled="!searchForm.author"
                 @input="onSeriesInput"
                 @focus="onSeriesInput"
@@ -104,7 +104,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="tags">Tags</label>
+            <label for="tags">{{ t('search.tags') }}</label>
             <div class="tags-input-container">
               <div class="tags-list">
                 <span v-for="(tag, index) in searchForm.tags" :key="index" class="tag-chip">
@@ -117,7 +117,7 @@
                   id="tags" 
                   v-model="tagInput" 
                   type="text" 
-                  placeholder="Add tags (e.g., #javascript)"
+                  :placeholder="t('search.tagsPlaceholder')"
                   @input="onTagInput"
                   @keydown.enter.prevent="addTag"
                   @blur="hideTagSuggestions"
@@ -137,7 +137,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="keynode">Keynode</label>
+            <label for="keynode">{{ t('search.keynode') }}</label>
             <div class="autocomplete-wrapper">
               <input 
                 id="keynode" 
@@ -164,17 +164,17 @@
           </div>
         </div>
         <button type="submit" class="btn" :disabled="loading">
-          {{ loading ? 'Searching...' : 'Search' }}
+          {{ loading ? t('search.searching') : t('common.search') }}
         </button>
       </form>
     </div>
 
-    <div v-if="loading" class="loading">Searching...</div>
+    <div v-if="loading" class="loading">{{ t('search.searching') }}</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else-if="searched">
-      <h2>Search Results ({{ results.length }})</h2>
+      <h2>{{ t('search.results') }} ({{ results.length }})</h2>
       <div v-if="results.length === 0" class="no-results">
-        No markmaps found matching your search criteria.
+        {{ t('search.noResults') }}
       </div>
       <div v-else class="markmap-grid">
         <NuxtLink 
@@ -194,9 +194,9 @@
             >
               {{ markmap.author.username }}
             </NuxtLink>
-            <span v-else>Anonymous</span>
+            <span v-else>{{ t('common.anonymous') }}</span>
             <span v-if="markmap.series">
-              • Series: 
+              • {{ t('common.series') }}: 
               <NuxtLink 
                 :to="`/series/${markmap.author.username}/${markmap.series.slug}`"
                 class="series-link"
@@ -207,7 +207,7 @@
             </span>
             • {{ new Date(markmap.createdAt).toLocaleDateString() }}
             <span v-if="markmap._count?.viewHistory">
-               • {{ markmap._count.viewHistory }} views
+               • {{ markmap._count.viewHistory }} {{ t('common.views') }}
             </span>
           </p>
           <div class="tags">

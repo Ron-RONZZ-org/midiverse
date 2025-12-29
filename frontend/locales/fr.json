@@ -233,6 +233,18 @@
     "deleteApiKeyConfirm": "Êtes-vous sûr de vouloir supprimer cette clé API?",
     "important": "Important",
     "copyApiKey": "Copiez cette clé API maintenant - vous ne pourrez plus la voir!",
-    "description": "Description"
+    "description": "Description",
+    "changePassword": "Changer le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le nouveau mot de passe",
+    "changing": "Changement...",
+    "changePasswordButton": "Changer le mot de passe",
+    "enterCurrentPassword": "Entrez le mot de passe actuel",
+    "enterNewPassword": "Entrez un nouveau mot de passe (min 6 caractères)",
+    "confirmNewPassword": "Confirmez le nouveau mot de passe",
+    "apiKeysDescription": "Les clés API vous permettent d'accéder à l'API Midiverse de manière programmatique. Créez des clés avec différentes permissions selon vos besoins.",
+    "keyName": "Nom de la clé",
+    "enterKeyName": "Entrez un nom pour cette clé API"
   }
 }

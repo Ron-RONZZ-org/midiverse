@@ -233,6 +233,18 @@
     "deleteApiKeyConfirm": "Ĉu vi certas, ke vi volas forigi ĉi tiun API ŝlosilon?",
     "important": "Grava",
     "copyApiKey": "Kopiu ĉi tiun API ŝlosilon nun - vi ne povos vidi ĝin denove!",
-    "description": "Priskribo"
+    "description": "Priskribo",
+    "changePassword": "Ŝanĝi pasvorton",
+    "currentPassword": "Nuna pasvorto",
+    "newPassword": "Nova pasvorto",
+    "confirmPassword": "Konfirmi novan pasvorton",
+    "changing": "Ŝanĝante...",
+    "changePasswordButton": "Ŝanĝi pasvorton",
+    "enterCurrentPassword": "Enigu nunan pasvorton",
+    "enterNewPassword": "Enigu novan pasvorton (min 6 signoj)",
+    "confirmNewPassword": "Konfirmu novan pasvorton",
+    "apiKeysDescription": "API ŝlosiloj permesas al vi aliri la Midiverse API programare. Kreu ŝlosilojn kun malsamaj permesoj laŭ viaj bezonoj.",
+    "keyName": "Ŝlosila nomo",
+    "enterKeyName": "Enigu nomon por ĉi tiu API ŝlosilo"
   }
 }

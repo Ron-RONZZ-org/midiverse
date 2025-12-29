@@ -233,6 +233,18 @@
     "deleteApiKeyConfirm": "Are you sure you want to delete this API key?",
     "important": "Important",
     "copyApiKey": "Copy this API key now - you won't be able to see it again!",
-    "description": "Description"
+    "description": "Description",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "changing": "Changing...",
+    "changePasswordButton": "Change Password",
+    "enterCurrentPassword": "Enter current password",
+    "enterNewPassword": "Enter new password (min 6 characters)",
+    "confirmNewPassword": "Confirm new password",
+    "apiKeysDescription": "API keys allow you to access the Midiverse API programmatically. Create keys with different permissions based on your needs.",
+    "keyName": "Key Name",
+    "enterKeyName": "Enter a name for this API key"
   }
 }

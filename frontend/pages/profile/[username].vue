@@ -257,11 +257,11 @@
     <!-- User Preferences Modal -->
     <div v-if="showPreferencesModal" class="modal-overlay" @click.self="showPreferencesModal = false">
       <div class="modal">
-        <h2>User Preferences</h2>
+        <h2>{{ t('profile.userPreferences') }}</h2>
         <div v-if="preferencesError" class="error">{{ preferencesError }}</div>
         <form @submit.prevent="updatePreferences">
           <div class="form-group">
-            <h3>Display</h3>
+            <h3>{{ t('profile.displayPreferences') }}</h3>
             <label class="checkbox-label">
               <input 
                 type="checkbox" 
@@ -272,7 +272,7 @@
           </div>
           
           <div class="form-group">
-            <h3>Language</h3>
+            <h3>{{ t('profile.language') }}</h3>
             <select v-model="preferencesForm.language" class="form-control">
               <option value="en">English</option>
             </select>
@@ -280,7 +280,7 @@
           </div>
 
           <div class="form-group">
-            <h3>Privacy</h3>
+            <h3>{{ t('profile.privacyPreferences') }}</h3>
             <label class="checkbox-label">
               <input 
                 type="checkbox" 
@@ -308,13 +308,13 @@
                 type="checkbox" 
                 v-model="preferencesForm.emailVisible"
               />
-              Email Address Public Visibility
+              {{ t('profile.emailVisibility') }}
             </label>
             <small class="form-text">When disabled, your email is hidden from other users</small>
           </div>
 
           <div class="form-group">
-            <h3>Email Notifications</h3>
+            <h3>{{ t('profile.emailNotifications') }}</h3>
             <div class="email-pref-item">
               <label for="emailEssentialNotifications" class="checkbox-label checkbox-disabled">
                 <input 
@@ -452,41 +452,41 @@
 
         <hr class="settings-divider" />
 
-        <h3>Change Password</h3>
+        <h3>{{ t('profile.changePassword') }}</h3>
         <div v-if="passwordError" class="error">{{ passwordError }}</div>
         <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
         <form @submit.prevent="changePassword">
           <div class="form-group">
-            <label for="currentPassword">Current Password</label>
+            <label for="currentPassword">{{ t('profile.currentPassword') }}</label>
             <input 
               id="currentPassword" 
               v-model="passwordForm.currentPassword" 
               type="password" 
               class="form-control"
-              placeholder="Enter current password"
+              :placeholder="t('profile.enterCurrentPassword')"
               required
             />
           </div>
           <div class="form-group">
-            <label for="newPassword">New Password</label>
+            <label for="newPassword">{{ t('profile.newPassword') }}</label>
             <input 
               id="newPassword" 
               v-model="passwordForm.newPassword" 
               type="password" 
               class="form-control"
-              placeholder="Enter new password (min 6 characters)"
+              :placeholder="t('profile.enterNewPassword')"
               minlength="6"
               required
             />
           </div>
           <div class="form-group">
-            <label for="confirmPassword">Confirm New Password</label>
+            <label for="confirmPassword">{{ t('profile.confirmPassword') }}</label>
             <input 
               id="confirmPassword" 
               v-model="passwordForm.confirmPassword" 
               type="password" 
               class="form-control"
-              placeholder="Confirm new password"
+              :placeholder="t('profile.confirmNewPassword')"
               minlength="6"
               required
             />
@@ -494,16 +494,16 @@
 
           <div class="modal-actions">
             <button type="submit" class="btn" :disabled="passwordLoading">
-              {{ passwordLoading ? 'Changing...' : 'Change Password' }}
+              {{ passwordLoading ? t('profile.changing') : t('profile.changePasswordButton') }}
             </button>
           </div>
         </form>
 
         <hr class="settings-divider" />
 
-        <h3>API Keys</h3>
+        <h3>{{ t('profile.apiKeys') }}</h3>
         <p class="api-keys-description">
-          API keys allow you to access the Midiverse API programmatically. Create keys with different permissions based on your needs.
+          {{ t('profile.apiKeysDescription') }}
         </p>
         
         <div v-if="apiKeysError" class="error">{{ apiKeysError }}</div>
@@ -512,12 +512,13 @@
         <!-- Create API Key Form -->
         <form @submit.prevent="createApiKey" class="api-key-create-form">
           <div class="form-group">
-            <label for="apiKeyName">Key Name</label>
+            <label for="apiKeyName">{{ t('profile.keyName') }}</label>
             <input 
               id="apiKeyName" 
               v-model="apiKeyForm.name" 
               type="text" 
               class="form-control"
+              :placeholder="t('profile.enterKeyName')"
               placeholder="e.g., Production App, Testing Script"
               required
             />

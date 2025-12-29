@@ -14,9 +14,9 @@
           <div class="profile-info">
             <div class="profile-name-row">
               <h1>{{ profile.displayName || profile.username }}</h1>
-              <span v-if="profile.role === 'administrator'" class="role-badge role-admin">Administrator</span>
-              <span v-else-if="profile.role === 'content_manager'" class="role-badge role-content-manager">Content Manager</span>
-              <span v-else-if="profile.role === 'user'" class="role-badge role-user">User</span>
+              <span v-if="profile.role === 'administrator'" class="role-badge role-admin">{{ t('profile.administrator') }}</span>
+              <span v-else-if="profile.role === 'content_manager'" class="role-badge role-content-manager">{{ t('profile.contentManager') }}</span>
+              <span v-else-if="profile.role === 'user'" class="role-badge role-user">{{ t('profile.user') }}</span>
             </div>
             <p class="username">@{{ profile.username }}</p>
             <p v-if="profile.description" class="description">{{ profile.description }}</p>
@@ -30,15 +30,15 @@
         <div class="stats">
           <div class="stat">
             <strong>{{ profile._count.markmaps }}</strong>
-            <span>Markmaps</span>
+            <span>{{ t('profile.markmaps') }}</span>
           </div>
           <div class="stat">
             <strong>{{ profile._count.viewHistory }}</strong>
-            <span>Views</span>
+            <span>{{ t('profile.views') }}</span>
           </div>
           <div class="stat">
             <strong>{{ profile._count.interactions }}</strong>
-            <span>Interactions</span>
+            <span>{{ t('profile.interactions') }}</span>
           </div>
         </div>
 
@@ -56,15 +56,15 @@
         <div v-if="profile.isOwnProfile && markmaps.length > 0" class="markmap-controls card">
           <div class="control-row">
             <div class="control-group">
-              <label>Visibility</label>
+              <label>{{ t('profile.visibility') }}</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input type="checkbox" v-model="visibilityFilters.published" @change="applyFilters" />
-                  Published
+                  {{ t('profile.public') }}
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" v-model="visibilityFilters.private" @change="applyFilters" />
-                  Private
+                  {{ t('profile.private') }}
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" v-model="visibilityFilters.actionRequired" @change="applyFilters" />
@@ -84,12 +84,12 @@
             </div>
             
             <div class="control-group search-group">
-              <label>Search</label>
+              <label>{{ t('common.search') }}</label>
               <input 
                 type="text" 
                 v-model="markmapSearch" 
                 @input="applyFilters" 
-                placeholder="Search your markmaps..." 
+                :placeholder="t('profile.searchPlaceholder')" 
                 class="form-control"
               />
             </div>
@@ -407,12 +407,12 @@
    <!-- account settings modal-->
         <div v-if="showSettingsModal" class="modal-overlay" @click.self="showSettingsModal = false">
       <div class="modal">
-        <h2>Account settings</h2>
+        <h2>{{ t('profile.accountSettings') }}</h2>
         <div v-if="settingsError" class="error">{{ settingsError }}</div>
         <div v-if="settingsSuccess" class="success-message">{{ settingsSuccess }}</div>
         <form @submit.prevent="updateSettings">
           <div class="form-group">
-            <label for="email">Email</label>
+            <label for="email">{{ t('profile.email') }}</label>
             <input 
               id="email" 
               v-model="settingsForm.email" 
@@ -421,15 +421,15 @@
               :placeholder="profile.email"
             />
             <small v-if="profile.pendingEmail" class="form-text pending-email">
-              ⏳ Pending verification: {{ profile.pendingEmail }}
-              <button type="button" @click="cancelPendingEmail" class="btn-link">Cancel</button>
+              ⏳ {{ t('profile.pendingVerification') }}: {{ profile.pendingEmail }}
+              <button type="button" @click="cancelPendingEmail" class="btn-link">{{ t('common.cancel') }}</button>
             </small>
             <small v-else-if="profile.lastEmailChange" class="form-text">
-              Last changed: {{ new Date(profile.lastEmailChange).toLocaleDateString() }}
+              {{ t('profile.lastChanged') }}: {{ new Date(profile.lastEmailChange).toLocaleDateString() }}
             </small>
           </div>
           <div class="form-group">
-            <label for="username">Username</label>
+            <label for="username">{{ t('profile.username') }}</label>
             <input 
               id="username" 
               v-model="settingsForm.username" 
@@ -438,14 +438,14 @@
               :placeholder="profile.username"
             />
             <small v-if="profile.lastUsernameChange" class="form-text">
-              Last changed: {{ new Date(profile.lastUsernameChange).toLocaleDateString() }}
+              {{ t('profile.lastChanged') }}: {{ new Date(profile.lastUsernameChange).toLocaleDateString() }}
             </small>
           </div>
 
           <div class="modal-actions">
-            <button type="button" @click="showSettingsModal = false" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="showSettingsModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button type="submit" class="btn" :disabled="settingsLoading">
-              {{ settingsLoading ? 'Saving...' : 'Save settings' }}
+              {{ settingsLoading ? t('profile.saving') : t('profile.saveSettings') }}
             </button>
           </div>
         </form>

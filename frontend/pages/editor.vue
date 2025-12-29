@@ -377,6 +377,7 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n()
 const route = useRoute()
 const { authFetch } = useApi()
 const { isAuthenticated, currentUser } = useAuth()

@@ -221,6 +221,7 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n()
 const { authFetch } = useApi()
 
 const searchForm = ref({

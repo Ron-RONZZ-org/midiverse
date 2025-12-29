@@ -519,7 +519,6 @@
               type="text" 
               class="form-control"
               :placeholder="t('profile.enterKeyName')"
-              placeholder="e.g., Production App, Testing Script"
               required
             />
             <small class="form-text">A descriptive name to help you identify this key</small>

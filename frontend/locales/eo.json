@@ -161,6 +161,32 @@
     "creating": "Kreante...",
     "createFailed": "Malsukcesis krei keynode",
     "suggestions": "Keynode-sugestoj por",
-    "nodes": "nodoj"
+    "nodes": "nodoj",
+    "keynodes": "Keynodoj"
+  },
+  "import": {
+    "title": "Importi Markmapojn",
+    "description": "Alŝutu HTML aŭ Markdown dosierojn por importi kiel markmapojn.",
+    "descriptionDetail": "HTML dosieroj konservos metadatenojn, dum Markdown dosieroj uzos la unuan linion kiel titolon.",
+    "selectFiles": "Elekti dosierojn",
+    "selectedFiles": "Elektitaj dosieroj:",
+    "importing": "Importante...",
+    "button": "Importi",
+    "noFilesSelected": "Bonvolu elekti almenaŭ unu dosieron",
+    "failedToImport": "Malsukcesis importi dosierojn",
+    "singleSuccess": "Dosiero importita sukcese kiel privata! Alidirektante al redaktilo...",
+    "singleError": "Malsukcesis importi {filename}: {error}",
+    "allFailed": "Ĉiuj {count} dosieroj malsukcesis importi:",
+    "partialSuccess": "Importis {success} el {total} dosieroj kiel privataj. {failed} malsukcesis.",
+    "viewInProfile": "Por vidi viajn importitajn markmapojn, vizitu vian profilpaĝon kaj ŝaltu la videblecan filtrilon al \"Privata\".",
+    "multipleSuccess": "Sukcese importis {count} dosierojn kiel privatajn!",
+    "failedFiles": "Malsukcesintaj dosieroj:"
+  },
+  "footer": {
+    "copyright": "© 2025 La Ron Kompanio. GNU Affero Ĝenerala Publika Permesilo 3.0.",
+    "madeWith": "Farita por la mondo kun amo el 🇫🇷"
+  },
+  "contentManagement": {
+    "title": "Enhavo"
   }
 }

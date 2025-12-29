@@ -125,86 +125,120 @@ export class MarkmapsService {
   async create(createMarkmapDto: CreateMarkmapDto, userId?: string) {
     const { tags, keynodes, ...markmapData } = createMarkmapDto;
 
-    // Generate unique slug
-    const slug = await this.generateUniqueSlug(markmapData.title, userId);
+    // Retry logic for handling unique constraint violations
+    const maxRetries = 5;
+    let attempt = 0;
+    let lastError: Error | null = null;
 
-    const markmap = await this.prisma.markmap.create({
-      data: {
-        ...markmapData,
-        slug,
-        authorId: userId,
-        tags: tags
-          ? {
-              create: await Promise.all(
-                tags.map(async (tagName) => {
-                  // Ensure tag starts with #
-                  const normalizedName = tagName.startsWith('#')
-                    ? tagName
-                    : `#${tagName}`;
+    while (attempt < maxRetries) {
+      try {
+        // Generate unique slug (may need to regenerate on retry)
+        const slug = await this.generateUniqueSlug(markmapData.title, userId);
 
-                  // Find or create tag
-                  const tag = await this.prisma.tag.upsert({
-                    where: { name: normalizedName },
-                    update: {},
-                    create: { name: normalizedName },
-                  });
+        const markmap = await this.prisma.markmap.create({
+          data: {
+            ...markmapData,
+            slug,
+            authorId: userId,
+            tags: tags
+              ? {
+                  create: await Promise.all(
+                    tags.map(async (tagName) => {
+                      // Ensure tag starts with #
+                      const normalizedName = tagName.startsWith('#')
+                        ? tagName
+                        : `#${tagName}`;
 
-                  return {
-                    tag: {
-                      connect: { id: tag.id },
-                    },
-                  };
-                }),
-              ),
-            }
-          : undefined,
-        keynodes: keynodes
-          ? {
-              create: await Promise.all(
-                keynodes.map(async (keynode) => {
-                  // Find keynode by name
-                  const keynodeEntity =
-                    await this.keynodesService.findByName(keynode);
+                      // Find or create tag
+                      const tag = await this.prisma.tag.upsert({
+                        where: { name: normalizedName },
+                        update: {},
+                        create: { name: normalizedName },
+                      });
 
-                  if (keynodeEntity) {
-                    // Increment child node count
-                    await this.keynodesService.updateChildNodeCount(
-                      keynodeEntity.id,
-                      1,
-                    );
+                      return {
+                        tag: {
+                          connect: { id: tag.id },
+                        },
+                      };
+                    }),
+                  ),
+                }
+              : undefined,
+            keynodes: keynodes
+              ? {
+                  create: await Promise.all(
+                    keynodes.map(async (keynode) => {
+                      // Find keynode by name
+                      const keynodeEntity =
+                        await this.keynodesService.findByName(keynode);
 
-                    return {
-                      keynode: {
-                        connect: { id: keynodeEntity.id },
-                      },
-                    };
-                  }
+                      if (keynodeEntity) {
+                        // Increment child node count
+                        await this.keynodesService.updateChildNodeCount(
+                          keynodeEntity.id,
+                          1,
+                        );
 
-                  // If keynode doesn't exist, skip it (should be created via editor first)
-                  return null;
-                }),
-              ).then((results) => results.filter((r) => r !== null)),
-            }
-          : undefined,
-      },
-      include: {
-        author: {
-          select: { id: true, username: true },
-        },
-        tags: {
-          include: {
-            tag: true,
+                        return {
+                          keynode: {
+                            connect: { id: keynodeEntity.id },
+                          },
+                        };
+                      }
+
+                      // If keynode doesn't exist, skip it (should be created via editor first)
+                      return null;
+                    }),
+                  ).then((results) => results.filter((r) => r !== null)),
+                }
+              : undefined,
           },
-        },
-        keynodes: {
           include: {
-            keynode: true,
+            author: {
+              select: { id: true, username: true },
+            },
+            tags: {
+              include: {
+                tag: true,
+              },
+            },
+            keynodes: {
+              include: {
+                keynode: true,
+              },
+            },
           },
-        },
-      },
-    });
+        });
 
-    return markmap;
+        return markmap;
+      } catch (error: any) {
+        // Check if it's a unique constraint error on (authorId, slug)
+        if (error?.code === 'P2002' && error?.meta?.target?.includes('slug')) {
+          attempt++;
+          lastError = error as Error;
+          // Exponential backoff with jitter to reduce race conditions and thundering herd
+          const baseDelay = 100;
+          const maxDelay = 1000;
+          const exponentialDelay = Math.min(
+            maxDelay,
+            baseDelay * Math.pow(2, attempt - 1),
+          );
+          const jitter = Math.random() * baseDelay;
+          await new Promise((resolve) =>
+            setTimeout(resolve, exponentialDelay + jitter),
+          );
+          continue; // Retry with a new slug
+        }
+        // For other errors, throw immediately
+        throw error;
+      }
+    }
+
+    // If we exhausted all retries, throw the last error
+    throw new Error(
+      `Failed to create markmap after ${maxRetries} attempts due to slug conflicts: ${lastError?.message}`,
+    );
   }
 
   async findAll(userId?: string) {

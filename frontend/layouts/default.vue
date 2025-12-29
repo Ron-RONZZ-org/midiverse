@@ -18,17 +18,17 @@
           <NuxtLink to="/markmaps" @click="closeMobileMenu">{{ t('nav.explore') }}</NuxtLink>
           <NuxtLink to="/search" @click="closeMobileMenu">{{ t('nav.search') }}</NuxtLink>
           <NuxtLink to="/tags" @click="closeMobileMenu">{{ t('nav.tags') }}</NuxtLink>
-          <NuxtLink to="/keynode" @click="closeMobileMenu">Keynodes</NuxtLink>
+          <NuxtLink to="/keynode" @click="closeMobileMenu">{{ t('keynode.keynodes') }}</NuxtLink>
           <ClientOnly>
             <LanguageSwitcher />
             <template v-if="isAuthenticated">
               <NuxtLink to="/editor" @click="closeMobileMenu">{{ t('nav.editor') }}</NuxtLink>
-              <button @click="showImportModal = true; closeMobileMenu()" class="btn btn-info">{{ t('nav.import') || 'Import' }}</button>
+              <button @click="showImportModal = true; closeMobileMenu()" class="btn btn-info">{{ t('nav.import') }}</button>
               <NuxtLink to="/notifications" class="btn btn-notification" @click="closeMobileMenu">
                 🔔
                 <span v-if="notificationCount > 0" class="notification-badge">{{ notificationCount > 9 ? '9+' : notificationCount }}</span>
               </NuxtLink>
-              <NuxtLink v-if="isContentManager" to="/content-management" class="btn btn-purple" @click="closeMobileMenu">Content</NuxtLink>
+              <NuxtLink v-if="isContentManager" to="/content-management" class="btn btn-purple" @click="closeMobileMenu">{{ t('contentManagement.title') }}</NuxtLink>
               <NuxtLink v-if="isAdministrator" to="/admin" class="btn btn-admin" @click="closeMobileMenu">{{ t('nav.admin') }}</NuxtLink>
               <NuxtLink :to="dashboardUrl" class="btn" @click="closeMobileMenu">{{ t('nav.profile') }}</NuxtLink>
               <button @click="handleLogout" class="btn btn-secondary">{{ t('common.logout') }}</button>
@@ -48,17 +48,17 @@
     <!-- Import Modal -->
     <div v-if="showImportModal" class="modal-overlay" @click.self="showImportModal = false">
       <div class="modal">
-        <h2>Import Markmaps</h2>
+        <h2>{{ t('import.title') }}</h2>
         <p class="modal-description">
-          Upload HTML or Markdown files to import as markmaps.
-          HTML files will preserve metadata, while Markdown files will use the first line as the title.
+          {{ t('import.description') }}
+          {{ t('import.descriptionDetail') }}
         </p>
         
         <div v-if="importError" class="error">{{ importError }}</div>
         <div v-if="importSuccess" class="success">{{ importSuccess }}</div>
         
         <div class="form-group">
-          <label for="import-files">Select Files</label>
+          <label for="import-files">{{ t('import.selectFiles') }}</label>
           <input 
             id="import-files" 
             ref="fileInput"
@@ -69,7 +69,7 @@
             class="file-input"
           />
           <div v-if="selectedFiles.length > 0" class="selected-files">
-            <p><strong>Selected files:</strong></p>
+            <p><strong>{{ t('import.selectedFiles') }}</strong></p>
             <ul>
               <li v-for="file in selectedFiles" :key="file.name">{{ file.name }} ({{ formatFileSize(file.size) }})</li>
             </ul>
@@ -77,14 +77,14 @@
         </div>
         
         <div class="modal-actions">
-          <button type="button" @click="showImportModal = false" class="btn btn-secondary">Cancel</button>
+          <button type="button" @click="showImportModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
           <button 
             type="button" 
             @click="handleImport" 
             class="btn" 
             :disabled="importLoading || selectedFiles.length === 0"
           >
-            {{ importLoading ? 'Importing...' : 'Import' }}
+            {{ importLoading ? t('import.importing') : t('import.button') }}
           </button>
         </div>
       </div>
@@ -92,8 +92,8 @@
     
     <footer class="footer">
       <div class="container">
-        <p>&copy; 2025 The Ron Company. GNU Affero General Public License 3.0 .</p>
-        <p>Made for the world with love from 🇫🇷</p>
+        <p>{{ t('footer.copyright') }}</p>
+        <p>{{ t('footer.madeWith') }}</p>
       </div>
     </footer>
   </div>
@@ -197,7 +197,7 @@ const formatFileSize = (bytes: number): string => {
 
 const handleImport = async () => {
   if (selectedFiles.value.length === 0) {
-    importError.value = 'Please select at least one file'
+    importError.value = t('import.noFilesSelected')
     return
   }
 
@@ -218,7 +218,7 @@ const handleImport = async () => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      importError.value = errorData.message || 'Failed to import files'
+      importError.value = errorData.message || t('import.failedToImport')
       return
     }
 
@@ -226,14 +226,17 @@ const handleImport = async () => {
 
     if (result.count === 1 && result.imported.length === 1 && !result.imported[0].error) {
       // Single file import - redirect to editor
-      importSuccess.value = 'File imported successfully as private! Redirecting to editor...'
+      importSuccess.value = t('import.singleSuccess')
       setTimeout(() => {
         navigateTo(`/editor?id=${result.imported[0].id}`)
         showImportModal.value = false
       }, 1500)
     } else if (result.count === 0 && result.imported.length === 1 && result.imported[0].error) {
       // Single file import with error - show specific error
-      importError.value = `Failed to import ${result.imported[0].filename}: ${result.imported[0].error}`
+      importError.value = t('import.singleError', { 
+        filename: result.imported[0].filename, 
+        error: result.imported[0].error 
+      })
     } else {
       // Multiple files or mixed results - show detailed results
       const successCount = result.count
@@ -247,15 +250,15 @@ const handleImport = async () => {
           .join('\n');
         
         if (successCount === 0) {
-          importError.value = `All ${errorCount} files failed to import:\n${failedFiles}`
+          importError.value = `${t('import.allFailed', { count: errorCount })}\n${failedFiles}`
         } else {
-          importSuccess.value = `Imported ${successCount} of ${result.total} files as private. ${errorCount} failed.\n\nTo view your imported markmaps, visit your profile page and toggle the visibility filter to "Private".`
+          importSuccess.value = `${t('import.partialSuccess', { success: successCount, total: result.total, failed: errorCount })}\n\n${t('import.viewInProfile')}`
           if (failedFiles) {
-            importError.value = `Failed files:\n${failedFiles}`
+            importError.value = `${t('import.failedFiles')}\n${failedFiles}`
           }
         }
       } else {
-        importSuccess.value = `Successfully imported ${successCount} files as private!\n\nTo view your imported markmaps, visit your profile page and toggle the visibility filter to "Private".`
+        importSuccess.value = `${t('import.multipleSuccess', { count: successCount })}\n\n${t('import.viewInProfile')}`
       }
       
       // Only redirect if at least one file was successfully imported
@@ -267,7 +270,7 @@ const handleImport = async () => {
       }
     }
   } catch (err: any) {
-    importError.value = err.message || 'Failed to import files'
+    importError.value = err.message || t('import.failedToImport')
   } finally {
     importLoading.value = false
   }

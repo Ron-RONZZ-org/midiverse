@@ -122,11 +122,9 @@ export class MarkmapsService {
       }
     });
 
-    // On retry, add the retry attempt to ensure uniqueness
+    // On retry or if conflicts exist, add the appropriate counter to ensure uniqueness
     const nextCounter = Math.max(maxCounter + 1, retryAttempt + 1);
-    return maxCounter === 0 && retryAttempt === 0
-      ? `${baseSlug}-1`
-      : `${baseSlug}-${nextCounter}`;
+    return `${baseSlug}-${nextCounter}`;
   }
 
   async create(createMarkmapDto: CreateMarkmapDto, userId?: string) {

@@ -245,6 +245,24 @@
     "confirmNewPassword": "Confirmez le nouveau mot de passe",
     "apiKeysDescription": "Les clés API vous permettent d'accéder à l'API Midiverse de manière programmatique. Créez des clés avec différentes permissions selon vos besoins.",
     "keyName": "Nom de la clé",
-    "enterKeyName": "Entrez un nom pour cette clé API"
+    "enterKeyName": "Entrez un nom pour cette clé API",
+    "actionRequired": "Action requise",
+    "published": "Publié",
+    "sortBy": "Trier par",
+    "creationDateNewest": "Date de création (Plus récent)",
+    "creationDateOldest": "Date de création (Plus ancien)",
+    "titleAZ": "Titre (A-Z)",
+    "titleZA": "Titre (Z-A)",
+    "pendingReview": "En attente de révision",
+    "editProfile": "Modifier le profil",
+    "darkTheme": "Thème sombre",
+    "profilePageVisibility": "Visibilité publique de la page de profil",
+    "profilePictureVisibility": "Visibilité publique de la photo de profil",
+    "profilePictureUrl": "URL de la photo de profil",
+    "profileBackgroundColor": "Couleur d'arrière-plan de la photo de profil (facultatif)",
+    "moreLanguages": "Plus de langues bientôt disponibles",
+    "permissionLevel": "Niveau de permission",
+    "readOnlyDesc": "Lecture seule (récupérer/rechercher des markmaps)",
+    "fullAccessDesc": "Accès complet (créer/modifier/supprimer des markmaps)"
   }
 }

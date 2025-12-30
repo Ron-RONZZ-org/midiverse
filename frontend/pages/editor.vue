@@ -253,7 +253,7 @@
       </div>
 
       <div class="preview-panel card">
-        <h2>Preview</h2>
+        <h2>{{ t('editor.preview') }}</h2>
         <div class="preview-container">
           <ClientOnly>
             <MarkmapViewer 
@@ -315,7 +315,7 @@
         <div v-if="keynodeError" class="error">{{ keynodeError }}</div>
         <form @submit.prevent="createKeynode">
           <div class="form-group">
-            <label for="keynode-name">Name</label>
+            <label for="keynode-name">{{ t('keynode.name') }}</label>
             <input 
               id="keynode-name" 
               v-model="newKeynode.name" 
@@ -326,17 +326,17 @@
             />
           </div>
           <div class="form-group">
-            <label for="keynode-category">Category</label>
+            <label for="keynode-category">{{ t('keynode.category') }}</label>
             <select id="keynode-category" v-model="newKeynode.category" required>
               <option value="">Select a category</option>
-              <option value="person">Person</option>
+              <option value="person">{{ t('keynode.categoryPerson') }}</option>
               <option value="fictional_character">Fictional Character</option>
               <option value="geographical_location">Geographical Location</option>
               <option value="date_time">Date/Time</option>
               <option value="historical_event">Historical Event</option>
               <option value="biological_species">Biological Species</option>
               <option value="abstract_concept">Abstract Concept</option>
-              <option value="others">Others</option>
+              <option value="others">{{ t('keynode.categoryOthers') }}</option>
             </select>
           </div>
           <div class="form-group">

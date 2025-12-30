@@ -43,9 +43,9 @@
         </div>
 
         <div v-if="profile.isOwnProfile" class="actions">
-          <button @click="showEditModal = true" class="btn btn-secondary">Edit Profile</button>
-          <button @click="showPreferencesModal = true" class="btn btn-secondary">User Preferences</button>
-          <button @click="showSettingsModal = true" class="btn btn-secondary">Account Settings</button>
+          <button @click="showEditModal = true" class="btn btn-secondary">{{ t('profile.editProfile') }}</button>
+          <button @click="showPreferencesModal = true" class="btn btn-secondary">{{ t('profile.userPreferences') }}</button>
+          <button @click="showSettingsModal = true" class="btn btn-secondary">{{ t('profile.accountSettings') }}</button>
         </div>
       </div>
 
@@ -68,18 +68,18 @@
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" v-model="visibilityFilters.actionRequired" @change="applyFilters" />
-                  Action Required
+                  {{ t('profile.actionRequired') }}
                 </label>
               </div>
             </div>
             
             <div class="control-group">
-              <label>Sort By</label>
+              <label>{{ t('profile.sortBy') }}</label>
               <select v-model="sortBy" @change="applyFilters" class="form-control">
-                <option value="created-desc">Creation Date (Newest)</option>
-                <option value="created-asc">Creation Date (Oldest)</option>
-                <option value="title-asc">Title (A-Z)</option>
-                <option value="title-desc">Title (Z-A)</option>
+                <option value="created-desc">{{ t('profile.creationDateNewest') }}</option>
+                <option value="created-asc">{{ t('profile.creationDateOldest') }}</option>
+                <option value="title-asc">{{ t('profile.titleAZ') }}</option>
+                <option value="title-desc">{{ t('profile.titleZA') }}</option>
               </select>
             </div>
             
@@ -123,19 +123,19 @@
                 <!-- Status tags for own profile -->
                 <div v-if="profile.isOwnProfile" class="status-tags">
                   <span v-if="markmap.isRetired && markmap.reviewStatus === 'action_required'" class="status-tag status-action-required">
-                    Action Required
+                    {{ t('profile.actionRequired') }}
                   </span>
                   <span v-else-if="markmap.isRetired && markmap.reviewStatus === 'pending_review'" class="status-tag status-pending">
-                    Pending Review
+                    {{ t('profile.pendingReview') }}
                   </span>
                   <span v-else-if="markmap.isPublic && !markmap.isRetired" class="status-tag status-published">
-                    Published
+                    {{ t('profile.published') }}
                   </span>
                 </div>
               </div>
               <p class="meta">
                 {{ new Date(markmap.createdAt).toLocaleDateString() }}
-                {{ markmap.isPublic ? '• Public' : '• Private' }}
+                {{ markmap.isPublic ? '• ' + t('profile.public') : '• ' + t('profile.private') }}
               </p>
               <div class="tags">
                 <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
@@ -189,7 +189,7 @@
     <!-- Edit Profile Modal -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
       <div class="modal">
-        <h2>Edit Profile</h2>
+        <h2>{{ t('profile.editProfile') }}</h2>
         <div v-if="editError" class="error">{{ editError }}</div>
         <form @submit.prevent="updateProfile">
           <div class="form-group">
@@ -213,7 +213,7 @@
             ></textarea>
           </div>
           <div class="form-group">
-            <label for="profilePictureUrl">Profile Picture URL</label>
+            <label for="profilePictureUrl">{{ t('profile.profilePictureUrl') }}</label>
             <input 
               id="profilePictureUrl" 
               v-model="editForm.profilePictureUrl" 
@@ -223,7 +223,7 @@
             />
           </div>
           <div class="form-group">
-            <label for="profileBackgroundColor">Profile Picture Background Color (optional)</label>
+            <label for="profileBackgroundColor">{{ t('profile.profileBackgroundColor') }}</label>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <input 
                 id="profileBackgroundColor" 
@@ -267,7 +267,7 @@
                 type="checkbox" 
                 v-model="preferencesForm.darkTheme"
               />
-              Dark Theme
+              {{ t('profile.darkTheme') }}
             </label>
           </div>
           
@@ -276,7 +276,7 @@
             <select v-model="preferencesForm.language" class="form-control">
               <option value="en">English</option>
             </select>
-            <small class="form-text">More languages coming soon</small>
+            <small class="form-text">{{ t('profile.moreLanguages') }}</small>
           </div>
 
           <div class="form-group">
@@ -286,7 +286,7 @@
                 type="checkbox" 
                 v-model="preferencesForm.profilePageVisible"
               />
-              Profile Page Public Visibility
+              {{ t('profile.profilePageVisibility') }}
             </label>
             <small class="form-text">When disabled, other users cannot view your profile page</small>
           </div>
@@ -297,7 +297,7 @@
                 type="checkbox" 
                 v-model="preferencesForm.profilePictureVisible"
               />
-              Profile Picture Public Visibility
+              {{ t('profile.profilePictureVisibility') }}
             </label>
             <small class="form-text">When disabled, your profile picture is hidden from other users</small>
           </div>
@@ -525,15 +525,15 @@
           </div>
           
           <div class="form-group">
-            <label for="apiKeyPermission">Permission Level</label>
+            <label for="apiKeyPermission">{{ t('profile.permissionLevel') }}</label>
             <select 
               id="apiKeyPermission" 
               v-model="apiKeyForm.permission" 
               class="form-control"
               required
             >
-              <option value="read_only">Read Only (fetch/search markmaps)</option>
-              <option value="full_access">Full Access (create/edit/delete markmaps)</option>
+              <option value="read_only">{{ t('profile.readOnlyDesc') }}</option>
+              <option value="full_access">{{ t('profile.fullAccessDesc') }}</option>
             </select>
             <small class="form-text">Choose the access level for this API key</small>
           </div>
@@ -581,7 +581,7 @@
               </div>
               <div class="api-key-meta">
                 <span :class="['permission-badge', `permission-${key.permission}`]">
-                  {{ key.permission === 'read_only' ? 'Read Only' : 'Full Access' }}
+                  {{ key.permission === 'read_only' ? t('profile.readOnly') : t('profile.fullAccess') }}
                 </span>
                 <span class="api-key-date">
                   Created: {{ new Date(key.createdAt).toLocaleDateString() }}

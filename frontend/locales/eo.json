@@ -245,6 +245,24 @@
     "confirmNewPassword": "Konfirmu novan pasvorton",
     "apiKeysDescription": "API ŝlosiloj permesas al vi aliri la Midiverse API programare. Kreu ŝlosilojn kun malsamaj permesoj laŭ viaj bezonoj.",
     "keyName": "Ŝlosila nomo",
-    "enterKeyName": "Enigu nomon por ĉi tiu API ŝlosilo"
+    "enterKeyName": "Enigu nomon por ĉi tiu API ŝlosilo",
+    "actionRequired": "Ago bezonata",
+    "published": "Publikigita",
+    "sortBy": "Ordigi laŭ",
+    "creationDateNewest": "Dato de kreado (Plej nova)",
+    "creationDateOldest": "Dato de kreado (Plej malnova)",
+    "titleAZ": "Titolo (A-Z)",
+    "titleZA": "Titolo (Z-A)",
+    "pendingReview": "Atendanta revizion",
+    "editProfile": "Redakti profilon",
+    "darkTheme": "Malhela temo",
+    "profilePageVisibility": "Publika videbleco de profila paĝo",
+    "profilePictureVisibility": "Publika videbleco de profila bildo",
+    "profilePictureUrl": "URL de profila bildo",
+    "profileBackgroundColor": "Fona koloro de profila bildo (nedeviga)",
+    "moreLanguages": "Pli da lingvoj baldaŭ",
+    "permissionLevel": "Permesa nivelo",
+    "readOnlyDesc": "Nurlega (akiri/serĉi markmapojn)",
+    "fullAccessDesc": "Plena aliro (krei/redakti/forigi markmapojn)"
   }
 }

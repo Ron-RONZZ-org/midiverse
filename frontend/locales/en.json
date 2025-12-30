@@ -68,7 +68,8 @@
     "createSuccess": "Markmap created successfully!",
     "updateSuccess": "Markmap updated successfully!",
     "createFailed": "Failed to create markmap",
-    "updateFailed": "Failed to update markmap"
+    "updateFailed": "Failed to update markmap",
+    "categoryOthers": "Others"
   },
   "markmap": {
     "loading": "Loading markmap...",
@@ -203,7 +204,7 @@
     "private": "Private",
     "searchPlaceholder": "Search markmaps...",
     "noMarkmaps": "No markmaps found.",
-    "accountSettings": "Account settings",
+    "accountSettings": "Account Settings",
     "email": "Email",
     "username": "Username",
     "pendingVerification": "Pending verification",
@@ -245,6 +246,24 @@
     "confirmNewPassword": "Confirm new password",
     "apiKeysDescription": "API keys allow you to access the Midiverse API programmatically. Create keys with different permissions based on your needs.",
     "keyName": "Key Name",
-    "enterKeyName": "Enter a name for this API key"
+    "enterKeyName": "Enter a name for this API key",
+    "actionRequired": "Action Required",
+    "published": "Published",
+    "sortBy": "Sort By",
+    "creationDateNewest": "Creation Date (Newest)",
+    "creationDateOldest": "Creation Date (Oldest)",
+    "titleAZ": "Title (A-Z)",
+    "titleZA": "Title (Z-A)",
+    "pendingReview": "Pending Review",
+    "editProfile": "Edit Profile",
+    "darkTheme": "Dark Theme",
+    "profilePageVisibility": "Profile Page Public Visibility",
+    "profilePictureVisibility": "Profile Picture Public Visibility",
+    "profilePictureUrl": "Profile Picture URL",
+    "profileBackgroundColor": "Profile Picture Background Color (optional)",
+    "moreLanguages": "More languages coming soon",
+    "permissionLevel": "Permission Level",
+    "readOnlyDesc": "Read Only (fetch/search markmaps)",
+    "fullAccessDesc": "Full Access (create/edit/delete markmaps)"
   }
 }

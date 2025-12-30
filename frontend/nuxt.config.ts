@@ -22,7 +22,7 @@ export default defineNuxtConfig({
       { code: 'eo', name: 'Esperanto', file: 'eo.json' }
     ],
     lazy: true,
-    langDir: 'i18n/locales',
+    langDir: 'locales',
     defaultLocale: 'en',
     strategy: 'no_prefix',
     detectBrowserLanguage: {

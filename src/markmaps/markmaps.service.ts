@@ -82,10 +82,12 @@ export class MarkmapsService {
   /**
    * Generate a unique slug for a markmap
    * Adds a counter suffix if a slug already exists for the same author
+   * @param retryAttempt - Optional retry attempt number for handling race conditions
    */
   private async generateUniqueSlug(
     title: string,
     authorId?: string,
+    retryAttempt: number = 0,
   ): Promise<string> {
     const baseSlug = this.generateSlugFromTitle(title);
 
@@ -101,14 +103,16 @@ export class MarkmapsService {
       select: { slug: true },
     });
 
-    // If no existing slugs, use the base slug
-    if (existingSlugs.length === 0) {
+    // If no existing slugs and no retry, use the base slug
+    if (existingSlugs.length === 0 && retryAttempt === 0) {
       return baseSlug;
     }
 
     // Find the highest counter
     let maxCounter = 0;
-    const slugPattern = new RegExp(`^${baseSlug}(?:-(\\d+))?$`);
+    // Escape special regex characters in baseSlug for safe pattern matching
+    const escapedSlug = baseSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const slugPattern = new RegExp(`^${escapedSlug}(?:-(\\d+))?$`);
 
     existingSlugs.forEach(({ slug }) => {
       const match = slug.match(slugPattern);
@@ -118,8 +122,9 @@ export class MarkmapsService {
       }
     });
 
-    // Return slug with next counter
-    return maxCounter === 0 ? `${baseSlug}-1` : `${baseSlug}-${maxCounter + 1}`;
+    // On retry or if conflicts exist, add the appropriate counter to ensure uniqueness
+    const nextCounter = Math.max(maxCounter + 1, retryAttempt + 1);
+    return `${baseSlug}-${nextCounter}`;
   }
 
   async create(createMarkmapDto: CreateMarkmapDto, userId?: string) {
@@ -132,8 +137,12 @@ export class MarkmapsService {
 
     while (attempt < maxRetries) {
       try {
-        // Generate unique slug (may need to regenerate on retry)
-        const slug = await this.generateUniqueSlug(markmapData.title, userId);
+        // Generate unique slug (may need to regenerate on retry with attempt counter)
+        const slug = await this.generateUniqueSlug(
+          markmapData.title,
+          userId,
+          attempt,
+        );
 
         const markmap = await this.prisma.markmap.create({
           data: {

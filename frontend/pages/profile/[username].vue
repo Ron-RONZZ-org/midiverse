@@ -14,9 +14,9 @@
           <div class="profile-info">
             <div class="profile-name-row">
               <h1>{{ profile.displayName || profile.username }}</h1>
-              <span v-if="profile.role === 'administrator'" class="role-badge role-admin">Administrator</span>
-              <span v-else-if="profile.role === 'content_manager'" class="role-badge role-content-manager">Content Manager</span>
-              <span v-else-if="profile.role === 'user'" class="role-badge role-user">User</span>
+              <span v-if="profile.role === 'administrator'" class="role-badge role-admin">{{ t('profile.administrator') }}</span>
+              <span v-else-if="profile.role === 'content_manager'" class="role-badge role-content-manager">{{ t('profile.contentManager') }}</span>
+              <span v-else-if="profile.role === 'user'" class="role-badge role-user">{{ t('profile.user') }}</span>
             </div>
             <p class="username">@{{ profile.username }}</p>
             <p v-if="profile.description" class="description">{{ profile.description }}</p>
@@ -30,22 +30,22 @@
         <div class="stats">
           <div class="stat">
             <strong>{{ profile._count.markmaps }}</strong>
-            <span>Markmaps</span>
+            <span>{{ t('profile.markmaps') }}</span>
           </div>
           <div class="stat">
             <strong>{{ profile._count.viewHistory }}</strong>
-            <span>Views</span>
+            <span>{{ t('profile.views') }}</span>
           </div>
           <div class="stat">
             <strong>{{ profile._count.interactions }}</strong>
-            <span>Interactions</span>
+            <span>{{ t('profile.interactions') }}</span>
           </div>
         </div>
 
         <div v-if="profile.isOwnProfile" class="actions">
-          <button @click="showEditModal = true" class="btn btn-secondary">Edit Profile</button>
-          <button @click="showPreferencesModal = true" class="btn btn-secondary">User Preferences</button>
-          <button @click="showSettingsModal = true" class="btn btn-secondary">Account Settings</button>
+          <button @click="showEditModal = true" class="btn btn-secondary">{{ t('profile.editProfile') }}</button>
+          <button @click="showPreferencesModal = true" class="btn btn-secondary">{{ t('profile.userPreferences') }}</button>
+          <button @click="showSettingsModal = true" class="btn btn-secondary">{{ t('profile.accountSettings') }}</button>
         </div>
       </div>
 
@@ -56,40 +56,40 @@
         <div v-if="profile.isOwnProfile && markmaps.length > 0" class="markmap-controls card">
           <div class="control-row">
             <div class="control-group">
-              <label>Visibility</label>
+              <label>{{ t('profile.visibility') }}</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input type="checkbox" v-model="visibilityFilters.published" @change="applyFilters" />
-                  Published
+                  {{ t('profile.public') }}
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" v-model="visibilityFilters.private" @change="applyFilters" />
-                  Private
+                  {{ t('profile.private') }}
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" v-model="visibilityFilters.actionRequired" @change="applyFilters" />
-                  Action Required
+                  {{ t('profile.actionRequired') }}
                 </label>
               </div>
             </div>
             
             <div class="control-group">
-              <label>Sort By</label>
+              <label>{{ t('profile.sortBy') }}</label>
               <select v-model="sortBy" @change="applyFilters" class="form-control">
-                <option value="created-desc">Creation Date (Newest)</option>
-                <option value="created-asc">Creation Date (Oldest)</option>
-                <option value="title-asc">Title (A-Z)</option>
-                <option value="title-desc">Title (Z-A)</option>
+                <option value="created-desc">{{ t('profile.creationDateNewest') }}</option>
+                <option value="created-asc">{{ t('profile.creationDateOldest') }}</option>
+                <option value="title-asc">{{ t('profile.titleAZ') }}</option>
+                <option value="title-desc">{{ t('profile.titleZA') }}</option>
               </select>
             </div>
             
             <div class="control-group search-group">
-              <label>Search</label>
+              <label>{{ t('common.search') }}</label>
               <input 
                 type="text" 
                 v-model="markmapSearch" 
                 @input="applyFilters" 
-                placeholder="Search your markmaps..." 
+                :placeholder="t('profile.searchPlaceholder')" 
                 class="form-control"
               />
             </div>
@@ -123,19 +123,19 @@
                 <!-- Status tags for own profile -->
                 <div v-if="profile.isOwnProfile" class="status-tags">
                   <span v-if="markmap.isRetired && markmap.reviewStatus === 'action_required'" class="status-tag status-action-required">
-                    Action Required
+                    {{ t('profile.actionRequired') }}
                   </span>
                   <span v-else-if="markmap.isRetired && markmap.reviewStatus === 'pending_review'" class="status-tag status-pending">
-                    Pending Review
+                    {{ t('profile.pendingReview') }}
                   </span>
                   <span v-else-if="markmap.isPublic && !markmap.isRetired" class="status-tag status-published">
-                    Published
+                    {{ t('profile.published') }}
                   </span>
                 </div>
               </div>
               <p class="meta">
                 {{ new Date(markmap.createdAt).toLocaleDateString() }}
-                {{ markmap.isPublic ? '• Public' : '• Private' }}
+                {{ markmap.isPublic ? '• ' + t('profile.public') : '• ' + t('profile.private') }}
               </p>
               <div class="tags">
                 <span v-if="markmap.language" class="tag">{{ markmap.language }}</span>
@@ -189,7 +189,7 @@
     <!-- Edit Profile Modal -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
       <div class="modal">
-        <h2>Edit Profile</h2>
+        <h2>{{ t('profile.editProfile') }}</h2>
         <div v-if="editError" class="error">{{ editError }}</div>
         <form @submit.prevent="updateProfile">
           <div class="form-group">
@@ -213,7 +213,7 @@
             ></textarea>
           </div>
           <div class="form-group">
-            <label for="profilePictureUrl">Profile Picture URL</label>
+            <label for="profilePictureUrl">{{ t('profile.profilePictureUrl') }}</label>
             <input 
               id="profilePictureUrl" 
               v-model="editForm.profilePictureUrl" 
@@ -223,7 +223,7 @@
             />
           </div>
           <div class="form-group">
-            <label for="profileBackgroundColor">Profile Picture Background Color (optional)</label>
+            <label for="profileBackgroundColor">{{ t('profile.profileBackgroundColor') }}</label>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <input 
                 id="profileBackgroundColor" 
@@ -257,36 +257,36 @@
     <!-- User Preferences Modal -->
     <div v-if="showPreferencesModal" class="modal-overlay" @click.self="showPreferencesModal = false">
       <div class="modal">
-        <h2>User Preferences</h2>
+        <h2>{{ t('profile.userPreferences') }}</h2>
         <div v-if="preferencesError" class="error">{{ preferencesError }}</div>
         <form @submit.prevent="updatePreferences">
           <div class="form-group">
-            <h3>Display</h3>
+            <h3>{{ t('profile.displayPreferences') }}</h3>
             <label class="checkbox-label">
               <input 
                 type="checkbox" 
                 v-model="preferencesForm.darkTheme"
               />
-              Dark Theme
+              {{ t('profile.darkTheme') }}
             </label>
           </div>
           
           <div class="form-group">
-            <h3>Language</h3>
+            <h3>{{ t('profile.language') }}</h3>
             <select v-model="preferencesForm.language" class="form-control">
               <option value="en">English</option>
             </select>
-            <small class="form-text">More languages coming soon</small>
+            <small class="form-text">{{ t('profile.moreLanguages') }}</small>
           </div>
 
           <div class="form-group">
-            <h3>Privacy</h3>
+            <h3>{{ t('profile.privacyPreferences') }}</h3>
             <label class="checkbox-label">
               <input 
                 type="checkbox" 
                 v-model="preferencesForm.profilePageVisible"
               />
-              Profile Page Public Visibility
+              {{ t('profile.profilePageVisibility') }}
             </label>
             <small class="form-text">When disabled, other users cannot view your profile page</small>
           </div>
@@ -297,7 +297,7 @@
                 type="checkbox" 
                 v-model="preferencesForm.profilePictureVisible"
               />
-              Profile Picture Public Visibility
+              {{ t('profile.profilePictureVisibility') }}
             </label>
             <small class="form-text">When disabled, your profile picture is hidden from other users</small>
           </div>
@@ -308,13 +308,13 @@
                 type="checkbox" 
                 v-model="preferencesForm.emailVisible"
               />
-              Email Address Public Visibility
+              {{ t('profile.emailVisibility') }}
             </label>
             <small class="form-text">When disabled, your email is hidden from other users</small>
           </div>
 
           <div class="form-group">
-            <h3>Email Notifications</h3>
+            <h3>{{ t('profile.emailNotifications') }}</h3>
             <div class="email-pref-item">
               <label for="emailEssentialNotifications" class="checkbox-label checkbox-disabled">
                 <input 
@@ -407,12 +407,12 @@
    <!-- account settings modal-->
         <div v-if="showSettingsModal" class="modal-overlay" @click.self="showSettingsModal = false">
       <div class="modal">
-        <h2>Account settings</h2>
+        <h2>{{ t('profile.accountSettings') }}</h2>
         <div v-if="settingsError" class="error">{{ settingsError }}</div>
         <div v-if="settingsSuccess" class="success-message">{{ settingsSuccess }}</div>
         <form @submit.prevent="updateSettings">
           <div class="form-group">
-            <label for="email">Email</label>
+            <label for="email">{{ t('profile.email') }}</label>
             <input 
               id="email" 
               v-model="settingsForm.email" 
@@ -421,15 +421,15 @@
               :placeholder="profile.email"
             />
             <small v-if="profile.pendingEmail" class="form-text pending-email">
-              ⏳ Pending verification: {{ profile.pendingEmail }}
-              <button type="button" @click="cancelPendingEmail" class="btn-link">Cancel</button>
+              ⏳ {{ t('profile.pendingVerification') }}: {{ profile.pendingEmail }}
+              <button type="button" @click="cancelPendingEmail" class="btn-link">{{ t('common.cancel') }}</button>
             </small>
             <small v-else-if="profile.lastEmailChange" class="form-text">
-              Last changed: {{ new Date(profile.lastEmailChange).toLocaleDateString() }}
+              {{ t('profile.lastChanged') }}: {{ new Date(profile.lastEmailChange).toLocaleDateString() }}
             </small>
           </div>
           <div class="form-group">
-            <label for="username">Username</label>
+            <label for="username">{{ t('profile.username') }}</label>
             <input 
               id="username" 
               v-model="settingsForm.username" 
@@ -438,55 +438,55 @@
               :placeholder="profile.username"
             />
             <small v-if="profile.lastUsernameChange" class="form-text">
-              Last changed: {{ new Date(profile.lastUsernameChange).toLocaleDateString() }}
+              {{ t('profile.lastChanged') }}: {{ new Date(profile.lastUsernameChange).toLocaleDateString() }}
             </small>
           </div>
 
           <div class="modal-actions">
-            <button type="button" @click="showSettingsModal = false" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="showSettingsModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button type="submit" class="btn" :disabled="settingsLoading">
-              {{ settingsLoading ? 'Saving...' : 'Save settings' }}
+              {{ settingsLoading ? t('profile.saving') : t('profile.saveSettings') }}
             </button>
           </div>
         </form>
 
         <hr class="settings-divider" />
 
-        <h3>Change Password</h3>
+        <h3>{{ t('profile.changePassword') }}</h3>
         <div v-if="passwordError" class="error">{{ passwordError }}</div>
         <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
         <form @submit.prevent="changePassword">
           <div class="form-group">
-            <label for="currentPassword">Current Password</label>
+            <label for="currentPassword">{{ t('profile.currentPassword') }}</label>
             <input 
               id="currentPassword" 
               v-model="passwordForm.currentPassword" 
               type="password" 
               class="form-control"
-              placeholder="Enter current password"
+              :placeholder="t('profile.enterCurrentPassword')"
               required
             />
           </div>
           <div class="form-group">
-            <label for="newPassword">New Password</label>
+            <label for="newPassword">{{ t('profile.newPassword') }}</label>
             <input 
               id="newPassword" 
               v-model="passwordForm.newPassword" 
               type="password" 
               class="form-control"
-              placeholder="Enter new password (min 6 characters)"
+              :placeholder="t('profile.enterNewPassword')"
               minlength="6"
               required
             />
           </div>
           <div class="form-group">
-            <label for="confirmPassword">Confirm New Password</label>
+            <label for="confirmPassword">{{ t('profile.confirmPassword') }}</label>
             <input 
               id="confirmPassword" 
               v-model="passwordForm.confirmPassword" 
               type="password" 
               class="form-control"
-              placeholder="Confirm new password"
+              :placeholder="t('profile.confirmNewPassword')"
               minlength="6"
               required
             />
@@ -494,16 +494,16 @@
 
           <div class="modal-actions">
             <button type="submit" class="btn" :disabled="passwordLoading">
-              {{ passwordLoading ? 'Changing...' : 'Change Password' }}
+              {{ passwordLoading ? t('profile.changing') : t('profile.changePasswordButton') }}
             </button>
           </div>
         </form>
 
         <hr class="settings-divider" />
 
-        <h3>API Keys</h3>
+        <h3>{{ t('profile.apiKeys') }}</h3>
         <p class="api-keys-description">
-          API keys allow you to access the Midiverse API programmatically. Create keys with different permissions based on your needs.
+          {{ t('profile.apiKeysDescription') }}
         </p>
         
         <div v-if="apiKeysError" class="error">{{ apiKeysError }}</div>
@@ -512,28 +512,28 @@
         <!-- Create API Key Form -->
         <form @submit.prevent="createApiKey" class="api-key-create-form">
           <div class="form-group">
-            <label for="apiKeyName">Key Name</label>
+            <label for="apiKeyName">{{ t('profile.keyName') }}</label>
             <input 
               id="apiKeyName" 
               v-model="apiKeyForm.name" 
               type="text" 
               class="form-control"
-              placeholder="e.g., Production App, Testing Script"
+              :placeholder="t('profile.enterKeyName')"
               required
             />
             <small class="form-text">A descriptive name to help you identify this key</small>
           </div>
           
           <div class="form-group">
-            <label for="apiKeyPermission">Permission Level</label>
+            <label for="apiKeyPermission">{{ t('profile.permissionLevel') }}</label>
             <select 
               id="apiKeyPermission" 
               v-model="apiKeyForm.permission" 
               class="form-control"
               required
             >
-              <option value="read_only">Read Only (fetch/search markmaps)</option>
-              <option value="full_access">Full Access (create/edit/delete markmaps)</option>
+              <option value="read_only">{{ t('profile.readOnlyDesc') }}</option>
+              <option value="full_access">{{ t('profile.fullAccessDesc') }}</option>
             </select>
             <small class="form-text">Choose the access level for this API key</small>
           </div>
@@ -581,7 +581,7 @@
               </div>
               <div class="api-key-meta">
                 <span :class="['permission-badge', `permission-${key.permission}`]">
-                  {{ key.permission === 'read_only' ? 'Read Only' : 'Full Access' }}
+                  {{ key.permission === 'read_only' ? t('profile.readOnly') : t('profile.fullAccess') }}
                 </span>
                 <span class="api-key-date">
                   Created: {{ new Date(key.createdAt).toLocaleDateString() }}
@@ -610,6 +610,7 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n()
 const route = useRoute()
 const { authFetch, setUser } = useApi()
 const { isAuthenticated, currentUser } = useAuth()

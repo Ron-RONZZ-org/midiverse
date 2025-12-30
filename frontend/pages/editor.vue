@@ -1,25 +1,25 @@
 <template>
   <div class="container">
     <div class="editor-header">
-      <h1>{{ editMode ? 'Edit Markmap' : 'Create Markmap' }}</h1>
+      <h1>{{ editMode ? t('editor.editTitle') : t('editor.title') }}</h1>
       <div class="editor-controls">
         <button @click="toggleFullscreen" class="btn btn-sm" type="button">
-          {{ isFullscreen ? '↙ Exit Fullscreen' : '↗ Fullscreen' }}
+          {{ isFullscreen ? t('editor.exitFullscreen') : t('editor.fullscreen') }}
         </button>
         <button @click="togglePreview" class="btn btn-sm" type="button" v-if="isFullscreen">
-          {{ showPreview ? 'Hide Preview' : 'Show Preview' }}
+          {{ showPreview ? t('editor.hidePreview') : t('editor.showPreview') }}
         </button>
       </div>
     </div>
 
     <div v-if="!isAuthenticated" class="card">
-      <p>You need to be logged in to create or edit markmaps.</p>
-      <NuxtLink to="/login" class="btn">Login</NuxtLink>
+      <p>{{ t('editor.loginRequired') }}</p>
+      <NuxtLink to="/login" class="btn">{{ t('common.login') }}</NuxtLink>
     </div>
 
     <!-- Loading state when fetching markmap for editing -->
     <div v-else-if="editMode && loadingMarkmap" class="card loading-card">
-      <p>Loading markmap...</p>
+      <p>{{ t('editor.loading') }}</p>
     </div>
 
     <!-- Error state when markmap failed to load -->
@@ -53,7 +53,7 @@
 
     <div v-if="shouldShowEditor" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
       <div class="editor-panel card">
-        <h2>Editor</h2>
+        <h2>{{ t('editor.title') }}</h2>
         
         <!-- Keynode Suggestions Dropdown - Fixed Position at top of editor -->
         <div v-if="showKeynoteSuggestions" class="keynode-dropdown-fixed">
@@ -87,25 +87,19 @@
         
         <form @submit.prevent="handleSubmit">
           <div class="form-group">
-            <label for="title">Title</label>
+            <label for="title">{{ t('editor.titleLabel') }}</label>
             <input id="title" v-model="form.title" type="text" required />
           </div>
 
           <div class="form-group">
-            <label for="text">Markdown Content</label>
+            <label for="text">{{ t('editor.contentLabel') }}</label>
             <div class="textarea-wrapper">
               <textarea 
                 id="text" 
                 ref="textareaRef"
                 v-model="form.text" 
                 required
-                placeholder="# Root
-## Branch 1
-### Sub-branch 1
-### Sub-branch 2
-## Branch 2
-
-Use !{keynode} to reference keynodes (e.g., !{volcano})"
+                :placeholder="t('editor.contentPlaceholder')"
                 @input="onTextInput"
                 @keydown="onTextKeydown"
               ></textarea>
@@ -114,13 +108,13 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
 
           <div class="form-row">
             <div class="form-group">
-              <label for="language">Language</label>
+              <label for="language">{{ t('editor.languageLabel') }}</label>
               <div class="autocomplete-wrapper">
                 <input 
                   id="language" 
                   v-model="languageInput" 
                   type="text" 
-                  placeholder="e.g., en - English, fr - Français"
+                  :placeholder="t('editor.languagePlaceholder')"
                   @input="onLanguageInput"
                   @focus="onLanguageInput"
                   @blur="hideLanguageSuggestions"
@@ -140,14 +134,14 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
             </div>
 
             <div class="form-group">
-              <label for="series">Series (optional)</label>
+              <label for="series">{{ t('editor.seriesLabel') }}</label>
               <div class="series-select-container">
                 <div class="series-input-wrapper">
                   <input
                     id="series"
                     v-model="seriesInput"
                     type="text"
-                    placeholder="Type to search or select a series..."
+                    :placeholder="t('editor.seriesPlaceholder')"
                     @input="onSeriesInput"
                     @focus="showSeriesSuggestions = true"
                     @blur="hideSeriesSuggestions"
@@ -259,7 +253,7 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
       </div>
 
       <div class="preview-panel card">
-        <h2>Preview</h2>
+        <h2>{{ t('editor.preview') }}</h2>
         <div class="preview-container">
           <ClientOnly>
             <MarkmapViewer 
@@ -321,7 +315,7 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
         <div v-if="keynodeError" class="error">{{ keynodeError }}</div>
         <form @submit.prevent="createKeynode">
           <div class="form-group">
-            <label for="keynode-name">Name</label>
+            <label for="keynode-name">{{ t('keynode.name') }}</label>
             <input 
               id="keynode-name" 
               v-model="newKeynode.name" 
@@ -332,17 +326,17 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
             />
           </div>
           <div class="form-group">
-            <label for="keynode-category">Category</label>
+            <label for="keynode-category">{{ t('keynode.category') }}</label>
             <select id="keynode-category" v-model="newKeynode.category" required>
               <option value="">Select a category</option>
-              <option value="person">Person</option>
+              <option value="person">{{ t('keynode.categoryPerson') }}</option>
               <option value="fictional_character">Fictional Character</option>
               <option value="geographical_location">Geographical Location</option>
               <option value="date_time">Date/Time</option>
               <option value="historical_event">Historical Event</option>
               <option value="biological_species">Biological Species</option>
               <option value="abstract_concept">Abstract Concept</option>
-              <option value="others">Others</option>
+              <option value="others">{{ t('keynode.categoryOthers') }}</option>
             </select>
           </div>
           <div class="form-group">
@@ -383,6 +377,7 @@ Use !{keynode} to reference keynodes (e.g., !{volcano})"
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n()
 const route = useRoute()
 const { authFetch } = useApi()
 const { isAuthenticated, currentUser } = useAuth()

@@ -1,3 +1,5 @@
+# Midiverse maintenance instructions
+
 ## Quick access
 
 ```bash
@@ -34,7 +36,6 @@ cd frontend && sudo npm run build
 ## Kill stale processes
 
 > **pm2 configurations are per user. Having multiple users each starting their own instances with exactly the same configuration is destined to cause weird port/version conflict behaviors and MAKE YOU A VERY UNHAPPY INDIVIDUAL.** The only way to be sure is to kill all processes listening on the target port and start afresh.
-
 
 ```bash
 sudo systemctl stop pm2-midiverse-user
@@ -75,7 +76,7 @@ pm2 startup
 ## Known pitfalls
 
 - Port conflicts
-  - PM2 cluster mode with 2 instances 
+  - PM2 cluster mode with 2 instances
     - Both backend instances tried to bind to port 3010
     - causing EADDRINUSE errors
 - Wrong build path

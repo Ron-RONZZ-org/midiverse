@@ -5,7 +5,6 @@ This guide covers deploying Midiverse to an Ubuntu 24.04 LTS (Noble Numbat) serv
 ## Prerequisites
 
 - Ubuntu 24.04 LTS server
-- PostgreSQL 14+ installed
 - Node.js 18+ and npm installed
 - Domain name configured (optional, but recommended)
 - Cloudflare account (for Turnstile)
@@ -29,7 +28,6 @@ sudo apt install postgresql postgresql-contrib -y
 # Install PM2 for process management
 sudo npm install -g pm2
 ```
-
 
 ## 2. Application Setup
 
@@ -119,6 +117,7 @@ NUXT_PUBLIC_TURNSTILE_SITE_KEY="your-turnstile-site-key"
 ### Using Other SMTP Services
 
 Update the following variables based on your provider:
+
 - `EMAIL_HOST` - SMTP server address
 - `EMAIL_PORT` - SMTP port (usually 587 for TLS or 465 for SSL)
 - `EMAIL_SECURE` - Set to "true" for SSL, "false" for TLS
@@ -154,8 +153,9 @@ cd ..
 Create PM2 ecosystem file `~/ecosystem.config.js`:
 
 **Important Notes:**
+
 - Backend requires `FRONTEND_URL` environment variable for CORS configuration (which frontend origins are allowed)
-- **Frontend should use relative API path (`/api`) to avoid CORS issues** when users access from different subdomains (e.g., www.domain.com vs domain.com)
+- **Frontend should use relative API path (`/api`) to avoid CORS issues** when users access from different subdomains (e.g., <www.domain.com> vs domain.com)
 - Frontend also requires `NUXT_PUBLIC_TURNSTILE_SITE_KEY` for Cloudflare Turnstile CAPTCHA
 - Alternatively, these can be set in `.env` files, but PM2 env variables take precedence
 
@@ -374,21 +374,25 @@ pm2 restart all
 ## Troubleshooting
 
 ### Backend won't start
+
 - Check database connection in `.env`
 - Verify PostgreSQL is running: `sudo systemctl status postgresql`
 - Check logs: `pm2 logs midiverse-backend`
 
 ### Email verification not working
+
 - Verify SMTP credentials
 - Check if email service allows less secure apps or requires app password
 - Check backend logs for email sending errors
 
 ### Turnstile not loading
+
 - Verify site key is correct in frontend `.env`
 - Check browser console for errors
 - Ensure domain is whitelisted in Cloudflare Turnstile settings
 
 ### Database migration errors
+
 - Ensure database user has proper permissions
 - Check if previous migrations completed successfully
 - Review migration files in `prisma/migrations/`
@@ -406,6 +410,7 @@ pm2 restart all
 If you're upgrading from a previous version where API routes were at the root level (e.g., `/markmaps`, `/auth`), you need to:
 
 1. **Update Frontend Environment Variable**:
+
    ```bash
    # In frontend/.env or PM2 ecosystem.config.js, change from:
    NUXT_PUBLIC_API_BASE=https://yourdomain.com
@@ -422,6 +427,7 @@ If you're upgrading from a previous version where API routes were at the root le
    - Reload nginx: `sudo systemctl reload nginx`
 
 3. **Restart Applications**:
+
    ```bash
    cd /var/www/midiverse-deployment/midiverse
    git pull origin main
@@ -441,6 +447,7 @@ If you're upgrading from a previous version where API routes were at the root le
 ## Support
 
 For issues or questions:
+
 - Check the [GitHub Issues](https://github.com/Ron-RONZZ-org/midiverse/issues)
 - Review application logs
 - Consult the main [README.md](./README.md)

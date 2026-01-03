@@ -13,8 +13,8 @@
 #   --skip-restart       Skip PM2 restart
 #   --branch BRANCH      Git branch to pull from (default: main)
 #   --full-restart       Delete all PM2 processes and start fresh
-#   --dry-run           Show what would be done without making changes
-#   --help              Show this help message
+#   --dry-run            Show what would be done without making changes
+#   --help               Show this help message
 
 set -e  # Exit on error
 
@@ -147,7 +147,7 @@ backup_state() {
 
   # Backup .env files
   if [ -f "$APP_DIR/.env" ]; then
-    cp "$APP_DIR/.env" "$BACKUP_DIR/.env"
+    cp "$APP_DIR/.env" "$BACKUP_DIR/backend.env"
     print_success "Backend .env backed up"
   fi
 
@@ -436,9 +436,10 @@ show_summary() {
   echo "  - Monitor resources: pm2 monit"
   echo ""
   
-  if [ -d "$APP_DIR/.backup-"* ]; then
-    LATEST_BACKUP=$(ls -td "$APP_DIR"/.backup-* | head -1)
-    print_info "Backup created at: $LATEST_BACKUP"
+  # Check for backups
+  BACKUP_FOUND=$(ls -td "$APP_DIR"/.backup-* 2>/dev/null | head -1)
+  if [ -n "$BACKUP_FOUND" ]; then
+    print_info "Backup created at: $BACKUP_FOUND"
   fi
 }
 

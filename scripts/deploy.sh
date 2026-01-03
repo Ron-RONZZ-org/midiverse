@@ -460,8 +460,13 @@ final_checks() {
   echo "  4. Configure email service (SMTP credentials)"
   if [ -n "$DOMAIN" ]; then
     echo "  5. Ensure DNS records point to this server:"
-    echo "     A record: $DOMAIN -> $(curl -s ifconfig.me 2>/dev/null || echo 'YOUR_SERVER_IP')"
-    echo "     A record: www.$DOMAIN -> $(curl -s ifconfig.me 2>/dev/null || echo 'YOUR_SERVER_IP')"
+    # Get server IP securely
+    SERVER_IP=$(ip route get 1 2>/dev/null | awk '{print $7; exit}')
+    if [ -z "$SERVER_IP" ]; then
+      SERVER_IP="YOUR_SERVER_IP"
+    fi
+    echo "     A record: $DOMAIN -> $SERVER_IP"
+    echo "     A record: www.$DOMAIN -> $SERVER_IP"
     echo "  6. Visit https://$DOMAIN to access your application"
   else
     echo "  5. Configure Nginx with your domain (use --domain option or configure manually)"

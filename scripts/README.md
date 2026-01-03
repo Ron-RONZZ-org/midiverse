@@ -167,7 +167,7 @@ $APP_DIR/.backup-YYYYMMDD-HHMMSS/
 To restore from backup:
 ```bash
 cd /var/www/midiverse-deployment/midiverse
-cp .backup-20240101-120000/.env .env
+cp .backup-20240101-120000/backend.env .env
 cp .backup-20240101-120000/frontend.env frontend/.env
 cp .backup-20240101-120000/ecosystem.config.js ecosystem.config.js
 ```

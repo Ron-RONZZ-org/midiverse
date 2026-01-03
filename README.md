@@ -415,6 +415,22 @@ Returns:
 
 ## Production Deployment
 
+### Automated Deployment
+
+For quick production deployment, use the automated scripts:
+
+```bash
+# Initial deployment with domain and SSL
+sudo ./scripts/deploy.sh --domain yourdomain.com
+
+# Or skip SSL for manual setup later
+sudo ./scripts/deploy.sh --domain yourdomain.com --skip-ssl
+```
+
+See [scripts/README.md](./scripts/README.md) for detailed script usage and options.
+
+### Manual Deployment
+
 For detailed production deployment instructions, including:
 - Ubuntu 24.04 LTS server setup
 - PostgreSQL configuration
@@ -424,7 +440,24 @@ For detailed production deployment instructions, including:
 - Email service configuration
 - Security hardening
 
-See the comprehensive [DEPLOYMENT.md](./DEPLOYMENT.md) guide.
+See the comprehensive [docs/DEPLOYMENT-midiverse.md](./docs/DEPLOYMENT-midiverse.md) guide.
+
+### Maintenance and Updates
+
+To update an existing deployment:
+
+```bash
+# Standard update
+sudo ./scripts/update.sh
+
+# Update with full restart
+sudo ./scripts/update.sh --full-restart
+
+# Dry run to see what would change
+sudo ./scripts/update.sh --dry-run
+```
+
+See [docs/MAINTENANCE-midiverse.md](./docs/MAINTENANCE-midiverse.md) for manual maintenance procedures.
 
 ## Security Features
 

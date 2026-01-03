@@ -6,7 +6,7 @@
 # 
 # Usage: sudo ./scripts/deploy.sh [options]
 # Options:
-#   --skip-system-deps   Skip system dependencies installation (Node.js, PostgreSQL, PM2)
+#   --skip-system-deps   Skip system dependencies installation (Node.js, PM2)
 #   --skip-nginx         Skip Nginx configuration
 #   --skip-ssl           Skip SSL certificate setup
 #   --app-dir DIR        Set custom application directory (default: /var/www/midiverse-deployment/midiverse)
@@ -125,16 +125,6 @@ install_system_deps() {
     print_success "Node.js installed: $(node --version)"
   else
     print_success "Node.js already installed: $(node --version)"
-  fi
-
-  print_info "Installing PostgreSQL..."
-  if ! command -v psql &> /dev/null; then
-    apt install postgresql postgresql-contrib -y
-    systemctl enable postgresql
-    systemctl start postgresql
-    print_success "PostgreSQL installed"
-  else
-    print_success "PostgreSQL already installed"
   fi
 
   print_info "Installing PM2..."
@@ -480,8 +470,6 @@ final_checks() {
   echo "  - Update app: sudo bash $APP_DIR/scripts/update.sh"
   echo ""
   print_warning "Security Checklist:"
-  echo "  - Change default PostgreSQL password"
-  echo "  - Generate strong JWT_SECRET"
   echo "  - Enable firewall (UFW) - $(ufw status | head -n 1)"
   echo "  - Keep system and dependencies updated"
   echo "  - Setup regular database backups"

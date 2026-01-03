@@ -2,6 +2,28 @@
 
 This guide covers deploying Midiverse to an Ubuntu 24.04 LTS (Noble Numbat) server with all production features enabled.
 
+## Quick Start - Automated Deployment
+
+For automated deployment, use the deployment script:
+
+```bash
+# Clone the repository first
+cd /var/www
+sudo mkdir -p midiverse-deployment
+cd midiverse-deployment
+git clone https://github.com/Ron-RONZZ-org/midiverse.git
+cd midiverse
+
+# Run automated deployment
+sudo ./scripts/deploy.sh --domain yourdomain.com
+```
+
+**Note**: The automated script handles all the steps below. For manual deployment or customization, continue with the detailed instructions.
+
+See [scripts/README.md](../scripts/README.md) for more script options and usage details.
+
+## Manual Deployment Steps
+
 ## Prerequisites
 
 - Ubuntu 24.04 LTS server

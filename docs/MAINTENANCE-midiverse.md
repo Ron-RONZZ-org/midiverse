@@ -1,5 +1,29 @@
 ## Quick access
 
+### Automated Update (Recommended)
+
+For automated updates, use the update script:
+
+```bash
+cd /var/www/midiverse-deployment/midiverse
+
+# Standard update (pull, install deps, migrate, build, restart)
+sudo ./scripts/update.sh
+
+# Update with full PM2 restart (recommended if having issues)
+sudo ./scripts/update.sh --full-restart
+
+# Dry run to preview changes
+sudo ./scripts/update.sh --dry-run
+
+# Update from specific branch
+sudo ./scripts/update.sh --branch develop
+```
+
+See [scripts/README.md](../scripts/README.md) for more options and troubleshooting.
+
+### Manual Access (for debugging or custom operations)
+
 ```bash
 ssh ronzz-linux-server-2
 
@@ -23,6 +47,15 @@ npx prisma generate --no-engine
 ```
 
 ## rebuilding
+
+### Automated (Recommended)
+
+```bash
+# Use the update script for automated rebuilding
+sudo ./scripts/update.sh
+```
+
+### Manual
 
 ```bash
 git pull && git status

@@ -52,6 +52,13 @@
     </div>
 
     <div v-if="shouldShowEditor" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
+      <!-- Floating exit fullscreen button -->
+      <div v-if="isFullscreen" class="fullscreen-exit-float">
+        <button @click="toggleFullscreen" class="btn btn-danger" type="button" title="Exit Fullscreen (ESC)">
+          ✕ Exit Fullscreen
+        </button>
+      </div>
+      
       <div class="editor-panel card">
         <h2>{{ t('editor.title') }}</h2>
         
@@ -1342,6 +1349,21 @@ const ensureName = () => {
 }
 
 onMounted(async () => {
+  // Handle ESC key to exit fullscreen
+  if (process.client) {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen.value) {
+        toggleFullscreen()
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    
+    // Clean up on unmount
+    onUnmounted(() => {
+      window.removeEventListener('keydown', handleEscape)
+    })
+  }
+  
   const id = route.query.id as string
   if (id) {
     editMode.value = true
@@ -1607,6 +1629,28 @@ h1 {
 
 .editor-layout.fullscreen .preview-container {
   height: calc(100vh - 150px);
+}
+
+.fullscreen-exit-float {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1001;
+}
+
+.fullscreen-exit-float .btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+}
+
+.fullscreen-exit-float .btn:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 .preview-placeholder {

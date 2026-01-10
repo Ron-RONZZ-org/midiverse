@@ -51,6 +51,8 @@ onMounted(() => {
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'markmap-preview-update') {
         previewData.value = event.data.data
+        // Also update sessionStorage so refreshing the page keeps the latest content
+        sessionStorage.setItem('markmap-preview', JSON.stringify(event.data.data))
       }
     })
   }

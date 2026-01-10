@@ -253,7 +253,12 @@
       </div>
 
       <div class="preview-panel card">
-        <h2>{{ t('editor.preview') }}</h2>
+        <div class="preview-header">
+          <h2>{{ t('editor.preview') }}</h2>
+          <button @click="openPreviewInNewTab" class="btn btn-sm" type="button" title="Open preview in new tab">
+            Open in New Tab
+          </button>
+        </div>
         <div class="preview-container">
           <ClientOnly>
             <MarkmapViewer 
@@ -483,6 +488,7 @@ const cancelUrl = computed(() => {
 // Fullscreen mode
 const isFullscreen = ref(false)
 const showPreview = ref(true)
+const previewWindow = ref<Window | null>(null)
 
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value
@@ -493,6 +499,46 @@ const toggleFullscreen = () => {
 
 const togglePreview = () => {
   showPreview.value = !showPreview.value
+}
+
+const openPreviewInNewTab = () => {
+  // Create a data URL with the preview content
+  const previewData = {
+    markdown: form.value.text,
+    title: form.value.title || 'Preview',
+    options: {
+      maxWidth: form.value.maxWidth,
+      colorFreezeLevel: form.value.colorFreezeLevel,
+      initialExpandLevel: form.value.initialExpandLevel
+    }
+  }
+  
+  // Store preview data in sessionStorage for the new window to access
+  if (process.client) {
+    sessionStorage.setItem('markmap-preview', JSON.stringify(previewData))
+    
+    // Open new window/tab
+    const newWindow = window.open('/preview', '_blank', 'width=1000,height=800')
+    previewWindow.value = newWindow
+    
+    // Hide the preview panel in the main window
+    showPreview.value = false
+  }
+}
+
+// Watch for preview window closing
+if (process.client) {
+  watch(previewWindow, (newWindow) => {
+    if (newWindow) {
+      const checkClosed = setInterval(() => {
+        if (newWindow.closed) {
+          clearInterval(checkClosed)
+          showPreview.value = true
+          previewWindow.value = null
+        }
+      }, 500)
+    }
+  })
 }
 
 const loadMarkmap = async (id: string) => {
@@ -1347,6 +1393,42 @@ watch(() => form.value.text, () => {
   nextTick(() => {
     onTextInput()
   })
+  
+  // Also update preview window if open
+  if (process.client && previewWindow.value && !previewWindow.value.closed) {
+    const previewData = {
+      markdown: form.value.text,
+      title: form.value.title || 'Preview',
+      options: {
+        maxWidth: form.value.maxWidth,
+        colorFreezeLevel: form.value.colorFreezeLevel,
+        initialExpandLevel: form.value.initialExpandLevel
+      }
+    }
+    previewWindow.value.postMessage({
+      type: 'markmap-preview-update',
+      data: previewData
+    }, '*')
+  }
+})
+
+// Also watch title and options for preview updates
+watch(() => [form.value.title, form.value.maxWidth, form.value.colorFreezeLevel, form.value.initialExpandLevel], () => {
+  if (process.client && previewWindow.value && !previewWindow.value.closed) {
+    const previewData = {
+      markdown: form.value.text,
+      title: form.value.title || 'Preview',
+      options: {
+        maxWidth: form.value.maxWidth,
+        colorFreezeLevel: form.value.colorFreezeLevel,
+        initialExpandLevel: form.value.initialExpandLevel
+      }
+    }
+    previewWindow.value.postMessage({
+      type: 'markmap-preview-update',
+      data: previewData
+    }, '*')
+  }
 })
 
 // Save draft to localStorage on form changes (debounced)
@@ -1447,6 +1529,10 @@ h1 {
   grid-template-columns: 1fr;
 }
 
+.editor-layout.hide-preview {
+  grid-template-columns: 1fr;
+}
+
 .editor-layout.fullscreen .preview-panel {
   display: block;
 }
@@ -1478,6 +1564,17 @@ h1 {
 .editor-panel h2,
 .preview-panel h2 {
   margin-bottom: 1.5rem;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.preview-header h2 {
+  margin: 0;
 }
 
 .form-row {

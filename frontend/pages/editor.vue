@@ -52,6 +52,13 @@
     </div>
 
     <div v-if="shouldShowEditor" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
+      <!-- Floating exit fullscreen button - only show when preview is hidden -->
+      <div v-if="isFullscreen && !showPreview" class="fullscreen-exit-float">
+        <button @click="toggleFullscreen" class="btn btn-danger" type="button" title="Exit Fullscreen (ESC)">
+          ✕ Exit Fullscreen
+        </button>
+      </div>
+      
       <div class="editor-panel card">
         <h2>{{ t('editor.title') }}</h2>
         
@@ -253,7 +260,12 @@
       </div>
 
       <div class="preview-panel card">
-        <h2>{{ t('editor.preview') }}</h2>
+        <div class="preview-header">
+          <h2>{{ t('editor.preview') }}</h2>
+          <button @click="openPreviewInNewTab" class="btn btn-sm" type="button" title="Open preview in new tab">
+            Open in New Tab
+          </button>
+        </div>
         <div class="preview-container">
           <ClientOnly>
             <MarkmapViewer 
@@ -483,6 +495,7 @@ const cancelUrl = computed(() => {
 // Fullscreen mode
 const isFullscreen = ref(false)
 const showPreview = ref(true)
+const previewWindow = ref<Window | null>(null)
 
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value
@@ -493,6 +506,46 @@ const toggleFullscreen = () => {
 
 const togglePreview = () => {
   showPreview.value = !showPreview.value
+}
+
+const openPreviewInNewTab = () => {
+  // Create a data URL with the preview content
+  const previewData = {
+    markdown: form.value.text,
+    title: form.value.title || 'Preview',
+    options: {
+      maxWidth: form.value.maxWidth,
+      colorFreezeLevel: form.value.colorFreezeLevel,
+      initialExpandLevel: form.value.initialExpandLevel
+    }
+  }
+  
+  // Store preview data in sessionStorage for the new window to access
+  if (process.client) {
+    sessionStorage.setItem('markmap-preview', JSON.stringify(previewData))
+    
+    // Open new window/tab
+    const newWindow = window.open('/preview', '_blank', 'width=1000,height=800')
+    previewWindow.value = newWindow
+    
+    // Hide the preview panel in the main window
+    showPreview.value = false
+  }
+}
+
+// Watch for preview window closing
+if (process.client) {
+  watch(previewWindow, (newWindow) => {
+    if (newWindow) {
+      const checkClosed = setInterval(() => {
+        if (newWindow.closed) {
+          clearInterval(checkClosed)
+          showPreview.value = true
+          previewWindow.value = null
+        }
+      }, 500)
+    }
+  })
 }
 
 const loadMarkmap = async (id: string) => {
@@ -1296,6 +1349,21 @@ const ensureName = () => {
 }
 
 onMounted(async () => {
+  // Handle ESC key to exit fullscreen
+  if (process.client) {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen.value) {
+        toggleFullscreen()
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    
+    // Clean up on unmount
+    onUnmounted(() => {
+      window.removeEventListener('keydown', handleEscape)
+    })
+  }
+  
   const id = route.query.id as string
   if (id) {
     editMode.value = true
@@ -1347,6 +1415,42 @@ watch(() => form.value.text, () => {
   nextTick(() => {
     onTextInput()
   })
+  
+  // Also update preview window if open
+  if (process.client && previewWindow.value && !previewWindow.value.closed) {
+    const previewData = {
+      markdown: form.value.text,
+      title: form.value.title || 'Preview',
+      options: {
+        maxWidth: form.value.maxWidth,
+        colorFreezeLevel: form.value.colorFreezeLevel,
+        initialExpandLevel: form.value.initialExpandLevel
+      }
+    }
+    previewWindow.value.postMessage({
+      type: 'markmap-preview-update',
+      data: previewData
+    }, '*')
+  }
+})
+
+// Also watch title and options for preview updates
+watch(() => [form.value.title, form.value.maxWidth, form.value.colorFreezeLevel, form.value.initialExpandLevel], () => {
+  if (process.client && previewWindow.value && !previewWindow.value.closed) {
+    const previewData = {
+      markdown: form.value.text,
+      title: form.value.title || 'Preview',
+      options: {
+        maxWidth: form.value.maxWidth,
+        colorFreezeLevel: form.value.colorFreezeLevel,
+        initialExpandLevel: form.value.initialExpandLevel
+      }
+    }
+    previewWindow.value.postMessage({
+      type: 'markmap-preview-update',
+      data: previewData
+    }, '*')
+  }
 })
 
 // Save draft to localStorage on form changes (debounced)
@@ -1447,6 +1551,10 @@ h1 {
   grid-template-columns: 1fr;
 }
 
+.editor-layout.hide-preview {
+  grid-template-columns: 1fr;
+}
+
 .editor-layout.fullscreen .preview-panel {
   display: block;
 }
@@ -1480,6 +1588,17 @@ h1 {
   margin-bottom: 1.5rem;
 }
 
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.preview-header h2 {
+  margin: 0;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -1510,6 +1629,28 @@ h1 {
 
 .editor-layout.fullscreen .preview-container {
   height: calc(100vh - 150px);
+}
+
+.fullscreen-exit-float {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1001;
+}
+
+.fullscreen-exit-float .btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+}
+
+.fullscreen-exit-float .btn:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 .preview-placeholder {

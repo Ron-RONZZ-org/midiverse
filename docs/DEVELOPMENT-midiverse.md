@@ -57,6 +57,7 @@
 ## Running the Application
 
 ### Development Mode
+
 ```bash
 npm run start:dev
 ```
@@ -225,11 +226,11 @@ getProtectedData(@CurrentUser() user: UserFromToken) {
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable     | Description                  | Default  |
+|--------------|------------------------------|----------|
 | DATABASE_URL | PostgreSQL connection string | Required |
-| JWT_SECRET | Secret key for JWT signing | Required |
-| PORT | Port for the application | 3000 |
+| JWT_SECRET   | Secret key for JWT signing   | Required |
+| PORT         | Port for the application     | 3000     |
 
 ## Troubleshooting
 

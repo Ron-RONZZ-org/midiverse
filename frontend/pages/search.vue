@@ -163,9 +163,14 @@
             </div>
           </div>
         </div>
-        <button type="submit" class="btn" :disabled="loading">
-          {{ loading ? t('search.searching') : t('common.search') }}
-        </button>
+        <div class="form-actions">
+          <button type="submit" class="btn" :disabled="loading">
+            {{ loading ? t('search.searching') : t('common.search') }}
+          </button>
+          <button type="button" class="btn btn-secondary" @click="clearAllFilters">
+            Clear All Filters
+          </button>
+        </div>
       </form>
     </div>
 
@@ -486,6 +491,22 @@ const hideKeynoteSuggestions = () => {
   }, 200)
 }
 
+const clearAllFilters = () => {
+  searchForm.value = {
+    query: '',
+    language: '',
+    author: '',
+    series: '',
+    tags: [],
+    keynode: '',
+    sortBy: 'newest'
+  }
+  languageInput.value = ''
+  keynodeInput.value = ''
+  seriesInput.value = ''
+  tagInput.value = ''
+}
+
 const handleSearch = async () => {
   error.value = ''
   loading.value = true
@@ -541,6 +562,29 @@ onMounted(() => {
     handleSearch()
   }
 })
+
+// Watch keynodeInput to sync with searchForm.keynode
+watch(keynodeInput, (newValue) => {
+  if (!newValue || newValue.trim() === '') {
+    searchForm.value.keynode = ''
+  }
+})
+
+// Watch languageInput to sync with searchForm.language
+watch(languageInput, (newValue) => {
+  // Only clear if the user manually cleared it (empty string)
+  // Don't clear if it's a formatted selection like "en - English"
+  if (!newValue || newValue.trim() === '') {
+    searchForm.value.language = ''
+  }
+})
+
+// Watch seriesInput to sync with searchForm.series
+watch(seriesInput, (newValue) => {
+  if (!newValue || newValue.trim() === '') {
+    searchForm.value.series = ''
+  }
+})
 </script>
 
 <style scoped>
@@ -558,6 +602,12 @@ h1 {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .loading {

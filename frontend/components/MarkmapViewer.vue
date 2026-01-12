@@ -20,6 +20,7 @@ const markmapRef = ref<HTMLElement | null>(null)
 let mm: any = null
 const transformer = new Transformer()
 let themeStyleElement: HTMLStyleElement | null = null
+let savedState: any = null // Store the fold/unfold state
 
 // Detect if dark theme is active
 const isDarkTheme = () => {
@@ -87,10 +88,75 @@ const processKeynodes = (markdown: string): string => {
   })
 }
 
+// Helper to get the fold/unfold state from the markmap
+const getMarkmapState = () => {
+  if (!mm || !mm.state) return null
+  
+  try {
+    // Store which nodes are folded
+    const state: any = {}
+    const traverse = (node: any, path: string[] = []) => {
+      if (!node) return
+      
+      const currentPath = [...path, node.content || '']
+      const pathKey = currentPath.join('|')
+      
+      // Store fold state (false = folded, true/undefined = unfolded)
+      if (node.payload?.fold !== undefined) {
+        state[pathKey] = node.payload.fold
+      }
+      
+      if (node.children) {
+        node.children.forEach((child: any) => traverse(child, currentPath))
+      }
+    }
+    
+    traverse(mm.state.data)
+    return state
+  } catch (error) {
+    console.error('Failed to get markmap state:', error)
+    return null
+  }
+}
+
+// Helper to restore fold/unfold state to the markmap
+const restoreMarkmapState = (state: any) => {
+  if (!mm || !mm.state || !state) return
+  
+  try {
+    const traverse = (node: any, path: string[] = []) => {
+      if (!node) return
+      
+      const currentPath = [...path, node.content || '']
+      const pathKey = currentPath.join('|')
+      
+      // Restore fold state if we have it saved
+      if (state[pathKey] !== undefined) {
+        if (!node.payload) node.payload = {}
+        node.payload.fold = state[pathKey]
+      }
+      
+      if (node.children) {
+        node.children.forEach((child: any) => traverse(child, currentPath))
+      }
+    }
+    
+    traverse(mm.state.data)
+    mm.renderData()
+  } catch (error) {
+    console.error('Failed to restore markmap state:', error)
+  }
+}
+
 const renderMarkmap = async () => {
   if (!markmapRef.value || !props.markdown) return
 
   try {
+    // Save current fold/unfold state before re-rendering
+    if (mm) {
+      savedState = getMarkmapState()
+    }
+    
     // Process keynodes in the markdown before rendering
     const processedMarkdown = processKeynodes(props.markdown)
     
@@ -120,6 +186,13 @@ const renderMarkmap = async () => {
     const options = deriveOptions(jsonOptions)
     
     mm = Markmap.create(markmapRef.value, options, root)
+    
+    // Restore fold/unfold state after creating the new markmap
+    if (savedState) {
+      // Use nextTick to ensure the markmap is fully rendered
+      await nextTick()
+      restoreMarkmapState(savedState)
+    }
     
     // Apply theme styles after rendering
     applyThemeStyles()

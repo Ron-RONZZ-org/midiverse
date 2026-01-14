@@ -1,0 +1,34 @@
+module.exports = {
+  apps: [
+    {
+      name: 'midiverse-backend',
+      script: './dist/src/main.js',
+      cwd: '/var/www/midiverse-deployment/midiverse',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3010,
+        FRONTEND_URL: "https://midiverse.org", // Both midiverse.org and www.midiverse.org are allowed
+      },
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+    },
+    {
+      name: 'midiverse-frontend',
+      script: '.output/server/index.mjs',
+      cwd: '/var/www/midiverse-deployment/midiverse/frontend',
+      env: {
+        NODE_ENV: 'production',
+        HOST: '0.0.0.0',
+        PORT: 3001,
+        NUXT_PUBLIC_API_BASE: "/api",
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+    },
+  ],
+};

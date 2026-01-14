@@ -53,6 +53,8 @@ export const useTurnstile = () => {
             'error-callback': () => {
               reject(new Error('Turnstile verification failed'))
             },
+            theme: 'light',                                                                                                      │
+            size: 'normal',
           })
         })
         .catch(reject)

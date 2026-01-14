@@ -8,51 +8,55 @@
 
 ## Initial Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Ron-RONZZ-org/midiverse.git
-   cd midiverse
-   ```
+### Clone the repository
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-   
-   Note: This automatically runs `prisma generate` to create the Prisma Client.
+```bash
+git clone https://github.com/Ron-RONZZ-org/midiverse.git
+cd midiverse
+```
 
-3. **Configure environment variables**
-   
-   Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Update the `.env` file with your configuration:
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/midiverse?schema=public"
-   JWT_SECRET="your-secure-secret-key"
-   PORT=3000
-   ```
+### Install dependencies
 
-4. **Set up the database**
-   
-   Run database migrations:
-   ```bash
-   npx prisma migrate dev
-   ```
-   
-   This will apply all pending migrations to your database. For production deployments, use:
-   ```bash
-   npx prisma migrate deploy
-   ```
-   
-   (Optional) Seed the database:
-   ```bash
-   npx prisma db seed
-   ```
-   
-   Note: `prisma generate` is automatically run after `npm install`, so you don't need to run it manually unless you modify the schema.
+```bash
+npm install
+```
+
+Note: This automatically runs `prisma generate` to create the Prisma Client.
+
+### Configure environment variables
+
+
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+
+Update the `.env` file with your configuration:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/midiverse?schema=public"
+JWT_SECRET="your-secure-secret-key"
+PORT=3000
+```
+
+### Set up the database
+
+
+Run database migrations:
+```bash
+npx prisma migrate dev
+```
+
+This will apply all pending migrations to your database. For production deployments, use:
+```bash
+npx prisma migrate deploy
+```
+
+(Optional) Seed the database:
+```bash
+npx prisma db seed
+```
+
+Note: `prisma generate` is automatically run after `npm install`, so you don't need to run it manually unless you modify the schema.
 
 ## Running the Application
 
@@ -170,28 +174,33 @@ midiverse/
 
 ## Adding a New Feature
 
-1. **Create a new module**
-   ```bash
-   nest generate module feature-name
-   nest generate service feature-name
-   nest generate controller feature-name
-   ```
+### Create a new module
 
-2. **Add DTOs**
-   Create DTO files in `src/feature-name/dto/`
+```bash
+nest generate module feature-name
+nest generate service feature-name
+nest generate controller feature-name
+```
 
-3. **Update Prisma schema** (if needed)
-   Edit `prisma/schema.prisma` and run:
-   ```bash
-   npx prisma migrate dev --name add_feature_name
-   npx prisma generate
-   ```
+### Add DTOs
 
-4. **Write tests**
-   Create `.spec.ts` files alongside your services and controllers
+Create DTO files in `src/feature-name/dto/`
 
-5. **Update documentation**
-   Update `README.md` and `API.md` as needed
+### Update Prisma schema
+(if needed)
+Edit `prisma/schema.prisma` and run:
+```bash
+npx prisma migrate dev --name add_feature_name
+npx prisma generate
+```
+
+### Write tests
+
+Create `.spec.ts` files alongside your services and controllers
+
+### Update documentation
+
+Update `README.md` and `API.md` as needed
 
 ## Common Development Tasks
 
@@ -219,8 +228,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard)
 @Get('protected')
 getProtectedData(@CurrentUser() user: UserFromToken) {
-  // user is automatically populated from JWT
-  return this.service.getData(user.id);
+// user is automatically populated from JWT
+return this.service.getData(user.id);
 }
 ```
 

@@ -1,5 +1,7 @@
 # Midiverse maintenance instructions
 
+> If after successful update, the changes are still not applied to the web application, you are VERY LIKELY having multiple instances attached to different system users running via their own `pm2` manager. Since you only updated one of them, all others are still serving the older version. See [kill stale processes](#kill-stale-processes) for help. 
+
 ## Quick access
 
 ### Automated Update (Recommended)

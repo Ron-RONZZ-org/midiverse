@@ -8,6 +8,8 @@
 
 For automated updates, use the update script:
 
+> ❗ The script pulls the latest version on `remote main`. Uncommitted local changes will be stashed ! Commit them if you would like them reflected !
+
 ```bash
 cd /var/www/midiverse-deployment/midiverse
 

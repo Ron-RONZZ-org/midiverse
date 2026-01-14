@@ -52,10 +52,10 @@
     </div>
 
     <div v-if="shouldShowEditor" class="editor-layout" :class="{ 'fullscreen': isFullscreen, 'hide-preview': !showPreview }">
-      <!-- Floating exit fullscreen button - only show when preview is hidden -->
-      <div v-if="isFullscreen && !showPreview" class="fullscreen-exit-float">
+      <!-- Floating exit fullscreen button - show in fullscreen mode -->
+      <div v-if="isFullscreen" class="fullscreen-exit-float">
         <button @click="toggleFullscreen" class="btn btn-danger" type="button" title="Exit Fullscreen (ESC)">
-          ✕ Exit Fullscreen
+          ✕ {{ t('editor.exitFullscreen') }}
         </button>
       </div>
       

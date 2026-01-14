@@ -44,6 +44,7 @@ export const useTurnstile = () => {
             return
           }
 
+<<<<<<< Updated upstream
 const widgetId = window.turnstile.render(`#${containerId}`, {
   sitekey: siteKey,
   callback: (token: string) => {
@@ -58,6 +59,22 @@ const widgetId = window.turnstile.render(`#${containerId}`, {
 })
 })
 .catch(reject)
+=======
+          const widgetId = window.turnstile.render(`#${containerId}`, {
+            sitekey: siteKey,
+            theme: 'light',
+            size: 'normal',
+            callback: (token: string) => {
+              callback(token)
+              resolve(widgetId)
+            },
+            'error-callback': () => {
+              reject(new Error('Turnstile verification failed'))
+            },
+          })
+        })
+        .catch(reject)
+>>>>>>> Stashed changes
     })
   }
 

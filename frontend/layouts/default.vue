@@ -377,6 +377,15 @@ watch(showImportModal, (newVal) => {
   .nav-links button {
     justify-content: flex-start;
   }
+
+  .nav-links :deep(.language-switcher) {
+    width: 100%;
+  }
+
+  .nav-links :deep(.language-button) {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .brand {
@@ -422,6 +431,11 @@ watch(showImportModal, (newVal) => {
 .nav-links button {
   padding: 0.5rem 1rem;
   font-size: 14px;
+}
+
+.nav-links :deep(.language-switcher) {
+  display: flex;
+  align-items: center;
 }
 
 .btn-info {

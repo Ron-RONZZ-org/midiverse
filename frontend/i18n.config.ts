@@ -1,6 +1,6 @@
-import en from './locales/en.json'
-import fr from './locales/fr.json'
-import eo from './locales/eo.json'
+import en from './i18n/locales/en.json'
+import fr from './i18n/locales/fr.json'
+import eo from './i18n/locales/eo.json'
 
 export default defineI18nConfig(() => ({
   legacy: false,

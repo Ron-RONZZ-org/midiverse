@@ -44,20 +44,20 @@ export const useTurnstile = () => {
             return
           }
 
-          const widgetId = window.turnstile.render(`#${containerId}`, {
-            sitekey: siteKey,
-            callback: (token: string) => {
-              callback(token)
-              resolve(widgetId)
-            },
-            'error-callback': () => {
-              reject(new Error('Turnstile verification failed'))
-            },
-            theme: 'light',                                                                                                      │
-            size: 'normal',
-          })
-        })
-        .catch(reject)
+const widgetId = window.turnstile.render(`#${containerId}`, {
+  sitekey: siteKey,
+  callback: (token: string) => {
+    callback(token)
+    resolve(widgetId)
+  },
+  'error-callback': () => {
+    reject(new Error('Turnstile verification failed'))
+  },
+  theme: 'light',
+  size: 'normal',
+})
+})
+.catch(reject)
     })
   }
 

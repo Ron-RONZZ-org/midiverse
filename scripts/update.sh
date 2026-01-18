@@ -219,13 +219,13 @@ install_dependencies() {
   cd "$APP_DIR"
 
   # Backend dependencies
-  execute_command "npm install" "Installing backend dependencies..."
+  execute_command "npm install && npm audit fix" "Installing backend dependencies..."
   if [ "$DRY_RUN" = false ]; then
     print_success "Backend dependencies installed"
   fi
 
   # Frontend dependencies
-  execute_command "cd frontend && npm install && cd .." "Installing frontend dependencies..."
+  execute_command "cd frontend && npm install && npm audit fix && cd .." "Installing frontend dependencies..."
   if [ "$DRY_RUN" = false ]; then
     print_success "Frontend dependencies installed"
   fi

@@ -225,8 +225,7 @@ install_dependencies() {
   fi
 
   # Frontend dependencies
-  execute_command "(cd frontend && npm install || true && npm audit fix || true) ; cd -
-.." "Installing frontend dependencies..."
+  execute_command "(cd frontend && npm install || true && npm audit fix || true) && cd .." "Installing frontend dependencies..."
   if [ "$DRY_RUN" = false ]; then
     print_success "Frontend dependencies installed"
   fi

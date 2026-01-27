@@ -521,7 +521,7 @@ onMounted(() => {
 .midiverse-logo svg {
   display: block;
 }
-}
+
 
 .share-btn {
   position: absolute;

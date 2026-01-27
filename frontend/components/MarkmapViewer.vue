@@ -103,7 +103,7 @@ const loadAssets = async (assets: any) => {
     }
     
     // Wait a bit for KaTeX to initialize if it was just loaded
-    if (scripts && scripts.some((s: string) => s.includes('katex'))) {
+    if (scripts && scripts.some((s: string) => s.toLowerCase().includes('katex'))) {
       await new Promise(resolve => setTimeout(resolve, 100))
     }
   }
@@ -249,9 +249,12 @@ const renderMarkmap = async () => {
     applyThemeStyles()
     
     // Ensure LaTeX is rendered by waiting for any pending typesetting
-    if (typeof window !== 'undefined' && (window as any).katex) {
-      // Give KaTeX time to process any formulas
-      await new Promise(resolve => setTimeout(resolve, 50))
+    if (typeof window !== 'undefined') {
+      const win = window as Window & { katex?: any }
+      if (win.katex) {
+        // Give KaTeX time to process any formulas
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
     }
     
     // Reset zoom to 1.0 after initial render (fit will be called by markmap)

@@ -1,5 +1,21 @@
 <template>
-  <svg ref="markmapRef" class="markmap-container"></svg>
+  <div class="markmap-wrapper">
+    <svg ref="markmapRef" class="markmap-container"></svg>
+    
+    <!-- Zoom Control Panel (bottom-right) -->
+    <div v-if="showControls" class="zoom-controls">
+      <button @click="zoomIn" class="zoom-btn" title="Zoom In">
+        <span class="zoom-icon">+</span>
+      </button>
+      <div class="zoom-level">{{ zoomPercentage }}%</div>
+      <button @click="zoomOut" class="zoom-btn" title="Zoom Out">
+        <span class="zoom-icon">−</span>
+      </button>
+      <button @click="resetZoom" class="zoom-btn zoom-reset" title="Reset Zoom">
+        <span class="zoom-icon">⟲</span>
+      </button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -7,20 +23,25 @@ import { Markmap, deriveOptions } from 'markmap-view'
 import { Transformer } from 'markmap-lib'
 import { loadCSS, loadJS } from 'markmap-common'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   markdown: string
   options?: {
     maxWidth?: number
     colorFreezeLevel?: number
     initialExpandLevel?: number
   }
-}>()
+  showControls?: boolean
+}>(), {
+  showControls: true
+})
 
 const markmapRef = ref<HTMLElement | null>(null)
 let mm: any = null
 const transformer = new Transformer()
 let themeStyleElement: HTMLStyleElement | null = null
 let savedState: any = null // Store the fold/unfold state
+const currentZoom = ref(1.0) // Track current zoom level
+const zoomPercentage = computed(() => Math.round(currentZoom.value * 100))
 
 // Detect if dark theme is active
 const isDarkTheme = () => {
@@ -66,17 +87,47 @@ const applyThemeStyles = () => {
   `
 }
 
-// Load required assets
+// Load required assets with improved LaTeX support
 const loadAssets = async (assets: any) => {
   if (assets) {
     const { styles, scripts } = assets
+    
+    // Load CSS first (KaTeX styles need to be loaded before rendering)
     if (styles && styles.length > 0) {
       await loadCSS(styles)
     }
+    
+    // Load JS scripts (KaTeX library)
     if (scripts && scripts.length > 0) {
       await loadJS(scripts)
     }
+    
+    // Wait a bit for KaTeX to initialize if it was just loaded
+    if (scripts && scripts.some((s: string) => s.includes('katex'))) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
   }
+}
+
+// Zoom control functions
+const zoomIn = () => {
+  if (!mm) return
+  const newScale = currentZoom.value * 1.2
+  currentZoom.value = newScale
+  mm.rescale(newScale)
+}
+
+const zoomOut = () => {
+  if (!mm) return
+  const newScale = currentZoom.value * 0.8
+  currentZoom.value = newScale
+  mm.rescale(newScale)
+}
+
+const resetZoom = () => {
+  if (!mm) return
+  currentZoom.value = 1.0
+  mm.fit()
 }
 
 // Process markdown to convert !{keynode} syntax to markdown links
@@ -196,6 +247,15 @@ const renderMarkmap = async () => {
     
     // Apply theme styles after rendering
     applyThemeStyles()
+    
+    // Ensure LaTeX is rendered by waiting for any pending typesetting
+    if (typeof window !== 'undefined' && (window as any).katex) {
+      // Give KaTeX time to process any formulas
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    
+    // Reset zoom to 1.0 after initial render (fit will be called by markmap)
+    currentZoom.value = 1.0
   } catch (error) {
     console.error('Failed to render markmap:', error)
   }
@@ -246,8 +306,94 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.markmap-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .markmap-container {
   width: 100%;
   height: 100%;
+}
+
+.zoom-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 50px;
+}
+
+.dark-theme .zoom-controls {
+  background: rgba(40, 40, 40, 0.95);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.zoom-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--text-primary, #333);
+  font-size: 18px;
+  padding: 0;
+}
+
+.dark-theme .zoom-btn {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary, #e0e0e0);
+}
+
+.zoom-btn:hover {
+  background: rgba(0, 123, 255, 0.1);
+  border-color: rgba(0, 123, 255, 0.5);
+}
+
+.zoom-btn:active {
+  transform: scale(0.95);
+}
+
+.zoom-icon {
+  display: block;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.zoom-level {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  padding: 4px 0;
+  min-width: 45px;
+}
+
+.dark-theme .zoom-level {
+  color: var(--text-primary, #e0e0e0);
+}
+
+.zoom-reset {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.dark-theme .zoom-reset {
+  border-top-color: rgba(255, 255, 255, 0.1);
 }
 </style>

@@ -48,6 +48,13 @@
       </div>
 
       <div :class="['markmap-view', { 'fullscreen-view': isFullscreenMode }]">
+        <!-- Midiverse Logo (top-left in fullscreen) -->
+        <NuxtLink v-if="isFullscreenMode" to="/" class="midiverse-logo" title="Midiverse Home">
+          <svg width="120" height="32" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="5" y="24" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="currentColor">Midiverse</text>
+          </svg>
+        </NuxtLink>
+        
         <button v-if="isFullscreenMode" @click="exitFullscreen" class="exit-fullscreen-btn" title="Exit Fullscreen">
           ✕
         </button>
@@ -485,6 +492,35 @@ onMounted(() => {
 
 .exit-fullscreen-btn:hover {
   background: rgba(0, 0, 0, 0.9);
+}
+
+.midiverse-logo {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  text-decoration: none;
+  color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.dark-theme .midiverse-logo {
+  background: rgba(40, 40, 40, 0.9);
+  color: #4da6ff;
+}
+
+.midiverse-logo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.midiverse-logo svg {
+  display: block;
+}
 }
 
 .share-btn {

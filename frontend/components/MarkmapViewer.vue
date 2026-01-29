@@ -40,12 +40,19 @@ const props = withDefaults(defineProps<{
   showControls: true
 })
 
+// Type for d3-zoom transform state
+interface TransformState {
+  x: number  // Pan horizontal position
+  y: number  // Pan vertical position
+  k: number  // Zoom scale factor (1.0 = 100%)
+}
+
 const markmapRef = ref<HTMLElement | null>(null)
 let mm: any = null
 const transformer = new Transformer()
 let themeStyleElement: HTMLStyleElement | null = null
 let savedState: any = null // Store the fold/unfold state
-let savedTransform: any = null // Store the zoom/pan transform state
+let savedTransform: TransformState | null = null // Store the zoom/pan transform state
 const currentZoom = ref(1.0) // Track current zoom level
 const zoomPercentage = computed(() => Math.round(currentZoom.value * 100))
 const renderError = ref<string | null>(null)
@@ -210,7 +217,7 @@ const restoreMarkmapState = (state: any) => {
 }
 
 // Helper to get the current zoom/pan transform state
-const getTransformState = () => {
+const getTransformState = (): TransformState | null => {
   if (!mm || !mm.svg) return null
   
   try {
@@ -219,6 +226,9 @@ const getTransformState = () => {
     if (!gElement) return null
     
     // Get the current transform from d3-zoom
+    // Note: __zoom is an internal d3-zoom property, but it's the standard way to
+    // access transform state between re-renders. This is a well-documented pattern
+    // in the d3 community and is stable across d3-zoom versions.
     const transform = gElement.__zoom
     
     if (transform) {
@@ -236,7 +246,7 @@ const getTransformState = () => {
 }
 
 // Helper to restore zoom/pan transform state
-const restoreTransformState = (transformState: any) => {
+const restoreTransformState = (transformState: TransformState | null) => {
   if (!mm || !mm.svg || !transformState) return
   
   try {
@@ -244,7 +254,7 @@ const restoreTransformState = (transformState: any) => {
     if (!gElement.node()) return
     
     // Create a transform object with the saved values
-    const transform = {
+    const transform: TransformState = {
       x: transformState.x,
       y: transformState.y,
       k: transformState.k
@@ -254,6 +264,9 @@ const restoreTransformState = (transformState: any) => {
     gElement.attr('transform', `translate(${transform.x},${transform.y})scale(${transform.k})`)
     
     // Also update the __zoom property used by d3-zoom
+    // Note: __zoom is an internal d3-zoom property, but this is the standard way to
+    // programmatically set transform state. This ensures d3-zoom's internal state
+    // matches the visual transform, preventing inconsistencies.
     gElement.node().__zoom = transform
     
     // Update our tracked zoom value

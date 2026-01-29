@@ -1,9 +1,14 @@
 <template>
   <div class="markmap-wrapper">
-    <svg ref="markmapRef" class="markmap-container"></svg>
+    <div v-if="renderError" class="render-error">
+      <p class="error-title">⚠️ Failed to render markmap</p>
+      <p class="error-message">{{ renderError }}</p>
+      <button @click="retryRender" class="retry-btn">Retry</button>
+    </div>
+    <svg v-else ref="markmapRef" class="markmap-container"></svg>
     
     <!-- Zoom Control Panel (bottom-right) -->
-    <div v-if="showControls" class="zoom-controls">
+    <div v-if="showControls && !renderError" class="zoom-controls">
       <button @click="zoomIn" class="zoom-btn" title="Zoom In">
         <span class="zoom-icon">+</span>
       </button>
@@ -42,6 +47,7 @@ let themeStyleElement: HTMLStyleElement | null = null
 let savedState: any = null // Store the fold/unfold state
 const currentZoom = ref(1.0) // Track current zoom level
 const zoomPercentage = computed(() => Math.round(currentZoom.value * 100))
+const renderError = ref<string | null>(null)
 
 // Detect if dark theme is active
 const isDarkTheme = () => {
@@ -200,9 +206,19 @@ const restoreMarkmapState = (state: any) => {
 }
 
 const renderMarkmap = async () => {
-  if (!markmapRef.value || !props.markdown) return
+  if (!props.markdown) {
+    renderError.value = 'No markdown content provided'
+    return
+  }
+  
+  if (!markmapRef.value) {
+    renderError.value = 'Markmap container not ready'
+    return
+  }
 
   try {
+    renderError.value = null // Clear any previous error
+    
     // Save current fold/unfold state before re-rendering
     if (mm) {
       savedState = getMarkmapState()
@@ -261,7 +277,13 @@ const renderMarkmap = async () => {
     currentZoom.value = 1.0
   } catch (error) {
     console.error('Failed to render markmap:', error)
+    renderError.value = error instanceof Error ? error.message : 'An unknown error occurred while rendering the markmap'
   }
+}
+
+const retryRender = () => {
+  renderError.value = null
+  renderMarkmap()
 }
 
 // Watch for theme changes using MutationObserver
@@ -318,6 +340,46 @@ onUnmounted(() => {
 .markmap-container {
   width: 100%;
   height: 100%;
+}
+
+.render-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+  text-align: center;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 8px;
+}
+
+.error-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--danger-color, #dc3545);
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  color: var(--text-secondary, #666);
+  margin-bottom: 1rem;
+  max-width: 600px;
+}
+
+.retry-btn {
+  background: var(--primary-color, #007bff);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.retry-btn:hover {
+  background: var(--primary-hover, #0056b3);
 }
 
 .zoom-controls {

@@ -109,7 +109,10 @@ const loadAssets = async (assets: any) => {
     }
     
     // Wait a bit for KaTeX to initialize if it was just loaded
-    if (scripts && scripts.some((s: string) => s.toLowerCase().includes('katex'))) {
+    if (scripts && scripts.some((s: any) => {
+      const src = s.data?.src || s.data || ''
+      return typeof src === 'string' && src.toLowerCase().includes('katex')
+    })) {
       await new Promise(resolve => setTimeout(resolve, 100))
     }
   }

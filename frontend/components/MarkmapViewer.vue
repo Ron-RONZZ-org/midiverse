@@ -27,6 +27,7 @@
 import { Markmap, deriveOptions } from 'markmap-view'
 import { Transformer } from 'markmap-lib'
 import { loadCSS, loadJS } from 'markmap-common'
+import { zoomIdentity } from 'd3-zoom'
 
 const props = withDefaults(defineProps<{
   markdown: string
@@ -144,6 +145,7 @@ const zoomOut = () => {
 const resetZoom = () => {
   if (!mm) return
   currentZoom.value = 1.0
+  savedTransform = null // Clear saved transform so reset persists across re-renders
   mm.fit()
 }
 
@@ -229,7 +231,8 @@ const getTransformState = (): TransformState | null => {
     // Note: __zoom is an internal d3-zoom property, but it's the standard way to
     // access transform state between re-renders. This is a well-documented pattern
     // in the d3 community and is stable across d3-zoom versions.
-    const transform = gElement.__zoom
+    // Using type assertion since __zoom is not in TypeScript definitions
+    const transform = (gElement as any).__zoom
     
     if (transform) {
       return {
@@ -253,24 +256,24 @@ const restoreTransformState = (transformState: TransformState | null) => {
     const gElement = mm.svg.select('g')
     if (!gElement.node()) return
     
-    // Create a transform object with the saved values
-    const transform: TransformState = {
-      x: transformState.x,
-      y: transformState.y,
-      k: transformState.k
-    }
+    // Create a proper d3-zoom transform object using zoomIdentity
+    // This ensures compatibility with d3-zoom's internal expectations
+    const transform = zoomIdentity
+      .translate(transformState.x, transformState.y)
+      .scale(transformState.k)
     
     // Apply the transform directly to the g element
-    gElement.attr('transform', `translate(${transform.x},${transform.y})scale(${transform.k})`)
+    gElement.attr('transform', transform.toString())
     
     // Also update the __zoom property used by d3-zoom
     // Note: __zoom is an internal d3-zoom property, but this is the standard way to
     // programmatically set transform state. This ensures d3-zoom's internal state
     // matches the visual transform, preventing inconsistencies.
-    gElement.node().__zoom = transform
+    // Using type assertion since __zoom is not in TypeScript definitions
+    ;(gElement.node() as any).__zoom = transform
     
     // Update our tracked zoom value
-    currentZoom.value = transform.k
+    currentZoom.value = transformState.k
   } catch (error) {
     console.error('Failed to restore transform state:', error)
   }
@@ -407,6 +410,9 @@ onUnmounted(() => {
   if (themeStyleElement) {
     themeStyleElement.remove()
   }
+  // Clear saved state for cleanup
+  savedState = null
+  savedTransform = null
 })
 </script>
 

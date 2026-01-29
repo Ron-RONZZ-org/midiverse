@@ -20,17 +20,17 @@ export default defineNuxtConfig({
       {
         code: 'en',
         name: 'English',
-        files: ['en.json']
+        file: 'en.json'
       },
       {
         code: 'fr',
         name: 'Français',
-        files: ['fr.json']
+        file: 'fr.json'
       },
       {
         code: 'eo',
         name: 'Esperanto',
-        files: ['eo.json']
+        file: 'eo.json'
       }
     ],
     lazy: true,

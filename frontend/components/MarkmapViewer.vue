@@ -45,6 +45,7 @@ let mm: any = null
 const transformer = new Transformer()
 let themeStyleElement: HTMLStyleElement | null = null
 let savedState: any = null // Store the fold/unfold state
+let savedTransform: any = null // Store the zoom/pan transform state
 const currentZoom = ref(1.0) // Track current zoom level
 const zoomPercentage = computed(() => Math.round(currentZoom.value * 100))
 const renderError = ref<string | null>(null)
@@ -208,6 +209,60 @@ const restoreMarkmapState = (state: any) => {
   }
 }
 
+// Helper to get the current zoom/pan transform state
+const getTransformState = () => {
+  if (!mm || !mm.svg) return null
+  
+  try {
+    // The 'g' element contains the transform with zoom/pan info
+    const gElement = mm.svg.select('g').node()
+    if (!gElement) return null
+    
+    // Get the current transform from d3-zoom
+    const transform = gElement.__zoom
+    
+    if (transform) {
+      return {
+        x: transform.x,
+        y: transform.y,
+        k: transform.k // k = scale/zoom level
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Failed to get transform state:', error)
+    return null
+  }
+}
+
+// Helper to restore zoom/pan transform state
+const restoreTransformState = (transformState: any) => {
+  if (!mm || !mm.svg || !transformState) return
+  
+  try {
+    const gElement = mm.svg.select('g')
+    if (!gElement.node()) return
+    
+    // Create a transform object with the saved values
+    const transform = {
+      x: transformState.x,
+      y: transformState.y,
+      k: transformState.k
+    }
+    
+    // Apply the transform directly to the g element
+    gElement.attr('transform', `translate(${transform.x},${transform.y})scale(${transform.k})`)
+    
+    // Also update the __zoom property used by d3-zoom
+    gElement.node().__zoom = transform
+    
+    // Update our tracked zoom value
+    currentZoom.value = transform.k
+  } catch (error) {
+    console.error('Failed to restore transform state:', error)
+  }
+}
+
 const renderMarkmap = async () => {
   if (!props.markdown) {
     renderError.value = 'No markdown content provided'
@@ -222,9 +277,10 @@ const renderMarkmap = async () => {
   try {
     renderError.value = null // Clear any previous error
     
-    // Save current fold/unfold state before re-rendering
+    // Save current fold/unfold state and transform state before re-rendering
     if (mm) {
       savedState = getMarkmapState()
+      savedTransform = getTransformState()
     }
     
     // Process keynodes in the markdown before rendering
@@ -264,6 +320,12 @@ const renderMarkmap = async () => {
       restoreMarkmapState(savedState)
     }
     
+    // Restore zoom/pan transform state after creating the new markmap
+    if (savedTransform) {
+      await nextTick()
+      restoreTransformState(savedTransform)
+    }
+    
     // Apply theme styles after rendering
     applyThemeStyles()
     
@@ -276,8 +338,10 @@ const renderMarkmap = async () => {
       }
     }
     
-    // Reset zoom to 1.0 after initial render (fit will be called by markmap)
-    currentZoom.value = 1.0
+    // Only reset zoom to 1.0 if we didn't restore a saved transform
+    if (!savedTransform) {
+      currentZoom.value = 1.0
+    }
   } catch (error) {
     console.error('Failed to render markmap:', error)
     renderError.value = error instanceof Error ? error.message : 'An unknown error occurred while rendering the markmap'

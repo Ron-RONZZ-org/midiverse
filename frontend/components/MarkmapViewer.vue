@@ -27,6 +27,7 @@
 import { Markmap, deriveOptions } from 'markmap-view'
 import { Transformer } from 'markmap-lib'
 import { loadCSS, loadJS } from 'markmap-common'
+import { zoomIdentity } from 'd3-zoom'
 
 const props = withDefaults(defineProps<{
   markdown: string
@@ -40,11 +41,19 @@ const props = withDefaults(defineProps<{
   showControls: true
 })
 
+// Type for d3-zoom transform state
+interface TransformState {
+  x: number  // Pan horizontal position
+  y: number  // Pan vertical position
+  k: number  // Zoom scale factor (1.0 = 100%)
+}
+
 const markmapRef = ref<HTMLElement | null>(null)
 let mm: any = null
 const transformer = new Transformer()
 let themeStyleElement: HTMLStyleElement | null = null
 let savedState: any = null // Store the fold/unfold state
+let savedTransform: TransformState | null = null // Store the zoom/pan transform state
 const currentZoom = ref(1.0) // Track current zoom level
 const zoomPercentage = computed(() => Math.round(currentZoom.value * 100))
 const renderError = ref<string | null>(null)
@@ -136,6 +145,7 @@ const zoomOut = () => {
 const resetZoom = () => {
   if (!mm) return
   currentZoom.value = 1.0
+  savedTransform = null // Clear saved transform so reset persists across re-renders
   mm.fit()
 }
 
@@ -208,6 +218,67 @@ const restoreMarkmapState = (state: any) => {
   }
 }
 
+// Helper to get the current zoom/pan transform state
+const getTransformState = (): TransformState | null => {
+  if (!mm || !mm.svg) return null
+  
+  try {
+    // The 'g' element contains the transform with zoom/pan info
+    const gElement = mm.svg.select('g').node()
+    if (!gElement) return null
+    
+    // Get the current transform from d3-zoom
+    // Note: __zoom is an internal d3-zoom property, but it's the standard way to
+    // access transform state between re-renders. This is a well-documented pattern
+    // in the d3 community and is stable across d3-zoom versions.
+    // Using type assertion since __zoom is not in TypeScript definitions
+    const transform = (gElement as any).__zoom
+    
+    if (transform) {
+      return {
+        x: transform.x,
+        y: transform.y,
+        k: transform.k // k = scale/zoom level
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Failed to get transform state:', error)
+    return null
+  }
+}
+
+// Helper to restore zoom/pan transform state
+const restoreTransformState = (transformState: TransformState | null) => {
+  if (!mm || !mm.svg || !transformState) return
+  
+  try {
+    const gElement = mm.svg.select('g')
+    if (!gElement.node()) return
+    
+    // Create a proper d3-zoom transform object using zoomIdentity
+    // This ensures compatibility with d3-zoom's internal expectations
+    const transform = zoomIdentity
+      .translate(transformState.x, transformState.y)
+      .scale(transformState.k)
+    
+    // Apply the transform directly to the g element
+    gElement.attr('transform', transform.toString())
+    
+    // Also update the __zoom property used by d3-zoom
+    // Note: __zoom is an internal d3-zoom property, but this is the standard way to
+    // programmatically set transform state. This ensures d3-zoom's internal state
+    // matches the visual transform, preventing inconsistencies.
+    // Using type assertion since __zoom is not in TypeScript definitions
+    ;(gElement.node() as any).__zoom = transform
+    
+    // Update our tracked zoom value
+    currentZoom.value = transformState.k
+  } catch (error) {
+    console.error('Failed to restore transform state:', error)
+  }
+}
+
 const renderMarkmap = async () => {
   if (!props.markdown) {
     renderError.value = 'No markdown content provided'
@@ -222,9 +293,10 @@ const renderMarkmap = async () => {
   try {
     renderError.value = null // Clear any previous error
     
-    // Save current fold/unfold state before re-rendering
+    // Save current fold/unfold state and transform state before re-rendering
     if (mm) {
       savedState = getMarkmapState()
+      savedTransform = getTransformState()
     }
     
     // Process keynodes in the markdown before rendering
@@ -264,6 +336,12 @@ const renderMarkmap = async () => {
       restoreMarkmapState(savedState)
     }
     
+    // Restore zoom/pan transform state after creating the new markmap
+    if (savedTransform) {
+      await nextTick()
+      restoreTransformState(savedTransform)
+    }
+    
     // Apply theme styles after rendering
     applyThemeStyles()
     
@@ -276,8 +354,10 @@ const renderMarkmap = async () => {
       }
     }
     
-    // Reset zoom to 1.0 after initial render (fit will be called by markmap)
-    currentZoom.value = 1.0
+    // Only reset zoom to 1.0 if we didn't restore a saved transform
+    if (!savedTransform) {
+      currentZoom.value = 1.0
+    }
   } catch (error) {
     console.error('Failed to render markmap:', error)
     renderError.value = error instanceof Error ? error.message : 'An unknown error occurred while rendering the markmap'
@@ -330,6 +410,9 @@ onUnmounted(() => {
   if (themeStyleElement) {
     themeStyleElement.remove()
   }
+  // Clear saved state for cleanup
+  savedState = null
+  savedTransform = null
 })
 </script>
 

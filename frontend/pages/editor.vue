@@ -180,7 +180,7 @@
           </div>
 
           <div class="form-group">
-            <label for="tags">Tags (start with #) (Alt+G)</label>
+            <label for="tags">{{ t('editor.tagsLabel') }} (Alt+G)</label>
             <div class="tags-input-container">
               <div class="tags-list">
                 <span v-for="(tag, index) in form.tags" :key="index" class="tag-chip">
@@ -1361,30 +1361,30 @@ const ensureName = () => {
 
 // Keyboard shortcut handler
 const handleKeyboardShortcuts = (e: KeyboardEvent) => {
-  // Check if Alt key is pressed
-  if (e.altKey) {
-    switch (e.key.toLowerCase()) {
-      case 't':
-        e.preventDefault()
-        titleInputRef.value?.focus()
-        break
-      case 'c':
-        e.preventDefault()
-        textareaRef.value?.focus()
-        break
-      case 'l':
-        e.preventDefault()
-        languageInputRef.value?.focus()
-        break
-      case 's':
-        e.preventDefault()
-        seriesInputRef.value?.focus()
-        break
-      case 'g':
-        e.preventDefault()
-        tagsInputRef.value?.focus()
-        break
-    }
+  // Early return if Alt key is not pressed for efficiency
+  if (!e.altKey) return
+  
+  switch (e.key.toLowerCase()) {
+    case 't':
+      e.preventDefault()
+      titleInputRef.value?.focus()
+      break
+    case 'c':
+      e.preventDefault()
+      textareaRef.value?.focus()
+      break
+    case 'l':
+      e.preventDefault()
+      languageInputRef.value?.focus()
+      break
+    case 's':
+      e.preventDefault()
+      seriesInputRef.value?.focus()
+      break
+    case 'g':
+      e.preventDefault()
+      tagsInputRef.value?.focus()
+      break
   }
 }
 
@@ -1414,11 +1414,8 @@ onMounted(async () => {
     await nextTick()
     textareaRef.value?.focus()
   } else {
-    // Creating new markmap - focus on title field
-    await nextTick()
-    titleInputRef.value?.focus()
-    
-    // Not editing - try to restore from localStorage
+    // Not editing - try to restore from localStorage first
+    let hasDraft = false
     if (process.client) {
       const savedDraft = localStorage.getItem('markmap-draft')
       if (savedDraft) {
@@ -1441,6 +1438,7 @@ onMounted(async () => {
                 }
               }, 500)
             }
+            hasDraft = true
             console.log('Restored draft from localStorage')
           } else {
             // Clear old draft
@@ -1451,6 +1449,12 @@ onMounted(async () => {
           localStorage.removeItem('markmap-draft')
         }
       }
+    }
+    
+    // Auto-focus on title field only if no draft was restored
+    if (!hasDraft) {
+      await nextTick()
+      titleInputRef.value?.focus()
     }
   }
   await loadUserSeries()

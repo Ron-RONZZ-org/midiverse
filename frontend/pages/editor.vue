@@ -94,12 +94,12 @@
         
         <form @submit.prevent="handleSubmit">
           <div class="form-group">
-            <label for="title">{{ t('editor.titleLabel') }}</label>
-            <input id="title" v-model="form.title" type="text" required />
+            <label for="title">{{ t('editor.titleLabel') }} (Alt+T)</label>
+            <input id="title" ref="titleInputRef" v-model="form.title" type="text" required />
           </div>
 
           <div class="form-group">
-            <label for="text">{{ t('editor.contentLabel') }}</label>
+            <label for="text">{{ t('editor.contentLabel') }} (Alt+C)</label>
             <div class="textarea-wrapper">
               <textarea 
                 id="text" 
@@ -115,10 +115,11 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="language">{{ t('editor.languageLabel') }}</label>
+              <label for="language">{{ t('editor.languageLabel') }} (Alt+L)</label>
               <div class="autocomplete-wrapper">
                 <input 
                   id="language" 
+                  ref="languageInputRef"
                   v-model="languageInput" 
                   type="text" 
                   :placeholder="t('editor.languagePlaceholder')"
@@ -141,11 +142,12 @@
             </div>
 
             <div class="form-group">
-              <label for="series">{{ t('editor.seriesLabel') }}</label>
+              <label for="series">{{ t('editor.seriesLabel') }} (Alt+S)</label>
               <div class="series-select-container">
                 <div class="series-input-wrapper">
                   <input
                     id="series"
+                    ref="seriesInputRef"
                     v-model="seriesInput"
                     type="text"
                     :placeholder="t('editor.seriesPlaceholder')"
@@ -178,7 +180,7 @@
           </div>
 
           <div class="form-group">
-            <label for="tags">Tags (start with #)</label>
+            <label for="tags">{{ t('editor.tagsLabel') }} (Alt+G)</label>
             <div class="tags-input-container">
               <div class="tags-list">
                 <span v-for="(tag, index) in form.tags" :key="index" class="tag-chip">
@@ -189,6 +191,7 @@
               <div class="tag-input-wrapper">
                 <input 
                   id="tags" 
+                  ref="tagsInputRef"
                   v-model="tagInput" 
                   type="text" 
                   placeholder="Type to add tags (e.g., #javascript)"
@@ -295,6 +298,7 @@
             <label for="seriesName">Series Name</label>
             <input 
               id="seriesName" 
+              ref="seriesNameInputRef"
               v-model="newSeriesName" 
               type="text" 
               required
@@ -468,6 +472,13 @@ const showKeynoteSuggestions = ref(false)
 const selectedKeynoteSuggestionIndex = ref(0)
 let keynodeDebounceTimer: NodeJS.Timeout | null = null
 let keynodeStartPos = 0
+
+// Refs for input fields (for auto-focus and keyboard shortcuts)
+const titleInputRef = ref<HTMLInputElement | null>(null)
+const languageInputRef = ref<HTMLInputElement | null>(null)
+const seriesInputRef = ref<HTMLInputElement | null>(null)
+const tagsInputRef = ref<HTMLInputElement | null>(null)
+const seriesNameInputRef = ref<HTMLInputElement | null>(null)
 
 // Keynode creation modal
 const showCreateKeynodeModal = ref(false)
@@ -1348,19 +1359,49 @@ const ensureName = () => {
   }
 }
 
+// Keyboard shortcut handler
+const handleKeyboardShortcuts = (e: KeyboardEvent) => {
+  // Early return if Alt key is not pressed for efficiency
+  if (!e.altKey) return
+  
+  switch (e.key.toLowerCase()) {
+    case 't':
+      e.preventDefault()
+      titleInputRef.value?.focus()
+      break
+    case 'c':
+      e.preventDefault()
+      textareaRef.value?.focus()
+      break
+    case 'l':
+      e.preventDefault()
+      languageInputRef.value?.focus()
+      break
+    case 's':
+      e.preventDefault()
+      seriesInputRef.value?.focus()
+      break
+    case 'g':
+      e.preventDefault()
+      tagsInputRef.value?.focus()
+      break
+  }
+}
+
 onMounted(async () => {
-  // Handle ESC key to exit fullscreen
+  // Handle ESC key to exit fullscreen and keyboard shortcuts
   if (process.client) {
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleKeydown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isFullscreen.value) {
         toggleFullscreen()
       }
+      handleKeyboardShortcuts(e)
     }
-    window.addEventListener('keydown', handleEscape)
+    window.addEventListener('keydown', handleKeydown)
     
     // Clean up on unmount
     onUnmounted(() => {
-      window.removeEventListener('keydown', handleEscape)
+      window.removeEventListener('keydown', handleKeydown)
     })
   }
   
@@ -1368,9 +1409,13 @@ onMounted(async () => {
   if (id) {
     editMode.value = true
     markmapId.value = id
-    loadMarkmap(id)
+    await loadMarkmap(id)
+    // Auto-focus on content field when editing existing markmap
+    await nextTick()
+    textareaRef.value?.focus()
   } else {
-    // Not editing - try to restore from localStorage
+    // Not editing - try to restore from localStorage first
+    let hasDraft = false
     if (process.client) {
       const savedDraft = localStorage.getItem('markmap-draft')
       if (savedDraft) {
@@ -1393,6 +1438,7 @@ onMounted(async () => {
                 }
               }, 500)
             }
+            hasDraft = true
             console.log('Restored draft from localStorage')
           } else {
             // Clear old draft
@@ -1403,6 +1449,12 @@ onMounted(async () => {
           localStorage.removeItem('markmap-draft')
         }
       }
+    }
+    
+    // Auto-focus on title field only if no draft was restored
+    if (!hasDraft) {
+      await nextTick()
+      titleInputRef.value?.focus()
     }
   }
   await loadUserSeries()
@@ -1450,6 +1502,14 @@ watch(() => [form.value.title, form.value.maxWidth, form.value.colorFreezeLevel,
       type: 'markmap-preview-update',
       data: previewData
     }, '*')
+  }
+})
+
+// Auto-focus on series name input when series modal opens
+watch(showCreateSeriesModal, async (newVal) => {
+  if (newVal) {
+    await nextTick()
+    seriesNameInputRef.value?.focus()
   }
 })
 

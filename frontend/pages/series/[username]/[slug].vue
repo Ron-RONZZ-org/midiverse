@@ -92,15 +92,28 @@ onMounted(() => {
 })
 
 // Update page metadata
-useHead(() => ({
-  title: series.value ? `${series.value.name} - Series by ${username.value}` : 'Series',
-  meta: [
-    {
-      name: 'description',
-      content: series.value?.description || `View the ${series.value?.name || 'series'} by ${username.value}`
-    }
-  ]
-}))
+useHead(() => {
+  const title = series.value ? `${series.value.name} - Series by ${username.value}` : 'Series'
+  const description = series.value?.description || `View the ${series.value?.name || 'series'} by ${username.value}`
+  
+  return {
+    title: title + ' - Midiverse',
+    meta: [
+      {
+        name: 'description',
+        content: description
+      },
+      {
+        property: 'og:title',
+        content: title
+      },
+      {
+        property: 'og:description',
+        content: description
+      }
+    ]
+  }
+})
 </script>
 
 <style scoped>

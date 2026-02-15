@@ -297,6 +297,25 @@ watch([trendData, trendLoading, plotlyLoaded], async () => {
 watch(selectedFilter, () => {
   fetchStatistics()
 })
+
+// Set page metadata
+useHead({
+  title: 'Trending Tags - Midiverse',
+  meta: [
+    {
+      name: 'description',
+      content: 'Explore trending tags and discover popular markmaps on Midiverse. View tag statistics and historical trends to find the most popular content.'
+    },
+    {
+      property: 'og:title',
+      content: 'Trending Tags - Midiverse'
+    },
+    {
+      property: 'og:description',
+      content: 'Explore trending tags and discover popular markmaps on Midiverse'
+    }
+  ]
+})
 </script>
 
 <style scoped>

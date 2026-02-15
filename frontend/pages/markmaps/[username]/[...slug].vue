@@ -356,6 +356,52 @@ const copyDirectLinkFromModal = async () => {
 onMounted(() => {
   loadMarkmap()
 })
+
+// Update page metadata
+useHead(() => {
+  if (!markmap.value) {
+    return {
+      title: 'Loading Markmap - Midiverse',
+      meta: [
+        {
+          name: 'description',
+          content: 'Loading markmap visualization...'
+        }
+      ]
+    }
+  }
+  
+  const title = `${markmap.value.title} - Midiverse`
+  const author = markmap.value.author?.username || 'Anonymous'
+  
+  // Create description from markdown text (first 150 chars)
+  let description = markmap.value.text
+    .replace(/[#*`\[\]]/g, '') // Remove markdown symbols
+    .trim()
+    .slice(0, 150)
+  
+  if (markmap.value.text.length > 150) {
+    description += '...'
+  }
+  
+  return {
+    title,
+    meta: [
+      {
+        name: 'description',
+        content: `${description} - Created by ${author} on Midiverse`
+      },
+      {
+        property: 'og:title',
+        content: title
+      },
+      {
+        property: 'og:description',
+        content: description
+      }
+    ]
+  }
+})
 </script>
 
 <style scoped>

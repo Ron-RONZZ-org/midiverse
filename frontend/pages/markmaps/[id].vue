@@ -327,6 +327,9 @@ const copyDirectLinkFromModal = async () => {
 onMounted(() => {
   loadMarkmap()
 })
+
+// Update page metadata
+useHead(() => generateMarkmapMeta(markmap.value))
 </script>
 
 <style scoped>

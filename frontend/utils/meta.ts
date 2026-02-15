@@ -1,7 +1,18 @@
 /**
+ * Interface for markmap data
+ */
+interface MarkmapData {
+  title: string
+  text: string
+  author?: {
+    username?: string
+  }
+}
+
+/**
  * Generate meta tags for a markmap page
  */
-export function generateMarkmapMeta(markmap: any) {
+export function generateMarkmapMeta(markmap: MarkmapData | null) {
   if (!markmap) {
     return {
       title: 'Loading Markmap - Midiverse',
@@ -17,16 +28,16 @@ export function generateMarkmapMeta(markmap: any) {
   const title = `${markmap.title} - Midiverse`
   const author = markmap.author?.username || 'Anonymous'
 
-  // Create description from markdown text (first 150 chars)
-  // Remove common markdown symbols: #, *, _, `, [, ], (, ), ~
+  // Create description from markdown text (first 150 chars including ellipsis)
+  // Remove common markdown symbols: #, *, _, `, [, ], (, ), ~, -
   let description = markmap.text
-    .replace(/[#*_`\[\]()~]/g, '') // Remove markdown symbols
+    .replace(/[#*_`\[\]()~\-]/g, '') // Remove markdown symbols
     .replace(/\s+/g, ' ') // Normalize whitespace
     .trim()
 
   const maxLength = 150
   if (description.length > maxLength) {
-    description = description.slice(0, maxLength) + '...'
+    description = description.slice(0, maxLength - 3) + '...'
   }
 
   return {

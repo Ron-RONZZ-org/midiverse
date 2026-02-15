@@ -93,8 +93,9 @@ onMounted(() => {
 
 // Update page metadata
 useHead(() => {
-  const title = series.value ? `${series.value.name} - Series by ${username.value}` : 'Series'
-  const description = series.value?.description || `View the ${series.value?.name || 'series'} by ${username.value}`
+  const seriesName = series.value?.name || 'series'
+  const title = series.value ? `${seriesName} - ${username.value}` : 'Series'
+  const description = series.value?.description || `View the ${seriesName} by ${username.value}`
   
   return {
     title: title + ' - Midiverse',
@@ -105,7 +106,7 @@ useHead(() => {
       },
       {
         property: 'og:title',
-        content: title
+        content: title + ' - Midiverse'
       },
       {
         property: 'og:description',

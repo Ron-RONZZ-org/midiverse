@@ -23,10 +23,10 @@ export function generateMarkmapMeta(markmap: any) {
     .replace(/[#*_`\[\]()~]/g, '') // Remove markdown symbols
     .replace(/\s+/g, ' ') // Normalize whitespace
     .trim()
-    .slice(0, 150)
 
-  if (markmap.text.length > 150) {
-    description += '...'
+  const maxLength = 150
+  if (description.length > maxLength) {
+    description = description.slice(0, maxLength) + '...'
   }
 
   return {

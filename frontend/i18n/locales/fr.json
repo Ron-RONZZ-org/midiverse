@@ -52,6 +52,7 @@
     "contentPlaceholder": "# Racine\n## Branche 1\n### Sous-branche 1\n### Sous-branche 2\n## Branche 2\n\nUtilisez !{keynode} pour référencer des keynodes (ex: !{volcan})",
     "languageLabel": "Langue",
     "languagePlaceholder": "ex: fr - Français, en - English",
+    "useCustomLanguage": "Utiliser \"{code}\" comme langue personnalisée",
     "seriesLabel": "Série (facultatif)",
     "seriesPlaceholder": "Tapez pour rechercher ou sélectionner une série...",
     "newSeries": "+ Nouveau",

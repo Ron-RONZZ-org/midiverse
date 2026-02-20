@@ -126,16 +126,20 @@
                   @input="onLanguageInput"
                   @focus="onLanguageInput"
                   @blur="hideLanguageSuggestions"
+                  @keydown.down.prevent="navigateLanguageSuggestions(1)"
+                  @keydown.up.prevent="navigateLanguageSuggestions(-1)"
+                  @keydown.enter.prevent="selectHighlightedLanguageSuggestion"
                 />
                 <div v-if="showLanguageSuggestions && languageSuggestions.length > 0" class="suggestions-dropdown">
                   <div 
                     v-for="(suggestion, index) in languageSuggestions" 
                     :key="suggestion.code"
-                    :class="['suggestion-item', { active: index === selectedLanguageSuggestionIndex }]"
+                    :class="['suggestion-item', { active: index === selectedLanguageSuggestionIndex }, { 'suggestion-item-custom': suggestion.isCustom }]"
                     @mousedown.prevent="selectLanguageSuggestion(suggestion)"
                     @mouseenter="selectedLanguageSuggestionIndex = index"
                   >
-                    <span class="suggestion-name">{{ suggestion.code }} - {{ suggestion.name }}</span>
+                    <span v-if="suggestion.isCustom" class="suggestion-name">{{ t('editor.useCustomLanguage', { code: suggestion.code }) }}</span>
+                    <span v-else class="suggestion-name">{{ suggestion.code }} - {{ suggestion.name }}</span>
                   </div>
                 </div>
               </div>
@@ -459,7 +463,7 @@ let debounceTimer: NodeJS.Timeout | null = null
 
 // Language suggestions
 const languageInput = ref('')
-const languageSuggestions = ref<{ code: string; name: string }[]>([])
+const languageSuggestions = ref<{ code: string; name: string; isCustom?: boolean }[]>([])
 const showLanguageSuggestions = ref(false)
 const selectedLanguageSuggestionIndex = ref(0)
 let languageDebounceTimer: NodeJS.Timeout | null = null
@@ -779,7 +783,14 @@ const fetchLanguageSuggestions = async (query: string) => {
   try {
     const response = await authFetch(`/markmaps/languages/suggestions?query=${encodeURIComponent(query)}`)
     if (response.ok) {
-      languageSuggestions.value = await response.json()
+      const results: { code: string; name: string }[] = await response.json()
+      const trimmed = query.trim()
+      // Append a "use as custom language" option when query doesn't exactly match a known code
+      if (trimmed && !results.some(r => r.code.toLowerCase() === trimmed.toLowerCase())) {
+        languageSuggestions.value = [...results, { code: trimmed, name: '', isCustom: true }]
+      } else {
+        languageSuggestions.value = results
+      }
     }
   } catch (err) {
     console.error('Failed to fetch language suggestions', err)
@@ -803,13 +814,42 @@ const onLanguageInput = () => {
   }, 300)
 }
 
-const selectLanguageSuggestion = (language: { code: string; name: string }) => {
+const selectLanguageSuggestion = (language: { code: string; name: string; isCustom?: boolean }) => {
   form.value.language = language.code
-  languageInput.value = `${language.code} - ${language.name}`
+  languageInput.value = language.isCustom ? language.code : `${language.code} - ${language.name}`
   showLanguageSuggestions.value = false
 }
 
+const navigateLanguageSuggestions = (direction: number) => {
+  if (!showLanguageSuggestions.value || languageSuggestions.value.length === 0) return
+  selectedLanguageSuggestionIndex.value = (selectedLanguageSuggestionIndex.value + direction + languageSuggestions.value.length) % languageSuggestions.value.length
+}
+
+const selectHighlightedLanguageSuggestion = () => {
+  if (showLanguageSuggestions.value && languageSuggestions.value.length > 0) {
+    selectLanguageSuggestion(languageSuggestions.value[selectedLanguageSuggestionIndex.value])
+  }
+}
+
 const hideLanguageSuggestions = () => {
+  // Commit language from current input before hiding.
+  // ISO language codes never contain ' - ' (space-hyphen-space), so this
+  // pattern reliably distinguishes raw code input from already-formatted
+  // "code - name" display values set by selectLanguageSuggestion.
+  const input = languageInput.value.trim()
+  if (input && !input.includes(' - ')) {
+    // Check for exact code match in current suggestions (excluding custom option)
+    const exactMatch = languageSuggestions.value.find(
+      s => !s.isCustom && s.code.toLowerCase() === input.toLowerCase()
+    )
+    if (exactMatch) {
+      selectLanguageSuggestion(exactMatch)
+    } else {
+      // Treat raw input as a custom language code
+      form.value.language = input
+    }
+  }
+  // Delay hiding to allow mousedown on suggestion items to fire first
   setTimeout(() => {
     showLanguageSuggestions.value = false
   }, 200)
@@ -1818,6 +1858,11 @@ h1 {
 .suggestion-item.create-new .suggestion-name {
   color: #007bff;
   font-weight: 600;
+}
+
+.suggestion-item.suggestion-item-custom .suggestion-name {
+  color: #6c757d;
+  font-style: italic;
 }
 
 .autocomplete-wrapper {

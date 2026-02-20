@@ -52,6 +52,7 @@
     "contentPlaceholder": "# Root\n## Branch 1\n### Sub-branch 1\n### Sub-branch 2\n## Branch 2\n\nUse !{keynode} to reference keynodes (e.g., !{volcano})",
     "languageLabel": "Language",
     "languagePlaceholder": "e.g., en - English, fr - Français",
+    "useCustomLanguage": "Use \"{code}\" as custom language",
     "seriesLabel": "Series (optional)",
     "seriesPlaceholder": "Type to search or select a series...",
     "newSeries": "+ New",

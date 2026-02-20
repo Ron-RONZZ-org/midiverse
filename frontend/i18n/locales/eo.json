@@ -52,6 +52,7 @@
     "contentPlaceholder": "# Radiko\n## Branĉo 1\n### Sub-branĉo 1\n### Sub-branĉo 2\n## Branĉo 2\n\nUzu !{keynode} por referenci keynodojn (ekz: !{vulkano})",
     "languageLabel": "Lingvo",
     "languagePlaceholder": "ekz: eo - Esperanto, en - English",
+    "useCustomLanguage": "Uzi \"{code}\" kiel propran lingvon",
     "seriesLabel": "Serio (nedeviga)",
     "seriesPlaceholder": "Tajpu por serĉi aŭ elekti serion...",
     "newSeries": "+ Nova",

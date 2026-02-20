@@ -910,10 +910,14 @@ ${markmapConfig}
 
   private parseMarkdownImport(content: string): Partial<CreateMarkmapDto> {
     const lines = content.split('\n');
-    const firstLine = lines[0]?.trim() || 'Imported Markmap';
 
-    // Remove markdown header syntax from first line if present
-    const title = firstLine.replace(/^#+\s*/, '');
+    // Find the first line starting with '#' to use as title
+    const headingLine = lines.find((line) => /^#+\s*/.test(line.trim()));
+    const titleSource =
+      headingLine?.trim() ||
+      lines.find((line) => line.trim())?.trim() ||
+      'Imported Markmap';
+    const title = titleSource.replace(/^#+\s*/, '');
 
     return {
       title,

@@ -447,6 +447,15 @@ markmap:
       expect(result.tags).toEqual([]);
     });
 
+    it('should parse markdown file with blank lines before the heading', async () => {
+      const filename = 'test.md';
+      const markdown = `\n\n# Test Markmap\n## Section 1\n### Subsection 1.1`;
+
+      const result = await service.parseImportedFile(filename, markdown);
+
+      expect(result.title).toBe('Test Markmap');
+    });
+
     it('should parse text file', async () => {
       const filename = 'test.txt';
       const text = `My Notes\nPoint 1\nPoint 2`;
